@@ -40,9 +40,14 @@ You strictly adhere to the **Progressive Enhancement** philosophy and the **Post
 
 # Implementation Guidelines
 
-## Code Style
-- Keep handlers thin. Move business logic to the service/model layer.
-- Use dependency injection for DB access.
+    ## Workflow & Execution Constraints
+    - **Do NOT Execute `go run`:** This command runs indefinitely and blocks control. Do not run the server.
+    - **Build Verification Only:** Limit actions to code creation and build verification (e.g., `go build`).
+    - **User Verification:** The user will handle the actual runtime/operation verification.
+
+    ## Code Style
+    - Keep handlers thin. Move business logic to the service/model layer.
+    - Use dependency injection for DB access.
 
 ## Example: Echo Handler with Dual-Mode Rendering
 ```go
