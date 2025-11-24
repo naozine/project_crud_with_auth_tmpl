@@ -34,12 +34,10 @@ func main() {
 	}
 
 	if newModule == templateModule {
-		// If user didn't change anything and it's still the template name, ask again strictly or just proceed?
-		// Let's warn.
 		fmt.Println("Warning: You are keeping the template module name.")
 	}
 
-	fmt.Printf("\nReplacing '%s' (and '%s') -> '%s'...\n", currentModule, templateModule, newModule)
+	fmt.Printf("\nReplacing '%s' (and '%s') -> '%s'\n\n", currentModule, templateModule, newModule)
 
 	// 3. Walk and Replace
 	err = filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
@@ -88,8 +86,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 4. Cleanup
-	fmt.Println("\nCleaning up...")
+	// 4. Cleanup and create essential files
+	fmt.Println("\nCleaning up and creating essential files...")
 	filesToRemove := []string{
 		"go.sum",
 		"app.db",
@@ -103,10 +101,27 @@ func main() {
 		fmt.Printf("Removed: %s\n", f)
 	}
 
+	// Create .bypass_emails if it doesn't exist
+	bypassFilePath := ".bypass_emails"
+	if _, err := os.Stat(bypassFilePath); os.IsNotExist(err) {
+		content := `# Add email addresses here (one per line) to bypass email sending in development.
+# Example:
+# test@example.com
+`
+		err = os.WriteFile(bypassFilePath, []byte(content), 0644)
+		if err != nil {
+			fmt.Printf("Warning: Failed to create %s: %v\n", bypassFilePath, err)
+		} else {
+			fmt.Printf("Created: %s\n", bypassFilePath)
+		}
+	} else {
+		fmt.Printf("Found existing: %s\n", bypassFilePath)
+	}
+
 	fmt.Println("\n✅ Setup complete!")
 	fmt.Println("Next steps:")
-	fmt.Println("  1. go mod tidy")
-	fmt.Println("  2. go run github.com/a-h/templ/cmd/templ@latest generate")
+	fmt.Println("  1. go run github.com/a-h/templ/cmd/templ@latest generate")
+	fmt.Println("  2. go mod tidy")
 	fmt.Println("  3. go build -o app cmd/server/main.go")
 }
 
