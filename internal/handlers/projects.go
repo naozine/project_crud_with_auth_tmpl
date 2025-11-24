@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"project_crud_with_auth_tmpl/internal/database"
 	"project_crud_with_auth_tmpl/web/components"
@@ -20,17 +22,11 @@ func NewProjectHandler(db *database.Queries) *ProjectHandler {
 
 func (h *ProjectHandler) ListProjects(c echo.Context) error {
 	ctx := c.Request().Context()
-
-	// 1. Get Data
 	projects, err := h.DB.ListProjects(ctx)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
-
-	// 2. Prepare Component
 	content := components.ProjectList(projects)
-
-	// 3. Dual-Mode Rendering
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
 	if c.Request().Header.Get("HX-Request") == "true" {
 		return content.Render(ctx, c.Response().Writer)
@@ -41,7 +37,6 @@ func (h *ProjectHandler) ListProjects(c echo.Context) error {
 func (h *ProjectHandler) NewProjectPage(c echo.Context) error {
 	ctx := c.Request().Context()
 	content := components.ProjectForm()
-
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
 	if c.Request().Header.Get("HX-Request") == "true" {
 		return content.Render(ctx, c.Response().Writer)
@@ -51,10 +46,81 @@ func (h *ProjectHandler) NewProjectPage(c echo.Context) error {
 
 func (h *ProjectHandler) CreateProject(c echo.Context) error {
 	ctx := c.Request().Context()
+	name := c.FormValue("name")
+	_, err := h.DB.CreateProject(ctx, name)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
+	return c.Redirect(http.StatusSeeOther, "/projects")
+}
+
+func (h *ProjectHandler) ShowProject(c echo.Context) error {
+	ctx := c.Request().Context()
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID")
+	}
+
+	project, err := h.DB.GetProject(ctx, int64(id))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Project not found")
+	}
+
+	content := components.ProjectDetail(project)
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
+	if c.Request().Header.Get("HX-Request") == "true" {
+		return content.Render(ctx, c.Response().Writer)
+	}
+	return layouts.Base(project.Name, content).Render(ctx, c.Response().Writer)
+}
+
+func (h *ProjectHandler) EditProjectPage(c echo.Context) error {
+	ctx := c.Request().Context()
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID")
+	}
+
+	project, err := h.DB.GetProject(ctx, int64(id))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Project not found")
+	}
+
+	content := components.ProjectEdit(project)
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
+	if c.Request().Header.Get("HX-Request") == "true" {
+		return content.Render(ctx, c.Response().Writer)
+	}
+	return layouts.Base("編集: "+project.Name, content).Render(ctx, c.Response().Writer)
+}
+
+func (h *ProjectHandler) UpdateProject(c echo.Context) error {
+	ctx := c.Request().Context()
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID")
+	}
 
 	name := c.FormValue("name")
+	_, err = h.DB.UpdateProject(ctx, database.UpdateProjectParams{
+		Name: name,
+		ID:   int64(id),
+	})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
+	}
 
-	_, err := h.DB.CreateProject(ctx, name)
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/projects/%d", id))
+}
+
+func (h *ProjectHandler) DeleteProject(c echo.Context) error {
+	ctx := c.Request().Context()
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID")
+	}
+
+	err = h.DB.DeleteProject(ctx, int64(id))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}

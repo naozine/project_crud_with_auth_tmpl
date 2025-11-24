@@ -43,6 +43,10 @@ func main() {
 	e.GET("/projects", projectHandler.ListProjects)
 	e.GET("/projects/new", projectHandler.NewProjectPage)
 	e.POST("/projects/new", projectHandler.CreateProject)
+	e.GET("/projects/:id", projectHandler.ShowProject)
+	e.GET("/projects/:id/edit", projectHandler.EditProjectPage)
+	e.POST("/projects/:id/update", projectHandler.UpdateProject)
+	e.POST("/projects/:id/delete", projectHandler.DeleteProject)
 
 	// Start server
 	log.Fatal(e.Start(":8080"))

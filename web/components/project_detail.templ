@@ -1,0 +1,42 @@
+package components
+
+import (
+    "fmt"
+    "project_crud_with_auth_tmpl/internal/database"
+)
+
+templ ProjectDetail(project database.Project) {
+    <div class="max-w-3xl mx-auto">
+        <div class="mb-8 flex items-center justify-between">
+            <div>
+                <h2 class="text-2xl font-bold tracking-tight text-gray-900">{ project.Name }</h2>
+                <p class="mt-1 text-sm text-gray-500">ID: { fmt.Sprintf("%d", project.ID) } • 作成日: { project.CreatedAt.Time.Format("2006/01/02 15:04") }</p>
+            </div>
+            <div class="flex space-x-3">
+                <a href={ templ.URL(fmt.Sprintf("/projects/%d/edit", project.ID)) } class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
+                    編集
+                </a>
+                <form action={ templ.URL(fmt.Sprintf("/projects/%d/delete", project.ID)) } method="POST" onsubmit="return confirm('本当に削除しますか？');">
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        削除
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="bg-white shadow sm:rounded-lg border border-gray-200">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">プロジェクト詳細</h3>
+                <div class="mt-2 max-w-xl text-sm text-gray-500">
+                    <p>現在、このプロジェクトには追加の詳細情報はありません。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6">
+            <a href="/projects" class="text-sm font-medium text-gray-600 hover:text-gray-900">
+                ← 一覧に戻る
+            </a>
+        </div>
+    </div>
+}
