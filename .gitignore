@@ -1,1 +1,5 @@
 /.idea
+/project_crud_with_auth_tmpl
+
+# templ generated files
+*_templ.go
