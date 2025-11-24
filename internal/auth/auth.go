@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"net/http"
+
 	"github.com/labstack/echo/v4"
 	"github.com/naozine/nz-magic-link/magiclink"
 
@@ -17,6 +19,11 @@ func NewAuthHandler(ml *magiclink.MagicLink) *AuthHandler {
 }
 
 func (h *AuthHandler) LoginPage(c echo.Context) error {
+	_, isLoggedIn := h.ML.GetUserID(c)
+	if isLoggedIn {
+		return c.Redirect(http.StatusSeeOther, "/projects")
+	}
+
 	content := components.LoginForm()
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
 	if c.Request().Header.Get("HX-Request") == "true" {

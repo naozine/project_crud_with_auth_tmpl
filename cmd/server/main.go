@@ -39,6 +39,7 @@ func main() {
 		mlConfig.ServerAddr = "http://localhost:8080"
 	}
 	mlConfig.DevBypassEmailFilePath = ".bypass_emails" // For development: return magic link in response
+	mlConfig.RedirectURL = "/projects"                 // Redirect to projects list after login
 
 	// Configure SMTP
 	mlConfig.SMTPHost = os.Getenv("SMTP_HOST")
@@ -62,6 +63,7 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(auth.UserContextMiddleware(ml)) // Add UserContext middleware globally
 
 	e.Static("/static", "web/static")
 
