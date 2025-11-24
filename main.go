@@ -1,84 +1,119 @@
 package main
 
 import (
+	"database/sql"
+	"embed"
 	"log"
+	"net/http"
+	_ "strings"
 
 	"project_crud_with_auth_tmpl/components"
+	"project_crud_with_auth_tmpl/database"
 	"project_crud_with_auth_tmpl/layouts"
-	"project_crud_with_auth_tmpl/models"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-func main() {
-	e := echo.New()
+//go:embed db/schema.sql
+var schemaFS embed.FS
 
-	// Middleware
+type Handler struct {
+	DB *database.Queries
+}
+
+func main() {
+	// 1. Database Setup
+	db, err := sql.Open("sqlite3", "file:app.db?_busy_timeout=5000&_journal_mode=WAL&_foreign_keys=on")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	// Simple Migration
+	if err := applySchema(db); err != nil {
+		log.Fatal(err)
+	}
+
+	// 2. Initialize Handler
+	h := &Handler{
+		DB: database.New(db),
+	}
+
+	// 3. Echo Setup
+	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	// Routes
-	e.GET("/", helloWorldHandler)
-	e.GET("/projects", listProjectsHandler)
+	// 4. Routes
+	e.GET("/", h.HelloWorld)
+	e.GET("/projects", h.ListProjects)
+	e.GET("/projects/new", h.NewProjectPage)
+	e.POST("/projects/new", h.CreateProject)
 
 	// Start server
 	log.Fatal(e.Start(":8080"))
 }
 
-func helloWorldHandler(c echo.Context) error {
-
-	// リクエストがhtmxからの場合、コンポーネントのみをレンダリングする。
-
-	if c.Request().Header.Get("HX-Request") == "true" {
-
-		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
-
-		return components.HelloWorld().Render(c.Request().Context(), c.Response().Writer)
-
+func applySchema(db *sql.DB) error {
+	schema, err := schemaFS.ReadFile("db/schema.sql")
+	if err != nil {
+		return err
 	}
-
-	// それ以外の場合、完全なレイアウトをレンダリングする
-
-	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
-
-	// Hello World用には、一貫性のためにBaseレイアウトでラップする。
-
-	return layouts.Base("Hello", components.HelloWorld()).Render(c.Request().Context(), c.Response().Writer)
-
+	_, err = db.Exec(string(schema))
+	return err
 }
 
-func listProjectsHandler(c echo.Context) error {
+func (h *Handler) HelloWorld(c echo.Context) error {
+	if c.Request().Header.Get("HX-Request") == "true" {
+		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
+		return components.HelloWorld().Render(c.Request().Context(), c.Response().Writer)
+	}
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
+	return layouts.Base("Hello", components.HelloWorld()).Render(c.Request().Context(), c.Response().Writer)
+}
 
-	// モックデータ
+func (h *Handler) ListProjects(c echo.Context) error {
+	ctx := c.Request().Context()
 
-	projects := []models.Project{
-
-		{ID: 1, Name: "プロジェクト Alpha", Description: "最初のプロジェクトです", Status: "進行中"},
-
-		{ID: 2, Name: "プロジェクト Beta", Description: "2番目のプロジェクトです", Status: "保留中"},
-
-		{ID: 3, Name: "プロジェクト Gamma", Description: "3番目のプロジェクトです", Status: "完了"},
+	// 1. Get Data
+	projects, err := h.DB.ListProjects(ctx)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
 
-	// 1. コンポーネントの準備
-
+	// 2. Prepare Component
 	content := components.ProjectList(projects)
 
-	// 2. デュアルモードレンダリング
+	// 3. Dual-Mode Rendering
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
+	if c.Request().Header.Get("HX-Request") == "true" {
+		return content.Render(ctx, c.Response().Writer)
+	}
+	return layouts.Base("プロジェクト一覧", content).Render(ctx, c.Response().Writer)
+}
+
+func (h *Handler) NewProjectPage(c echo.Context) error {
+	ctx := c.Request().Context()
+	content := components.ProjectForm()
 
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
-
 	if c.Request().Header.Get("HX-Request") == "true" {
+		return content.Render(ctx, c.Response().Writer)
+	}
+	return layouts.Base("新規プロジェクト作成", content).Render(ctx, c.Response().Writer)
+}
 
-		// リストコンポーネント（フラグメント）のみをレンダリング
+func (h *Handler) CreateProject(c echo.Context) error {
+	ctx := c.Request().Context()
 
-		return content.Render(c.Request().Context(), c.Response().Writer)
+	name := c.FormValue("name")
 
+	_, err := h.DB.CreateProject(ctx, name)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err)
 	}
 
-	// コンポーネントをラップした完全なレイアウトをレンダリング
-
-	return layouts.Base("プロジェクト一覧", content).Render(c.Request().Context(), c.Response().Writer)
-
+	return c.Redirect(http.StatusSeeOther, "/projects")
 }

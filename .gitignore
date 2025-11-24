@@ -4,3 +4,8 @@
 # templ generated files
 *_templ.go
 /tmp/main
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal

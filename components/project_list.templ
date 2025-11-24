@@ -1,15 +1,15 @@
 package components
 
-import "project_crud_with_auth_tmpl/models"
+import "project_crud_with_auth_tmpl/database"
 import "fmt"
 
-templ ProjectList(projects []models.Project) {
+templ ProjectList(projects []database.Project) {
 	<div class="bg-white shadow overflow-hidden sm:rounded-md">
 		<div class="px-4 py-5 sm:px-6 flex justify-between items-center">
 			<h2 class="text-lg leading-6 font-medium text-gray-900">プロジェクト一覧</h2>
-			<button class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none">
+			<a href="/projects/new" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none">
 				新規作成
-			</button>
+			</a>
 		</div>
 		<ul role="list" class="divide-y divide-gray-200">
 			for _, p := range projects {
@@ -18,18 +18,6 @@ templ ProjectList(projects []models.Project) {
 						<div class="px-4 py-4 sm:px-6">
 							<div class="flex items-center justify-between">
 								<p class="text-sm font-medium text-indigo-600 truncate">{ p.Name }</p>
-								<div class="ml-2 flex-shrink-0 flex">
-									<p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-										{ p.Status }
-									</p>
-								</div>
-							</div>
-							<div class="mt-2 sm:flex sm:justify-between">
-								<div class="sm:flex">
-									<p class="flex items-center text-sm text-gray-500">
-										{ p.Description }
-									</p>
-								</div>
 							</div>
 						</div>
 					</a>
