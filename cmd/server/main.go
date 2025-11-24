@@ -4,49 +4,89 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 
 	"project_crud_with_auth_tmpl/db"
+	"project_crud_with_auth_tmpl/internal/auth"
 	"project_crud_with_auth_tmpl/internal/database"
 	"project_crud_with_auth_tmpl/internal/handlers"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/naozine/nz-magic-link/magiclink"
 )
 
 func main() {
-	// 1. Database Setup
+	// 1. Database Setup (for projects)
 	conn, err := sql.Open("sqlite3", "file:app.db?_busy_timeout=5000&_journal_mode=WAL&_foreign_keys=on")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to connect to app.db:", err)
 	}
 	defer conn.Close()
 
 	// Simple Migration
 	if err := applySchema(conn); err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to apply app schema:", err)
 	}
 
-	// 2. Initialize Handlers
+	// 2. MagicLink Setup
+	mlConfig := magiclink.DefaultConfig()
+	mlConfig.DatabasePath = "magiclink.db" // Uses a separate database for magic links
+	mlConfig.ServerAddr = os.Getenv("SERVER_ADDR")
+	if mlConfig.ServerAddr == "" {
+		mlConfig.ServerAddr = "http://localhost:8080"
+	}
+	mlConfig.DevBypassEmailFilePath = ".bypass_emails" // For development: return magic link in response
+
+	// Configure SMTP
+	mlConfig.SMTPHost = os.Getenv("SMTP_HOST")
+	mlConfig.SMTPPort = mustAtoi(os.Getenv("SMTP_PORT"), 587)
+	mlConfig.SMTPUsername = os.Getenv("SMTP_USERNAME")
+	mlConfig.SMTPPassword = os.Getenv("SMTP_PASSWORD")
+	mlConfig.SMTPFrom = os.Getenv("SMTP_FROM")
+	mlConfig.SMTPFromName = os.Getenv("SMTP_FROM_NAME")
+
+	ml, err := magiclink.New(mlConfig)
+	if err != nil {
+		log.Fatal("Failed to initialize MagicLink:", err)
+	}
+
+	// 3. Initialize Handlers
 	queries := database.New(conn)
 	projectHandler := handlers.NewProjectHandler(queries)
+	authHandler := auth.NewAuthHandler(ml)
 
-	// 3. Echo Setup
+	// 4. Echo Setup
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	// 4. Routes
+	e.Static("/static", "web/static")
+
+	// 5. Routes
+	// Public Routes
 	e.GET("/", func(c echo.Context) error {
-		return c.Redirect(http.StatusMovedPermanently, "/projects")
+		return c.Redirect(http.StatusSeeOther, "/auth/login")
 	})
-	e.GET("/projects", projectHandler.ListProjects)
-	e.GET("/projects/new", projectHandler.NewProjectPage)
-	e.POST("/projects/new", projectHandler.CreateProject)
-	e.GET("/projects/:id", projectHandler.ShowProject)
-	e.GET("/projects/:id/edit", projectHandler.EditProjectPage)
-	e.POST("/projects/:id/update", projectHandler.UpdateProject)
-	e.POST("/projects/:id/delete", projectHandler.DeleteProject)
+	e.GET("/auth/login", authHandler.LoginPage)
+
+	// MagicLink internal handlers
+	ml.RegisterHandlers(e)
+
+	// Protected Routes
+	// All project routes require authentication
+	projectGroup := e.Group("/projects")
+	projectGroup.Use(ml.AuthMiddleware()) // Apply auth middleware to this group
+
+	projectGroup.GET("", projectHandler.ListProjects)
+	projectGroup.GET("/new", projectHandler.NewProjectPage)
+	projectGroup.POST("/new", projectHandler.CreateProject)
+	projectGroup.GET("/:id", projectHandler.ShowProject)
+	projectGroup.GET("/:id/edit", projectHandler.EditProjectPage)
+	projectGroup.POST("/:id/update", projectHandler.UpdateProject)
+	projectGroup.POST("/:id/delete", projectHandler.DeleteProject)
 
 	// Start server
 	log.Fatal(e.Start(":8080"))
@@ -59,4 +99,16 @@ func applySchema(conn *sql.DB) error {
 	}
 	_, err = conn.Exec(string(schema))
 	return err
+}
+
+func mustAtoi(s string, defaultValue int) int {
+	if s == "" {
+		return defaultValue
+	}
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		log.Printf("Warning: Could not parse %q as int, using default %d. Error: %v", s, defaultValue, err)
+		return defaultValue
+	}
+	return i
 }

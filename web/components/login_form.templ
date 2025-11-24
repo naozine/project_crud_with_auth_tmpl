@@ -1,0 +1,30 @@
+package components
+
+templ LoginForm() {
+    <div class="max-w-md mx-auto">
+        <div class="mb-8 text-center">
+            <h2 class="text-2xl font-bold tracking-tight text-gray-900">ログイン</h2>
+            <p class="mt-2 text-sm text-gray-500">メールアドレスを入力してマジックリンクを受け取ってください。</p>
+        </div>
+        
+        <form id="login-form" hx-post="/auth/login" hx-ext="json-enc" hx-swap="none" class="space-y-6">
+            <div>
+                <label for="email" class="block text-sm font-medium leading-6 text-gray-900">メールアドレス</label>
+                <div class="mt-2">
+                    <input type="email" name="email" id="email" required 
+                        class="block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"
+                        placeholder="test@example.com"
+                    />
+                </div>
+            </div>
+
+            <div id="auth-messages" class="hidden p-4 rounded-md"></div>
+
+            <button type="submit" class="w-full rounded-md bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
+                マジックリンクを送信
+            </button>
+        </form>
+
+        <script src="/static/js/login.js"></script>
+    </div>
+}
