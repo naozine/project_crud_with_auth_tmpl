@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -24,13 +25,14 @@ func main() {
 	fmt.Printf("Current module name: %s\n", currentModule)
 
 	// 2. Ask for new module name
+	defaultModule := suggestModuleName()
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("Enter new module name (e.g., github.com/user/my-app) [default: %s]: ", currentModule)
+	fmt.Printf("Enter new module name (e.g., github.com/user/my-app) [default: %s]: ", defaultModule)
 	newModule, _ := reader.ReadString('\n')
 	newModule = strings.TrimSpace(newModule)
 
 	if newModule == "" {
-		newModule = currentModule
+		newModule = defaultModule
 	}
 
 	if newModule == templateModule {
@@ -151,6 +153,41 @@ SERVER_ADDR="http://localhost:8080"
 	fmt.Println("  1. go run github.com/a-h/templ/cmd/templ@latest generate")
 	fmt.Println("  2. go mod tidy")
 	fmt.Println("  3. go build -o app cmd/server/main.go")
+}
+
+func suggestModuleName() string {
+	// 1. Get current directory name
+	wd, _ := os.Getwd()
+	dirName := filepath.Base(wd)
+
+	// 2. Try to get git user name
+	gitUser := getGitConfig("github.user")
+	if gitUser == "" {
+		gitUser = getGitConfig("user.name")
+	}
+
+	// Clean up git user (remove spaces, lowercase)
+	gitUser = strings.ToLower(strings.ReplaceAll(gitUser, " ", ""))
+
+	if gitUser == "" {
+		// Fallback to OS user
+		gitUser = os.Getenv("USER")
+	}
+
+	if gitUser == "" {
+		gitUser = "user"
+	}
+
+	return fmt.Sprintf("github.com/%s/%s", gitUser, dirName)
+}
+
+func getGitConfig(key string) string {
+	cmd := exec.Command("git", "config", "--get", key)
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 func getCurrentModuleName() (string, error) {
