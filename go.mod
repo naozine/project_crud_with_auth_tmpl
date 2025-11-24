@@ -1,4 +1,4 @@
-module project_crud_with_auth_tmpl
+module github.com/naozine/project_crud_with_auth_tmpl
 
 go 1.25
 

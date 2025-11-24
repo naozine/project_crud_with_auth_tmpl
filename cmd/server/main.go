@@ -7,10 +7,10 @@ import (
 	"os"
 	"strconv"
 
-	"project_crud_with_auth_tmpl/db"
-	"project_crud_with_auth_tmpl/internal/database"
-	"project_crud_with_auth_tmpl/internal/handlers"
-	appMiddleware "project_crud_with_auth_tmpl/internal/middleware"
+	"github.com/naozine/project_crud_with_auth_tmpl/db"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
+	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"

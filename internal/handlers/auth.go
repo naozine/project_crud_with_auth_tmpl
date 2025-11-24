@@ -6,8 +6,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/naozine/nz-magic-link/magiclink"
 
-	"project_crud_with_auth_tmpl/web/components"
-	"project_crud_with_auth_tmpl/web/layouts"
+	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
+	"github.com/naozine/project_crud_with_auth_tmpl/web/layouts"
 )
 
 type AuthHandler struct {

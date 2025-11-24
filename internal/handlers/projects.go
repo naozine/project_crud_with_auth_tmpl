@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"project_crud_with_auth_tmpl/internal/database"
-	"project_crud_with_auth_tmpl/web/components"
-	"project_crud_with_auth_tmpl/web/layouts"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
+	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
+	"github.com/naozine/project_crud_with_auth_tmpl/web/layouts"
 
 	"github.com/labstack/echo/v4"
 )

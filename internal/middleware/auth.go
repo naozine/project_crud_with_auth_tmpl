@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"project_crud_with_auth_tmpl/internal/appcontext"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 
 	"github.com/labstack/echo/v4"
 	"github.com/naozine/nz-magic-link/magiclink"

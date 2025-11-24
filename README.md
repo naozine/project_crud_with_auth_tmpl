@@ -28,7 +28,7 @@ If you have `gonew` installed:
 
 ```bash
 go install golang.org/x/tools/cmd/gonew@latest
-gonew github.com/yourname/goth-template example.com/my-new-app
+gonew github.com/naozine/project_crud_with_auth_tmpl example.com/my-new-app
 cd my-new-app
 go mod tidy
 ```
@@ -37,7 +37,7 @@ go mod tidy
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourname/goth-template.git my-new-app
+   git clone https://github.com/naozine/project_crud_with_auth_tmpl.git my-new-app
    cd my-new-app
    ```
 
