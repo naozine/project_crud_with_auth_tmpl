@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+const templateModule = "github.com/naozine/project_crud_with_auth_tmpl"
+
 func main() {
 	fmt.Println("🚀 GOTH Stack Template Setup Tool")
 	fmt.Println("--------------------------------")
@@ -23,21 +25,21 @@ func main() {
 
 	// 2. Ask for new module name
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter new module name (e.g., github.com/user/my-app): ")
+	fmt.Printf("Enter new module name (e.g., github.com/user/my-app) [default: %s]: ", currentModule)
 	newModule, _ := reader.ReadString('\n')
 	newModule = strings.TrimSpace(newModule)
 
 	if newModule == "" {
-		fmt.Println("Module name cannot be empty.")
-		os.Exit(1)
+		newModule = currentModule
 	}
 
-	if newModule == currentModule {
-		fmt.Println("New module name is the same as the current one. Nothing to do.")
-		os.Exit(0)
+	if newModule == templateModule {
+		// If user didn't change anything and it's still the template name, ask again strictly or just proceed?
+		// Let's warn.
+		fmt.Println("Warning: You are keeping the template module name.")
 	}
 
-	fmt.Printf("\nReplacing '%s' -> '%s'...\n", currentModule, newModule)
+	fmt.Printf("\nReplacing '%s' (and '%s') -> '%s'...\n", currentModule, templateModule, newModule)
 
 	// 3. Walk and Replace
 	err = filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
@@ -71,7 +73,8 @@ func main() {
 
 			// Also check for specific files without extensions
 			if validExts[ext] || d.Name() == "Dockerfile" || d.Name() == "Makefile" {
-				if err := replaceInFile(path, currentModule, newModule); err != nil {
+				// Replace both currentModule AND templateModule
+				if err := replaceInFile(path, []string{currentModule, templateModule}, newModule); err != nil {
 					fmt.Printf("Failed to process %s: %v\n", path, err)
 				}
 			}
@@ -103,7 +106,7 @@ func main() {
 	fmt.Println("\n✅ Setup complete!")
 	fmt.Println("Next steps:")
 	fmt.Println("  1. go mod tidy")
-	fmt.Println("  2. go run github.com/a-h/templ@latest generate")
+	fmt.Println("  2. go run github.com/a-h/templ/cmd/templ@latest generate")
 	fmt.Println("  3. go build -o app cmd/server/main.go")
 }
 
@@ -124,18 +127,25 @@ func getCurrentModuleName() (string, error) {
 	return "", fmt.Errorf("module name not found in go.mod")
 }
 
-func replaceInFile(path, old, new string) error {
+func replaceInFile(path string, olds []string, new string) error {
 	// Read file
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 
-	// Replace
-	newContent := strings.ReplaceAll(string(content), old, new)
+	strContent := string(content)
+	newContent := strContent
+
+	// Replace all occurrences of all old strings
+	for _, old := range olds {
+		if old != "" && old != new {
+			newContent = strings.ReplaceAll(newContent, old, new)
+		}
+	}
 
 	// If changed, write back
-	if newContent != string(content) {
+	if newContent != strContent {
 		// Preserve permission
 		info, err := os.Stat(path)
 		if err != nil {
