@@ -1,3 +1,11 @@
+// ログインフォームの処理。
+// nz-magic-linkライブラリの/auth/loginエンドポイントはJSONレスポンスを返すため、
+// HTMXのHTMLスワップを直接使用できません。
+// そのため、ここでは例外的にJavaScriptでJSONレスポンスをハンドリングし、
+// DOMを更新しています。
+// これは原則である「HTMXによるHTMLスワップ」からの逸脱であり、
+// 外部ライブラリの制約によるやむを得ない措置です。
+// 通常のHTMLレスポンスを返すエンドポイントでは、この方法は避けてください。
 document.body.addEventListener('htmx:afterRequest', function(evt) {
     if (evt.detail.elt.id !== 'login-form') return;
 
