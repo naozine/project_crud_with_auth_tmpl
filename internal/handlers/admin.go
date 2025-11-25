@@ -41,11 +41,13 @@ func (h *AdminHandler) ListUsers(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "Failed to list users")
 	}
 
-	// If HTMX request, render just the content part (e.g. after adding a user)
-	// But for now, let's just re-render the whole page or list for simplicity
-	// To make it smoother with HTMX, we might want to return just the list component
-	// For now, full page render for GET /admin/users
 	content := components.UserList(users)
+
+	// If HTMX request, render just the content part
+	if c.Request().Header.Get("HX-Request") == "true" {
+		return content.Render(c.Request().Context(), c.Response().Writer)
+	}
+
 	return layouts.Base("ユーザー管理", content).Render(c.Request().Context(), c.Response().Writer)
 }
 
