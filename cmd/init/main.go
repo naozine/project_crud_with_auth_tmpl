@@ -94,8 +94,9 @@ func main() {
 		"go.sum",
 		"app.db",
 		"magiclink.db",
-		"app", // binary
-		"tmp", // directory
+		"app",  // binary
+		"tmp",  // directory
+		".git", // テンプレートのgit履歴を削除
 	}
 
 	for _, f := range filesToRemove {
@@ -146,6 +147,15 @@ SERVER_ADDR="http://localhost:8080"
 		}
 	} else {
 		fmt.Printf("Found existing: %s\n", envFilePath)
+	}
+
+	// 5. Initialize new git repository
+	fmt.Println("\nInitializing new git repository...")
+	if err := initGitRepo(); err != nil {
+		fmt.Printf("Warning: Failed to initialize git repository: %v\n", err)
+		fmt.Println("You may need to run 'git init' manually.")
+	} else {
+		fmt.Println("Git repository initialized.")
 	}
 
 	fmt.Println("\n✅ Setup complete!")
@@ -205,6 +215,13 @@ func getCurrentModuleName() (string, error) {
 		}
 	}
 	return "", fmt.Errorf("module name not found in go.mod")
+}
+
+func initGitRepo() error {
+	cmd := exec.Command("git", "init")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 func replaceInFile(path string, olds []string, new string) error {
