@@ -32,3 +32,5 @@ require (
 	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 )
+
+replace github.com/naozine/nz-magic-link => ./relate_projects/nz-magic-link

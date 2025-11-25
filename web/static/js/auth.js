@@ -91,8 +91,8 @@ async function loginPasskey() {
         showAuthMessage("パスキーでログイン中...", false);
         const res = await MagicLink.login(email);
         if (res.success) {
-            // Redirect to dashboard or reload
-            window.location.href = res.redirect_url || "/projects";
+            // Redirection is now handled by the MagicLink library itself via webauthn.js
+            // If you need to perform additional actions before redirect, add them here.
         }
     } catch (e) {
         showAuthMessage("ログインエラー: " + e.message, true);
@@ -104,7 +104,8 @@ async function loginDiscoverable() {
         showAuthMessage("端末認証でログイン中...", false);
         const res = await MagicLink.loginDiscoverable();
         if (res.success) {
-            window.location.href = res.redirect_url || "/projects";
+            // Redirection is now handled by the MagicLink library itself via webauthn.js
+            // If you need to perform additional actions before redirect, add them here.
         }
     } catch (e) {
         showAuthMessage("ログインエラー: " + e.message, true);

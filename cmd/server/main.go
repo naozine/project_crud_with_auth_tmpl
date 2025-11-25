@@ -71,6 +71,8 @@ func main() {
 	if mlConfig.WebAuthnRPName == "" {
 		mlConfig.WebAuthnRPName = "Project CRUD"
 	}
+	mlConfig.WebAuthnRedirectURL = "/projects" // Redirect to projects list after passkey login
+
 	allowedOrigins := os.Getenv("WEBAUTHN_ALLOWED_ORIGINS")
 	if allowedOrigins != "" {
 		mlConfig.WebAuthnAllowedOrigins = []string{allowedOrigins}
