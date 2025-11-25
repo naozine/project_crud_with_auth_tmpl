@@ -24,7 +24,18 @@ func (h *AuthHandler) LoginPage(c echo.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/projects")
 	}
 
-	content := components.LoginForm()
+	errorMessage := c.QueryParam("error_description")
+	// If the error is specifically about a used token, make it more user-friendly (optional, but good UX)
+	// The library returns "token has already been used" in error_description
+	if c.QueryParam("error") == "token_used" {
+		errorMessage = "このログインリンクは既に使用されています。もう一度メールアドレスを入力して新しいリンクを取得してください。"
+	} else if errorMessage == "token has expired" {
+		errorMessage = "ログインリンクの有効期限が切れています。もう一度お試しください。"
+	} else if errorMessage == "invalid token" {
+		errorMessage = "無効なログインリンクです。"
+	}
+
+	content := components.LoginForm(errorMessage)
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
 	if c.Request().Header.Get("HX-Request") == "true" {
 		return content.Render(c.Request().Context(), c.Response().Writer)

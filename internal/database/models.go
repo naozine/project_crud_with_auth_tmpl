@@ -13,3 +13,13 @@ type Project struct {
 	Name      string       `json:"name"`
 	CreatedAt sql.NullTime `json:"created_at"`
 }
+
+type User struct {
+	ID        int64        `json:"id"`
+	Email     string       `json:"email"`
+	Name      string       `json:"name"`
+	Role      string       `json:"role"`
+	IsActive  bool         `json:"is_active"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
+}

@@ -22,13 +22,61 @@ func (q *Queries) CreateProject(ctx context.Context, name string) (Project, erro
 	return i, err
 }
 
+const createUser = `-- name: CreateUser :one
+
+INSERT INTO users (email, name, role, is_active)
+
+VALUES (?, ?, ?, ?)
+
+RETURNING id, email, name, role, is_active, created_at, updated_at
+`
+
+type CreateUserParams struct {
+	Email    string `json:"email"`
+	Name     string `json:"name"`
+	Role     string `json:"role"`
+	IsActive bool   `json:"is_active"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.Email,
+		arg.Name,
+		arg.Role,
+		arg.IsActive,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Name,
+		&i.Role,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const deleteProject = `-- name: DeleteProject :exec
+
 DELETE FROM projects
+
 WHERE id = ?
 `
 
 func (q *Queries) DeleteProject(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteProject, id)
+	return err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+
+DELETE FROM users WHERE id = ?
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, id)
 	return err
 }
 
@@ -40,6 +88,26 @@ func (q *Queries) GetProject(ctx context.Context, id int64) (Project, error) {
 	row := q.db.QueryRowContext(ctx, getProject, id)
 	var i Project
 	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+
+SELECT id, email, name, role, is_active, created_at, updated_at FROM users WHERE email = ? LIMIT 1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Name,
+		&i.Role,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
@@ -70,6 +138,42 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 	return items, nil
 }
 
+const listUsers = `-- name: ListUsers :many
+
+SELECT id, email, name, role, is_active, created_at, updated_at FROM users ORDER BY created_at DESC
+`
+
+func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, listUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.Name,
+			&i.Role,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateProject = `-- name: UpdateProject :one
 UPDATE projects
 SET name = ?
@@ -86,5 +190,43 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 	row := q.db.QueryRowContext(ctx, updateProject, arg.Name, arg.ID)
 	var i Project
 	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
+	return i, err
+}
+
+const updateUser = `-- name: UpdateUser :one
+
+UPDATE users
+
+SET name = ?, role = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+
+WHERE id = ?
+
+RETURNING id, email, name, role, is_active, created_at, updated_at
+`
+
+type UpdateUserParams struct {
+	Name     string `json:"name"`
+	Role     string `json:"role"`
+	IsActive bool   `json:"is_active"`
+	ID       int64  `json:"id"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUser,
+		arg.Name,
+		arg.Role,
+		arg.IsActive,
+		arg.ID,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Name,
+		&i.Role,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
