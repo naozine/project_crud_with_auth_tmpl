@@ -7,7 +7,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/mattn/go-sqlite3 v1.14.32
-	github.com/naozine/nz-magic-link v0.1.5
+	github.com/naozine/nz-magic-link v0.1.6
 )
 
 require (
@@ -32,5 +32,3 @@ require (
 	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 )
-
-replace github.com/naozine/nz-magic-link => ./relate_projects/nz-magic-link

@@ -39,6 +39,8 @@ github.com/mattn/go-sqlite3 v1.14.32 h1:JD12Ag3oLy1zQA+BNn74xRgaBbdhbNIDYvQUEuuE
 github.com/mattn/go-sqlite3 v1.14.32/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
 github.com/naozine/nz-magic-link v0.1.5 h1:IzBZnKFNeA1Ext8ZzR2pVBOOFsv3ZA5pdOUDwsyyHlY=
 github.com/naozine/nz-magic-link v0.1.5/go.mod h1:yFFXcRzlacJKQnQ8aMxT3koBQgIsIaXinbI3t7p+X9M=
+github.com/naozine/nz-magic-link v0.1.6 h1:wtdL30Lenhqn9AQVnJy6DVMExjgMLMhY1dCb4pX828U=
+github.com/naozine/nz-magic-link v0.1.6/go.mod h1:yFFXcRzlacJKQnQ8aMxT3koBQgIsIaXinbI3t7p+X9M=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.7.0 h1:WSHQ+IS43OoUrWtD1/bbclrwK8TTH5hzp+umCiuxHgs=
 github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
