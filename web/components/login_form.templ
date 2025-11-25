@@ -25,6 +25,19 @@ templ LoginForm() {
             </button>
         </form>
 
-        <script src="/static/js/login.js"></script>
+        <div class="relative flex py-5 items-center">
+            <div class="flex-grow border-t border-gray-300"></div>
+            <span class="flex-shrink-0 mx-4 text-gray-400 text-sm">または</span>
+            <div class="flex-grow border-t border-gray-300"></div>
+        </div>
+
+        <div class="space-y-3">
+            <button onclick="loginPasskey()" type="button" class="w-full rounded-md bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+                パスキーでログイン (メール入力済)
+            </button>
+            <button onclick="loginDiscoverable()" type="button" class="w-full rounded-md bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-colors">
+                端末認証でログイン (メール不要)
+            </button>
+        </div>
     </div>
 }

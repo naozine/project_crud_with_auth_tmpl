@@ -61,6 +61,23 @@ func main() {
 	mlConfig.SMTPFrom = os.Getenv("SMTP_FROM")
 	mlConfig.SMTPFromName = os.Getenv("SMTP_FROM_NAME")
 
+	// WebAuthn Configuration
+	mlConfig.WebAuthnEnabled = true
+	mlConfig.WebAuthnRPID = os.Getenv("WEBAUTHN_RP_ID")
+	if mlConfig.WebAuthnRPID == "" {
+		mlConfig.WebAuthnRPID = "localhost"
+	}
+	mlConfig.WebAuthnRPName = os.Getenv("WEBAUTHN_RP_NAME")
+	if mlConfig.WebAuthnRPName == "" {
+		mlConfig.WebAuthnRPName = "Project CRUD"
+	}
+	allowedOrigins := os.Getenv("WEBAUTHN_ALLOWED_ORIGINS")
+	if allowedOrigins != "" {
+		mlConfig.WebAuthnAllowedOrigins = []string{allowedOrigins}
+	} else {
+		mlConfig.WebAuthnAllowedOrigins = []string{"http://localhost:8080"}
+	}
+
 	ml, err := magiclink.New(mlConfig)
 	if err != nil {
 		log.Fatal("Failed to initialize MagicLink:", err)

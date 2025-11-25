@@ -12,6 +12,10 @@ templ Base(title string, content templ.Component) {
 			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
 			<script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
 			<script src="https://cdn.tailwindcss.com"></script>
+            <!-- WebAuthn Scripts -->
+            <script src="/webauthn/static/webauthn.js"></script>
+            <script src="/static/js/auth.js"></script>
+
             <link rel="preconnect" href="https://fonts.googleapis.com"/>
             <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
@@ -42,6 +46,14 @@ templ Base(title string, content templ.Component) {
                         <div class="flex items-center">
                             if isLoggedIn {
                                 <span class="text-sm text-gray-600 mr-4">{ userEmail }</span>
+                                <button 
+                                    data-email={ userEmail }
+                                    onclick="registerPasskey(this.dataset.email)"
+                                    type="button" 
+                                    class="mr-4 bg-white text-indigo-600 hover:text-indigo-900 font-medium text-sm border border-indigo-600 rounded px-3 py-1 transition-colors"
+                                >
+                                    パスキー登録
+                                </button>
                                 <form action="/auth/logout" method="POST">
                                     <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium">
                                         ログアウト
