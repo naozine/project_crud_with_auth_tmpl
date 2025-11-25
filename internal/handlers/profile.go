@@ -75,3 +75,27 @@ func (h *ProfileHandler) UpdateProfile(c echo.Context) error {
 	// Or redirect to /profile
 	return c.Redirect(http.StatusSeeOther, "/profile")
 }
+
+func (h *ProfileHandler) DeletePasskeys(c echo.Context) error {
+	ctx := c.Request().Context()
+	email, _, _ := appcontext.GetUser(ctx)
+
+	// Get all credentials for the user
+	creds, err := h.ML.DB.GetPasskeyCredentialsByUserID(email)
+	if err != nil {
+		log.Printf("Failed to get passkeys: %v", err)
+		return c.String(http.StatusInternalServerError, "Failed to get passkeys")
+	}
+
+	// Delete each credential
+	for _, cred := range creds {
+		if err := h.ML.DB.DeletePasskeyCredential(cred.ID); err != nil {
+			log.Printf("Failed to delete passkey %s: %v", cred.ID, err)
+			// Continue deleting others even if one fails
+		}
+	}
+
+	// Use HX-Redirect to force full page reload
+	c.Response().Header().Set("HX-Redirect", "/profile")
+	return c.NoContent(http.StatusOK)
+}

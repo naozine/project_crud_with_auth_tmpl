@@ -67,9 +67,10 @@ async function registerPasskey(email) {
         }
 
         const res = await MagicLink.register(email);
+        
         if (res.success) {
-            if(isDashboard) alert("パスキーの登録が完了しました。次回からこの端末でログインできます。");
-            else showAuthMessage("パスキーの登録が完了しました。", false);
+            // Always reload to reflect the new passkey status from server
+            location.reload();
         }
     } catch (e) {
         if (!document.getElementById('auth-messages')) alert("エラー: " + e.message);

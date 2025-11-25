@@ -165,6 +165,7 @@ func main() {
 	// Profile Routes
 	e.GET("/profile", profileHandler.ShowProfile, ml.AuthMiddleware())
 	e.POST("/profile", profileHandler.UpdateProfile, ml.AuthMiddleware())
+	e.DELETE("/profile/passkeys", profileHandler.DeletePasskeys, ml.AuthMiddleware())
 
 	// Start server
 	log.Fatal(e.Start(":8080"))
