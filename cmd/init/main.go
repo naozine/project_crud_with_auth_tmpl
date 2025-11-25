@@ -65,9 +65,9 @@ func main() {
 		"go.sum",
 		"app.db",
 		"magiclink.db",
-		"app",  // binary
-		"tmp",  // directory
-		".git", // テンプレートのgit履歴を削除
+		"app", // binary
+		"tmp", // directory
+		//".git", // Use this templateでリポジトリを作ってからクローンして使う想定なので、消さない
 	}
 
 	for _, f := range filesToRemove {
