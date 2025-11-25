@@ -48,6 +48,7 @@ func main() {
 	}
 	mlConfig.DevBypassEmailFilePath = ".bypass_emails" // For development: return magic link in response
 	mlConfig.RedirectURL = "/projects"                 // Redirect to projects list after login
+	mlConfig.ErrorRedirectURL = "/auth/login"          // Redirect to login page on error
 
 	// Configure SMTP
 	mlConfig.SMTPHost = os.Getenv("SMTP_HOST")
