@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -51,6 +52,32 @@ func main() {
 	mlConfig.ErrorRedirectURL = "/auth/login"          // Redirect to login page on error
 	mlConfig.LoginSuccessMessage = "ログイン用のメールを送信しました"
 
+	// AllowLogin callback to check against users table
+	mlConfig.AllowLogin = func(c echo.Context, email string) error {
+		// We need to access the database here. Since we can't easily pass the queries object directly
+		// into this config function definition before it's created, we'll create a new queries instance
+		// or rely on a closure if we restructure.
+		// However, `queries` is created *after* this config.
+		// To fix this dependency cycle, we can defer the actual DB check or restructure initialization.
+		// A simple way is to use the `conn` we already have.
+
+		q := database.New(conn)
+		user, err := q.GetUserByEmail(c.Request().Context(), email)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("このメールアドレスは登録されていません。")
+			}
+			log.Printf("Database error in AllowLogin: %v", err)
+			return fmt.Errorf("システムエラーが発生しました。")
+		}
+
+		if !user.IsActive {
+			return fmt.Errorf("このアカウントは無効化されています。")
+		}
+
+		return nil
+	}
+
 	// Configure SMTP
 	mlConfig.SMTPHost = os.Getenv("SMTP_HOST")
 	mlConfig.SMTPPort = mustAtoi(os.Getenv("SMTP_PORT"), 587)
@@ -88,12 +115,13 @@ func main() {
 	queries := database.New(conn)
 	projectHandler := handlers.NewProjectHandler(queries)
 	authHandler := handlers.NewAuthHandler(ml)
+	adminHandler := handlers.NewAdminHandler(queries)
 
 	// 4. Echo Setup
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Use(appMiddleware.UserContextMiddleware(ml)) // Add UserContext middleware globally
+	e.Use(appMiddleware.UserContextMiddleware(ml, conn)) // Add UserContext middleware globally
 
 	e.Static("/static", "web/static")
 
@@ -119,6 +147,16 @@ func main() {
 	projectGroup.GET("/:id/edit", projectHandler.EditProjectPage)
 	projectGroup.POST("/:id/update", projectHandler.UpdateProject)
 	projectGroup.POST("/:id/delete", projectHandler.DeleteProject)
+
+	// Admin Routes
+	adminGroup := e.Group("/admin")
+	adminGroup.Use(ml.AuthMiddleware()) // Require login
+	// In a real app, we'd add a RequireRole("admin") middleware here too,
+	// but the handler checks it internally for now.
+
+	adminGroup.GET("/users", adminHandler.ListUsers)
+	adminGroup.GET("/users/new", adminHandler.NewUserPage)
+	adminGroup.POST("/users", adminHandler.CreateUser)
 
 	// Start server
 	log.Fatal(e.Start(":8080"))
