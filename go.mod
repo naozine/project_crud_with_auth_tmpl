@@ -2,6 +2,8 @@ module github.com/naozine/project_crud_with_auth_tmpl
 
 go 1.25
 
+replace github.com/naozine/nz-magic-link => ./relate_projects/nz-magic-link
+
 require (
 	github.com/a-h/templ v0.3.960
 	github.com/joho/godotenv v1.5.1

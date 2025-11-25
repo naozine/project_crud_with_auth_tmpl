@@ -39,12 +39,8 @@ func main() {
 
 	// 2. MagicLink Setup
 	mlConfig := magiclink.DefaultConfig()
-	mlConfig.DatabasePath = "magiclink.db" // Uses a separate database for magic links
-	mlConfig.DatabaseType = "leveldb"
-	mlConfig.DatabaseOptions = map[string]string{
-		"block_cache_capacity": "33554432", // 32MB
-		"write_buffer":         "16777216", // 16MB
-	}
+	// Use existing SQLite connection, so DatabasePath is not used for connection but kept for config consistency
+	mlConfig.DatabaseType = "sqlite"
 
 	mlConfig.ServerAddr = os.Getenv("SERVER_ADDR")
 	if mlConfig.ServerAddr == "" {
@@ -80,7 +76,8 @@ func main() {
 		mlConfig.WebAuthnAllowedOrigins = []string{"http://localhost:8080"}
 	}
 
-	ml, err := magiclink.New(mlConfig)
+	// Initialize MagicLink with existing DB connection
+	ml, err := magiclink.NewWithDB(mlConfig, conn)
 	if err != nil {
 		log.Fatal("Failed to initialize MagicLink:", err)
 	}
