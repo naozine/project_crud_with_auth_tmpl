@@ -8,7 +8,7 @@ tmp_dir = "tmp"
 [build]
   # Just plain old shell command. You could use `make` as well.
   # Run templ generate before building the application
-  cmd = "templ generate && go build -o ./tmp/main ./cmd/server"
+  cmd = "templ generate && go build -ldflags \"-X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Version=dev'\" -o ./tmp/main ./cmd/server"
   
   # Binary file yields from `cmd`.
   bin = "./tmp/main"

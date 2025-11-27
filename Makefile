@@ -10,6 +10,14 @@ CMD_PATH    ?= ./cmd/server
 # プロジェクトの go.mod に合わせる
 GO_VERSION  ?= 1.25
 
+# Version Info (git から自動取得)
+VERSION    := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+COMMIT     := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+LDFLAGS    := -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Version=$(VERSION)' \
+              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Commit=$(COMMIT)' \
+              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.BuildDate=$(BUILD_DATE)'
+
 # VPS Connection Info (deploy.config または環境変数で上書き可能)
 VPS_USER    ?= user
 VPS_HOST    ?= 192.168.1.100
@@ -26,17 +34,22 @@ SERVER_ADDR    ?= http://localhost:8080
 # -----------------------------------------------------------------------------
 # Targets
 # -----------------------------------------------------------------------------
-.PHONY: all build-linux deploy sync restart logs clean
+.PHONY: all build build-linux deploy sync restart logs clean
 
 all: build-linux
+
+# 0. Local build (開発・テスト用)
+build:
+	@echo ">> Building $(VERSION)..."
+	templ generate
+	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) $(CMD_PATH)
 
 # 1. Cross-compile for Linux (amd64) using Pure Go (no CGO required)
 #    modernc.org/sqlite (Pure Go) を使用しているため、Docker不要でクロスコンパイル可能です。
 build-linux:
-	@echo ">> Generating templ components..."
+	@echo ">> Building $(VERSION) for Linux/amd64..."
 	templ generate
-	@echo ">> Building binary for Linux/amd64 (Pure Go)..."
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BUILD_DIR)/$(BINARY_NAME)-linux $(CMD_PATH)
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -v -o $(BUILD_DIR)/$(BINARY_NAME)-linux $(CMD_PATH)
 
 # 2. Deploy: Build -> Push Binary -> Push Service Config -> Restart Service
 deploy: build-linux

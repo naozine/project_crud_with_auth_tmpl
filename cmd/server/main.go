@@ -145,6 +145,9 @@ func main() {
 	e.Static("/static", "web/static")
 
 	// 5. Routes
+	// Health Check (公開エンドポイント)
+	e.GET("/health", handlers.HealthCheck)
+
 	// Public Routes
 	e.GET("/", func(c echo.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/auth/login")
