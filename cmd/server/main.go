@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -36,6 +37,11 @@ func main() {
 	// Simple Migration
 	if err := applySchema(conn); err != nil {
 		log.Fatal("Failed to apply app schema:", err)
+	}
+
+	// Initialize Admin User if needed
+	if err := ensureAdminUser(conn); err != nil {
+		log.Printf("Warning: Failed to initialize admin user: %v", err)
 	}
 
 	// 2. MagicLink Setup
@@ -199,4 +205,45 @@ func mustAtoi(s string, defaultValue int) int {
 		return defaultValue
 	}
 	return i
+}
+
+func ensureAdminUser(conn *sql.DB) error {
+	// Check if any user exists
+	var count int
+	err := conn.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("failed to count users: %w", err)
+	}
+
+	if count > 0 {
+		return nil // Users already exist, skip
+	}
+
+	// No users, check for env var
+	adminEmail := os.Getenv("ADMIN_EMAIL")
+	if adminEmail == "" {
+		log.Println("No users found and ADMIN_EMAIL not set. Skipping admin creation.")
+		return nil
+	}
+
+	adminName := os.Getenv("ADMIN_NAME")
+	if adminName == "" {
+		adminName = "Admin"
+	}
+
+	log.Printf("Creating initial admin user: %s (%s)", adminName, adminEmail)
+
+	q := database.New(conn)
+	_, err = q.CreateUser(context.Background(), database.CreateUserParams{
+		Email:    adminEmail,
+		Name:     adminName,
+		Role:     "admin",
+		IsActive: true,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create admin user: %w", err)
+	}
+
+	log.Println("Initial admin user created successfully.")
+	return nil
 }

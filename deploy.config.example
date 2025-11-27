@@ -16,6 +16,10 @@ SSH_PORT = 2222
 # アプリケーションが使用するポート番号 (デフォルト: 8080)
 APP_PORT = 8080
 
+# 初期管理者ユーザー (初回起動時にユーザーが0人の場合のみ作成される)
+ADMIN_EMAIL = admin@example.com
+ADMIN_NAME  = Administrator
+
 # デプロイ先のディレクトリパス
 VPS_DIR  = /home/ubuntu/apps/my-app
 
