@@ -13,6 +13,7 @@ GO_VERSION  ?= 1.25
 # VPS Connection Info (deploy.config または環境変数で上書き可能)
 VPS_USER    ?= user
 VPS_HOST    ?= 192.168.1.100
+SSH_PORT    ?= 22
 VPS_DIR     ?= /var/www/project_crud_with_auth_tmpl
 SERVICE_NAME ?= my-app.service
 
@@ -31,21 +32,38 @@ build-linux:
 	@echo ">> Building binary for Linux/amd64 (Pure Go)..."
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o $(BUILD_DIR)/$(BINARY_NAME)-linux $(CMD_PATH)
 
-# 2. Deploy: Build -> Push Binary -> Restart Service
+# 2. Deploy: Build -> Push Binary -> Push Service Config -> Restart Service
 deploy: build-linux
-	@echo ">> Deploying to $(VPS_HOST)..."
-	# バイナリを転送 (サーバー上では 'server' という名前で配置)
-	rsync -avz --progress $(BUILD_DIR)/$(BINARY_NAME)-linux $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/$(BINARY_NAME)
-	# 静的ファイル(CSS/JS/Images)を転送
-	rsync -avz --delete web/static/ $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/web/static/
-	# サービスの再起動 (ユーザーサービスとして再起動)
-	ssh $(VPS_USER)@$(VPS_HOST) "systemctl --user restart $(SERVICE_NAME)"
+	@echo ">> Deploying to $(VPS_HOST) (Port: $(SSH_PORT))..."
+	
+	# 1. リモートディレクトリ構造を作成
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DIR)/web/static && mkdir -p ~/.config/systemd/user"
+
+	# 2. ローカルで一時的なサービスファイルを作成
+	@echo "[Unit]\nDescription=$(SERVICE_NAME)\nAfter=network.target\n\n[Service]\nWorkingDirectory=$(VPS_DIR)\nExecStart=$(VPS_DIR)/$(BINARY_NAME)\nRestart=always\nRestartSec=5\nStandardOutput=journal\nStandardError=journal\n\n[Install]\nWantedBy=default.target" > $(BINARY_NAME).service
+
+	# 3. バイナリとサービスファイルを転送
+	rsync -avz -e "ssh -p $(SSH_PORT)" --progress $(BUILD_DIR)/$(BINARY_NAME)-linux $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/$(BINARY_NAME)
+	rsync -avz -e "ssh -p $(SSH_PORT)" $(BINARY_NAME).service $(VPS_USER)@$(VPS_HOST):~/.config/systemd/user/$(SERVICE_NAME)
+	
+	# 4. 静的ファイルを転送
+	rsync -avz -e "ssh -p $(SSH_PORT)" --delete web/static/ $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/web/static/
+
+	# 5. サービス登録・有効化・再起動・永続化
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "\
+		loginctl enable-linger $(VPS_USER) && \
+		systemctl --user daemon-reload && \
+		systemctl --user enable $(SERVICE_NAME) && \
+		systemctl --user restart $(SERVICE_NAME)"
+	
+	# 6. ローカルの一時ファイルを削除
+	@rm $(BINARY_NAME).service
 	@echo ">> Deployment complete!"
 
 # (Option) Sync Source Code Only (開発用: サーバー上でビルドする場合に使用)
 sync:
-	@echo ">> Syncing source code to VPS..."
-	rsync -avz --delete \
+	@echo ">> Syncing source code to VPS (Port: $(SSH_PORT))..."
+	rsync -avz -e "ssh -p $(SSH_PORT)" --delete \
 		--exclude '.git' \
 		--exclude '.idea' \
 		--exclude 'bin/' \
@@ -57,11 +75,11 @@ sync:
 
 # Utility: Restart Service
 restart:
-	ssh $(VPS_USER)@$(VPS_HOST) "systemctl --user restart $(SERVICE_NAME)"
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "systemctl --user restart $(SERVICE_NAME)"
 
 # Utility: View Logs
 logs:
-	ssh $(VPS_USER)@$(VPS_HOST) "journalctl --user -u $(SERVICE_NAME) -f"
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "journalctl --user -u $(SERVICE_NAME) -f"
 
 clean:
 	rm -f $(BUILD_DIR)/$(BINARY_NAME)-linux
