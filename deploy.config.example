@@ -1,0 +1,30 @@
+# -----------------------------------------------------------------------------
+# Deploy Configuration Example
+# -----------------------------------------------------------------------------
+# このファイルを 'deploy.config' にリネームまたはコピーして使用してください。
+# gitにはコミットしないでください (.gitignore推奨)。
+
+# VPSのSSH接続ユーザー
+VPS_USER = ubuntu
+
+# VPSのIPアドレスまたはホスト名
+VPS_HOST = 192.168.1.100
+
+# SSHのポート番号 (デフォルト: 22)
+SSH_PORT = 2222
+
+# アプリケーションが使用するポート番号 (デフォルト: 8080)
+APP_PORT = 8080
+
+# 初期管理者ユーザー (初回起動時にユーザーが0人の場合のみ作成される)
+ADMIN_EMAIL = admin@example.com
+ADMIN_NAME  = Administrator
+
+# デプロイ先のディレクトリパス
+VPS_DIR  = /home/ubuntu/apps/my-app
+
+# サーバーの公開アドレス (Magic Linkで使用)
+SERVER_ADDR = https://example.com
+
+# Systemdのサービス名 (ユーザーサービスとして登録されていること)
+SERVICE_NAME = my-app.service

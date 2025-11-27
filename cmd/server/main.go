@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -16,8 +17,8 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/naozine/nz-magic-link/magiclink"
+	_ "modernc.org/sqlite"
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 	}
 
 	// 1. Database Setup (for projects)
-	conn, err := sql.Open("sqlite3", "file:app.db?_busy_timeout=5000&_journal_mode=WAL&_foreign_keys=on")
+	conn, err := sql.Open("sqlite", "file:app.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(on)")
 	if err != nil {
 		log.Fatal("Failed to connect to app.db:", err)
 	}
@@ -36,6 +37,11 @@ func main() {
 	// Simple Migration
 	if err := applySchema(conn); err != nil {
 		log.Fatal("Failed to apply app schema:", err)
+	}
+
+	// Initialize Admin User if needed
+	if err := ensureAdminUser(conn); err != nil {
+		log.Printf("Warning: Failed to initialize admin user: %v", err)
 	}
 
 	// 2. MagicLink Setup
@@ -47,9 +53,14 @@ func main() {
 	if mlConfig.ServerAddr == "" {
 		mlConfig.ServerAddr = "http://localhost:8080"
 	}
-	mlConfig.DevBypassEmailFilePath = ".bypass_emails" // For development: return magic link in response
-	mlConfig.RedirectURL = "/projects"                 // Redirect to projects list after login
-	mlConfig.ErrorRedirectURL = "/auth/login"          // Redirect to login page on error
+
+	// Only use bypass file if it exists (mainly for local development)
+	if _, err := os.Stat(".bypass_emails"); err == nil {
+		mlConfig.DevBypassEmailFilePath = ".bypass_emails"
+	}
+
+	mlConfig.RedirectURL = "/projects"        // Redirect to projects list after login
+	mlConfig.ErrorRedirectURL = "/auth/login" // Redirect to login page on error
 	mlConfig.LoginSuccessMessage = "ログイン用のメールを送信しました"
 
 	// AllowLogin callback to check against users table
@@ -168,7 +179,11 @@ func main() {
 	e.DELETE("/profile/passkeys", profileHandler.DeletePasskeys, ml.AuthMiddleware())
 
 	// Start server
-	log.Fatal(e.Start(":8080"))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Fatal(e.Start(":" + port))
 }
 
 func applySchema(conn *sql.DB) error {
@@ -190,4 +205,45 @@ func mustAtoi(s string, defaultValue int) int {
 		return defaultValue
 	}
 	return i
+}
+
+func ensureAdminUser(conn *sql.DB) error {
+	// Check if any user exists
+	var count int
+	err := conn.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("failed to count users: %w", err)
+	}
+
+	if count > 0 {
+		return nil // Users already exist, skip
+	}
+
+	// No users, check for env var
+	adminEmail := os.Getenv("ADMIN_EMAIL")
+	if adminEmail == "" {
+		log.Println("No users found and ADMIN_EMAIL not set. Skipping admin creation.")
+		return nil
+	}
+
+	adminName := os.Getenv("ADMIN_NAME")
+	if adminName == "" {
+		adminName = "Admin"
+	}
+
+	log.Printf("Creating initial admin user: %s (%s)", adminName, adminEmail)
+
+	q := database.New(conn)
+	_, err = q.CreateUser(context.Background(), database.CreateUserParams{
+		Email:    adminEmail,
+		Name:     adminName,
+		Role:     "admin",
+		IsActive: true,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create admin user: %w", err)
+	}
+
+	log.Println("Initial admin user created successfully.")
+	return nil
 }
