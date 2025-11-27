@@ -23,5 +23,16 @@ ADMIN_NAME  = Administrator
 # デプロイ先のディレクトリパス
 VPS_DIR  = /home/ubuntu/apps/my-app
 
+# サーバーの公開アドレス (Magic Linkで使用)
+SERVER_ADDR = https://example.com
+
+# SMTP設定 (メール配信用)
+SMTP_HOST      = smtp.example.com
+SMTP_PORT      = 587
+SMTP_USERNAME  = apikey
+SMTP_PASSWORD  = your-smtp-password
+SMTP_FROM      = no-reply@example.com
+SMTP_FROM_NAME = My App
+
 # Systemdのサービス名 (ユーザーサービスとして登録されていること)
 SERVICE_NAME = my-app.service

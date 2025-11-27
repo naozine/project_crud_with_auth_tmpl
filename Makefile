@@ -20,6 +20,15 @@ APP_PORT     ?= 8080
 ADMIN_EMAIL  ?=
 ADMIN_NAME   ?= Admin
 
+# Server & SMTP Configuration (deploy.config で設定)
+SERVER_ADDR    ?= http://localhost:8080
+SMTP_HOST      ?=
+SMTP_PORT      ?= 587
+SMTP_USERNAME  ?=
+SMTP_PASSWORD  ?=
+SMTP_FROM      ?=
+SMTP_FROM_NAME ?=
+
 # -----------------------------------------------------------------------------
 # Targets
 # -----------------------------------------------------------------------------
@@ -42,8 +51,19 @@ deploy: build-linux
 	# 1. リモートディレクトリ構造を作成
 	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DIR)/web/static && mkdir -p ~/.config/systemd/user"
 
-	# 2. ローカルで一時的なサービスファイルを作成 (環境変数PORT, ADMIN_EMAIL等を指定)
-	@echo "[Unit]\nDescription=$(SERVICE_NAME)\nAfter=network.target\n\n[Service]\nWorkingDirectory=$(VPS_DIR)\nExecStart=$(VPS_DIR)/$(BINARY_NAME)\nEnvironment=\"PORT=$(APP_PORT)\"\nEnvironment=\"ADMIN_EMAIL=$(ADMIN_EMAIL)\"\nEnvironment=\"ADMIN_NAME=$(ADMIN_NAME)\"\nRestart=always\nRestartSec=5\nStandardOutput=journal\nStandardError=journal\n\n[Install]\nWantedBy=default.target" > $(BINARY_NAME).service
+	# 2. ローカルで一時的なサービスファイルを作成
+	@echo "[Unit]\nDescription=$(SERVICE_NAME)\nAfter=network.target\n\n[Service]\nWorkingDirectory=$(VPS_DIR)\nExecStart=$(VPS_DIR)/$(BINARY_NAME)\n\
+	Environment=\"PORT=$(APP_PORT)\"\n\
+	Environment=\"ADMIN_EMAIL=$(ADMIN_EMAIL)\"\n\
+	Environment=\"ADMIN_NAME=$(ADMIN_NAME)\"\n\
+	Environment=\"SERVER_ADDR=$(SERVER_ADDR)\"\n\
+	Environment=\"SMTP_HOST=$(SMTP_HOST)\"\n\
+	Environment=\"SMTP_PORT=$(SMTP_PORT)\"\n\
+	Environment=\"SMTP_USERNAME=$(SMTP_USERNAME)\"\n\
+	Environment=\"SMTP_PASSWORD=$(SMTP_PASSWORD)\"\n\
+	Environment=\"SMTP_FROM=$(SMTP_FROM)\"\n\
+	Environment=\"SMTP_FROM_NAME=$(SMTP_FROM_NAME)\"\n\
+	Restart=always\nRestartSec=5\nStandardOutput=journal\nStandardError=journal\n\n[Install]\nWantedBy=default.target" > $(BINARY_NAME).service
 
 	# 3. バイナリとサービスファイルを転送
 	rsync -avz -e "ssh -p $(SSH_PORT)" --progress $(BUILD_DIR)/$(BINARY_NAME)-linux $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/$(BINARY_NAME)
