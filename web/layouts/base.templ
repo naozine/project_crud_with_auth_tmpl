@@ -1,6 +1,9 @@
 package layouts
 
-import "github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
+import (
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/version"
+)
 
 templ Base(title string, content templ.Component) {
 	<!DOCTYPE html>
@@ -110,6 +113,11 @@ templ Base(title string, content templ.Component) {
                                                              </button>
                                                          </form>
                                                      </div>
+                                                </div>
+
+                                                <!-- Version Info -->
+                                                <div class="mt-auto pt-6 px-3">
+                                                    <p class="text-xs text-gray-400">{ version.Version }</p>
                                                 </div>
                                             </div>
                                         </div>

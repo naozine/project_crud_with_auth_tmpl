@@ -39,6 +39,7 @@
 - **Config:** `file:app.db?_busy_timeout=5000&_journal_mode=WAL&_foreign_keys=on`
 - **Pattern:** Write raw SQL in `query.sql`. Use `RETURNING` clause for INSERT/UPDATE.
 - **DI:** Inject `*database.Queries` into handlers.
+- **sqlc Note:** Hardcoding Japanese (non-ASCII) in SQL causes sqlc parse errors. Use constants from `internal/status` package and pass values as parameters from Go code.
 
 ## UI/UX Guidelines
 - **Style:** Vercel/Stripe-inspired minimal monochrome.
