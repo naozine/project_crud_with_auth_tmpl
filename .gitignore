@@ -13,3 +13,4 @@
 .bypass_emails
 /tmp/build-errors.log
 /.env
+deploy.config
