@@ -168,7 +168,11 @@ func main() {
 	e.DELETE("/profile/passkeys", profileHandler.DeletePasskeys, ml.AuthMiddleware())
 
 	// Start server
-	log.Fatal(e.Start(":8080"))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Fatal(e.Start(":" + port))
 }
 
 func applySchema(conn *sql.DB) error {

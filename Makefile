@@ -16,6 +16,7 @@ VPS_HOST    ?= 192.168.1.100
 SSH_PORT    ?= 22
 VPS_DIR     ?= /var/www/project_crud_with_auth_tmpl
 SERVICE_NAME ?= my-app.service
+APP_PORT     ?= 8080
 
 # -----------------------------------------------------------------------------
 # Targets
@@ -39,8 +40,8 @@ deploy: build-linux
 	# 1. リモートディレクトリ構造を作成
 	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DIR)/web/static && mkdir -p ~/.config/systemd/user"
 
-	# 2. ローカルで一時的なサービスファイルを作成
-	@echo "[Unit]\nDescription=$(SERVICE_NAME)\nAfter=network.target\n\n[Service]\nWorkingDirectory=$(VPS_DIR)\nExecStart=$(VPS_DIR)/$(BINARY_NAME)\nRestart=always\nRestartSec=5\nStandardOutput=journal\nStandardError=journal\n\n[Install]\nWantedBy=default.target" > $(BINARY_NAME).service
+	# 2. ローカルで一時的なサービスファイルを作成 (環境変数PORTを指定)
+	@echo "[Unit]\nDescription=$(SERVICE_NAME)\nAfter=network.target\n\n[Service]\nWorkingDirectory=$(VPS_DIR)\nExecStart=$(VPS_DIR)/$(BINARY_NAME)\nEnvironment=\"PORT=$(APP_PORT)\"\nRestart=always\nRestartSec=5\nStandardOutput=journal\nStandardError=journal\n\n[Install]\nWantedBy=default.target" > $(BINARY_NAME).service
 
 	# 3. バイナリとサービスファイルを転送
 	rsync -avz -e "ssh -p $(SSH_PORT)" --progress $(BUILD_DIR)/$(BINARY_NAME)-linux $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/$(BINARY_NAME)
