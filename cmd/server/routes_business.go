@@ -6,6 +6,7 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appconfig"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
+	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
 )
 
 // ConfigureBusinessSettings allows customization of MagicLink config and App Name
@@ -27,7 +28,7 @@ func RegisterBusinessRoutes(e *echo.Echo, queries *database.Queries, ml *magicli
 
 	// Protected Routes (Business Logic - projects)
 	projectGroup := e.Group("/projects")
-	projectGroup.Use(ml.AuthMiddleware()) // Apply auth middleware to this group
+	projectGroup.Use(appMiddleware.RequireAuth(ml, "/auth/login")) // 未認証時はログインページへリダイレクト
 
 	projectGroup.GET("", projectHandler.ListProjects)
 	projectGroup.GET("/new", projectHandler.NewProjectPage)

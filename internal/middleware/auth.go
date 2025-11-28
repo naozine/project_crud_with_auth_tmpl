@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"database/sql"
+	"net/http"
 
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
@@ -39,6 +40,22 @@ func UserContextMiddleware(ml *magiclink.MagicLink, dbConn *sql.DB) echo.Middlew
 			ctx := c.Request().Context()
 			ctx = appcontext.WithUser(ctx, userEmail, isLoggedIn, hasPasskey, role, userID)
 			c.SetRequest(c.Request().WithContext(ctx))
+
+			return next(c)
+		}
+	}
+}
+
+// RequireAuth は認証を必須とするミドルウェア。
+// 未認証の場合はログインページへリダイレクトする。
+func RequireAuth(ml *magiclink.MagicLink, loginURL string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			_, isLoggedIn := ml.GetUserID(c)
+
+			if !isLoggedIn {
+				return c.Redirect(http.StatusSeeOther, loginURL)
+			}
 
 			return next(c)
 		}
