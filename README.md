@@ -1,121 +1,17 @@
-# GOTH Stack Template (Go, Echo, Templ, Htmx)
+# GOTH Stack Base Template
 
-A production-ready template for building web applications with the GOTH stack.
+**Go + Echo + templ + htmx + sqlc + SQLite**
 
-## Tech Stack
+Webアプリケーション開発のための、堅牢かつ拡張性の高いベーステンプレートです。
 
-- **Go** (Echo v4)
-- **Templ** (Type-safe HTML templates)
-- **Htmx** (Frontend interactivity)
-- **Tailwind CSS** (Styling)
-- **SQLite + sqlc** (Type-safe database access)
-- **nz-magic-link** (Passwordless authentication)
+## 🚀 このテンプレートの使い方
 
-## Features
+このリポジトリから新しいプロジェクトを作成した場合、この `README.md` はあなたのアプリケーションの説明に書き換えてください。
 
-- **Clean Architecture:** Standard Go project layout (`cmd`, `internal`, `web`).
-- **Authentication:** Magic link authentication (passwordless).
-- **Authorization:** Middleware for protecting routes.
-- **Type-Safe SQL:** No ORM, just raw SQL with type safety via `sqlc`.
-- **Progressive Enhancement:** Works with and without JavaScript (mostly).
-- **Modern UI:** Clean & Minimal design inspired by Vercel/Stripe.
+### テンプレートの詳細マニュアル
+アーキテクチャ、ディレクトリ構成、開発コマンドなどの詳細は、以下のファイルを参照してください：
 
-## How to Use
+📄 **[README_TEMPLATE.md](./README_TEMPLATE.md)**
 
-### Option A: Using `gonew` (Recommended)
-
-If you have `gonew` installed:
-
-```bash
-go install golang.org/x/tools/cmd/gonew@latest
-gonew github.com/naozine/project_crud_with_auth_tmpl example.com/my-new-app
-cd my-new-app
-go mod tidy
-```
-
-### Option B: Manual Clone & Setup
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/naozine/project_crud_with_auth_tmpl.git my-new-app
-   cd my-new-app
-   ```
-
-2. **Run the initialization tool:**
-   ```bash
-   go run ./cmd/init
-   ```
-
-   This tool uses `go.mod`'s `replace` directive to map the template's import paths to your project.
-   Your code keeps the original import paths, making it easy to merge updates from the template.
-
-3. **Install dependencies & Generate code:**
-   ```bash
-   go run github.com/a-h/templ/cmd/templ@latest generate
-   go mod tidy
-   ```
-
-4. **Setup the database and create admin user:**
-   ```bash
-   go run cmd/setup/main.go -email admin@example.com -name "Admin User"
-   ```
-
-5. **Run the application:**
-   ```bash
-   # Development (with Air)
-   air
-
-   # Or standard build
-   go build -o app cmd/server/main.go
-   ./app
-   ```
-
-## Project Structure
-
-```
-.
-├── cmd/
-│   ├── server/       # Application entry point
-│   ├── init/         # Template initialization (replace directive, easy to merge)
-│   ├── eject/        # Convert to standalone project (full module rename)
-│   └── setup/        # Database setup and admin user creation
-├── internal/
-│   ├── appcontext/   # Context helpers
-│   ├── database/     # sqlc generated code
-│   ├── handlers/     # HTTP handlers
-│   └── middleware/   # Custom middleware
-├── web/
-│   ├── components/   # Templ components
-│   ├── layouts/      # Page layouts
-│   └── static/       # Static assets
-├── db/               # SQL migrations and queries
-└── sqlc.yaml         # sqlc configuration
-```
-
-## Merging Template Updates
-
-If you initialized with `cmd/init` (replace directive), you can easily merge updates from the template:
-
-```bash
-git remote add template https://github.com/naozine/project_crud_with_auth_tmpl.git
-git fetch template
-git merge template/main --allow-unrelated-histories
-```
-
-## Ejecting (Full Independence)
-
-When your project matures and you no longer need template updates, you can fully detach:
-
-```bash
-go run ./cmd/eject
-```
-
-This will:
-- Replace all import paths with your module name
-- Remove the `replace` directive from `go.mod`
-
-**Note:** After ejecting, merging template updates becomes difficult due to import path conflicts.
-
-## License
-
-MIT
+---
+*Happy Coding!*
