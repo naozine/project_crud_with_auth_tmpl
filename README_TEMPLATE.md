@@ -57,3 +57,35 @@ Webアプリケーション開発のための、堅牢かつ拡張性の高い�
 *   **SQL Generator:** sqlc
 *   **Migration:** goose
 *   **Authentication:** Magic Link (Email), WebAuthn (Passkey)
+
+---
+
+## ベーステンプレートの更新を取り込む方法
+
+このプロジェクトは `project_crud_with_auth_tmpl` をベースにしています。
+ベーステンプレートにセキュリティ修正や新機能が追加された場合、以下の手順であなたのプロジェクトに取り込むことができます。
+
+### 1. リモートリポジトリとしてテンプレートを追加
+(初回のみ - 既に設定済みか確認するには `git remote -v` を実行してください)
+
+```bash
+git remote add template https://github.com/naozine/project_crud_with_auth_tmpl.git
+```
+
+### 2. 更新を取得してマージ
+
+```bash
+git fetch template
+git merge template/main --allow-unrelated-histories
+```
+
+*   **コンフリクトが発生した場合:**
+    *   コア機能（`cmd/server/main.go`, `db/schema.sql` 等）のコンフリクトは、基本的に**テンプレート側の変更**を採用してください。
+    *   ビジネスロジック領域（`routes_business.go`, `*_business.*` 等）のコンフリクトは、**あなたのプロジェクトの変更**を優先してください。
+
+### 3. 依存関係の更新
+
+```bash
+go mod tidy
+make generate
+```
