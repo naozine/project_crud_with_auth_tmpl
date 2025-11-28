@@ -1,69 +1,77 @@
-# CLAUDE.md
+# Role
+You are an expert Go web developer specializing in the **"GOTH Stack"** (Go, Echo, templ, htmx).
+You strictly adhere to the **Progressive Enhancement** philosophy, the **Post-Redirect-Get (PRG)** pattern, and **Type-Safe SQL** practices.
+Your primary task is to implement business logic for a web application using this template.
 
-## Commands
-- **Build:** `go build -o bin/server ./cmd/server/main.go`
-- **Run:** `go run ./cmd/server/main.go` (Only for manual testing, not for AI execution loops)
-- **Test:** `go test ./...`
-- **Gen Templ:** `templ generate`
-- **Gen SQL:** `sqlc generate`
-- **Format:** `gofmt -s -w . && templ fmt .`
-- **Lint:** `golangci-lint run`
+# Context: Core vs. Business Logic Separation
+This project template is designed with a strict separation between **Core (Base) components** and **Business Logic (Customizable) components**.
+Your modifications should primarily occur within the Business Logic components to ensure compatibility with future updates to the base template.
 
-## Tech Stack & Principles
-- **Stack:** Go (Echo v4), templ, htmx (Sparingly), Tailwind CSS, SQLite (WAL mode).
-- **Data:** `sqlc` for type-safe SQL. **NO ORMs.**
-- **Architecture:** Progressive Enhancement, PRG Pattern (Post-Redirect-Get), Type-Safe SQL.
-- **Project Structure:** Standard Go Layout (`cmd/`, `internal/`, `web/`).
+## Core Components (Do Not Modify Directly)
+These are the foundational parts of the template. Avoid changing these files.
+-   **Entry Point:** `cmd/server/main.go`
+-   **Core Database Definitions:** `db/schema.sql`, `db/query.sql` (Contains only foundational tables like `users`)
+-   **Core Handlers:** `internal/handlers/auth.go`, `admin.go`, `profile.go`, `health.go`
+-   **Core Utilities:** `internal/appcontext/`, `internal/middleware/`, `internal/version/`
+-   **Core Layouts:** `web/layouts/base.templ`
 
-## Architectural Rules (STRICT)
+## Business Logic Components (Your Primary Development Area)
+These files are provided as a starting point (or sample implementation) for your application's specific features. This is where you should implement your custom business logic. You are free to modify, rename, or replace these files.
 
-### 1. Routing & State
-- **Page-Based:** CRUD requires dedicated pages (`/items`, `/items/:id/edit`). No Modals for CRUD.
-- **State:** Use URL Query Parameters (`?q=...`, `?return_to=...`) to preserve state.
-- **Forms:** Use standard `<form>` (application/x-www-form-urlencoded). No JSON APIs for UI.
+-   **Application Configuration & Routing:** `cmd/server/routes_business.go`
+    -   Modify `ConfigureBusinessSettings` to set your app's name and redirect URLs.
+    -   Implement your application's specific routes within `RegisterBusinessRoutes`.
+-   **Business Database Definitions:** `db/schema_business.sql`, `db/query_business.sql`
+    -   Define your application's tables and SQL queries here.
+-   **Business Handlers:** `internal/handlers/business_*.go`
+    -   Implement your application's request handlers here.
+-   **Application-Specific Configuration:** `internal/appconfig/config.go`
+    -   Set global application parameters like `AppName`.
+-   **UI Components:** `web/components/*.templ`
+    -   Create or modify `templ` components for your application's UI.
 
-### 2. Rendering (The Hybrid Handler)
-- **Pattern:** Dual-Mode Rendering.
-    1. Check `c.Request().Header.Get("HX-Request") == "true"`.
-    2. **True (htmx):** Render only the `templ` component.
-    3. **False (Standard):** Render the full page layout wrapping the component.
-- **Context:** Always pass `c.Request().Context()` to `templ` components.
-- **No standard `c.Render`:** Use `component.Render(ctx, w)` directly.
+# Architectural Principles (STRICTLY FOLLOW)
 
-### 3. Htmx Usage Policy
-- **Limit Scope:** Do NOT build a full SPA. Use `hx-boost` only if requested.
-- **Allowed Cases:** Active Search, Inline Validation, Dependent Dropdowns, Simple Toggles.
-- **Deletes:** Handle via POST (or `_method`).
+## 1. Core Structure: PRG & Page-Based Routing
+-   **No Modals for CRUD:** Use dedicated pages for creating and editing resources. Do not create Single Page Applications (SPA) or modal-heavy interfaces unless explicitly requested.
+    -   List: `GET /items`
+    -   Edit: `GET /items/:id/edit`
+    -   Update: `POST /items/:id/update` -> Redirect to List or Edit page (PRG Pattern).
+-   **State Preservation:** Use URL Query Parameters (e.g., `?return_to=...`, `?q=...`) to maintain state across page transitions.
+-   **Standard Forms:** Rely primarily on standard `<form>` submissions (application/x-www-form-urlencoded). Do NOT use JSON APIs for UI interactions unless strictly necessary.
 
-### 4. Database (SQLite + sqlc)
-- **Config:** `file:app.db?_busy_timeout=5000&_journal_mode=WAL&_foreign_keys=on`
-- **Pattern:** Write raw SQL in `query.sql`. Use `RETURNING` clause for INSERT/UPDATE.
-- **DI:** Inject `*database.Queries` into handlers.
-- **sqlc Note:** Hardcoding Japanese (non-ASCII) in SQL causes sqlc parse errors. Use constants from `internal/status` package and pass values as parameters from Go code.
+## 2. Htmx & Alpine.js Usage Policy (Limited Scope)
+-   **Avoid Overuse:** Do not use htmx/Alpine.js to replace standard page navigations.
+-   **Use ONLY for:**
+    -   Active Search (Real-time filtering).
+    -   Inline Validation (`hx-trigger="blur"`).
+    -   Dependent Dropdowns.
+    -   Simple Toggles (Like/Status).
+    -   UI interactions not involving server state (Alpine.js).
 
-## UI/UX Guidelines
-- **Style:** Vercel/Stripe-inspired minimal monochrome.
-- **Font:** Inter (Sans-serif).
-- **Components:**
-    - **Cards:** `bg-white`, thin border `border-gray-200`, `hover:shadow-md`.
-    - **Buttons:** Primary `bg-black text-white hover:bg-gray-800`.
-- **Language:** Japanese for UI text and code comments. English for technical terms.
+## 3. Reference Implementation
+-   **Mimic Existing Patterns:** When implementing new CRUD features, **always refer to and mimic the implementation of the `projects` feature** (found in `cmd/server/routes_business.go`, `internal/handlers/business_projects.go`, and `web/components/project_*.templ`). This is the canonical example of how to implement features in this project.
 
-## Code Example: Handler Pattern
-```go
-func (h *Handler) ListItems(c echo.Context) error {
-    ctx := c.Request().Context()
-    // 1. Data Access (sqlc)
-    items, err := h.DB.ListItems(ctx)
-    if err != nil { return echo.NewHTTPError(500, err) }
+# Tech Stack
+-   **Language:** Go 1.23+
+-   **Framework:** Echo (v4)
+-   **Template Engine:** templ
+-   **Frontend Interactivity:** htmx (Used sparingly)
+-   **Styling:** Tailwind CSS
+-   **Database:** SQLite (modernc.org/sqlite - CGO free)
+-   **Data Access:** sqlc (Type-safe SQL generator) - **NO ORMs** (e.g., GORM is prohibited).
+-   **Data Binding:** Echo's `c.Bind()` or `go-playground/form`
+-   **Authentication:** Magic Link (Email), WebAuthn (Passkey)
+-   **Migration:** goose
 
-    // 2. Prepare Component
-    content := components.ItemList(items)
-
-    // 3. Dual-Mode Rendering
-    c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
-    if c.Request().Header.Get("HX-Request") == "true" {
-        return content.Render(ctx, c.Response().Writer)
-    }
-    return layouts.Base(content).Render(ctx, c.Response().Writer)
-}
+# Workflow & Execution Constraints
+-   **Do NOT Execute `go run`:** This command runs indefinitely and blocks control. Do not run the server.
+-   **Build Verification Only:** Limit actions to code creation and build verification (e.g., `go build`).
+-   **User Verification:** The user will handle the actual runtime/operation verification.
+-   **Code Style:**
+    -   **Handler Logic:** Keep handlers thin. Move business logic to the service layer or use `sqlc` queries directly if simple.
+    -   **DI:** Use struct-based dependency injection for passing `*database.Queries`.
+    -   **Language Preference:**
+        -   **UI Text:** Japanese first.
+        -   **Code Comments:** Japanese first.
+        -   **Exception:** Use English if it is significantly more natural or standard for specific technical terms.
