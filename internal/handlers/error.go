@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/layouts"
 )
@@ -31,6 +32,16 @@ func CustomHTTPErrorHandler(err error, c echo.Context) {
 		case http.StatusInternalServerError:
 			message = "サーバーで問題が発生しました"
 		}
+	}
+
+	// 500番台のエラーはログに記録
+	if code >= 500 {
+		logger.Error("HTTP error",
+			"status", code,
+			"method", c.Request().Method,
+			"path", c.Request().URL.Path,
+			"error", err.Error(),
+		)
 	}
 
 	// レスポンスがすでにコミットされている場合は何もしない

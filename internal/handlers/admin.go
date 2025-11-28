@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/layouts"
 )
@@ -37,7 +37,7 @@ func (h *AdminHandler) ListUsers(c echo.Context) error {
 
 	users, err := h.Queries.ListUsers(c.Request().Context())
 	if err != nil {
-		log.Printf("Failed to list users: %v", err)
+		logger.Error("Failed to list users", "error", err)
 		return c.String(http.StatusInternalServerError, "Failed to list users")
 	}
 
@@ -84,7 +84,7 @@ func (h *AdminHandler) CreateUser(c echo.Context) error {
 	})
 
 	if err != nil {
-		log.Printf("Failed to create user: %v", err)
+		logger.Error("Failed to create user", "error", err, "email", email)
 		// In a real app, handle duplicate email error specifically
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Failed to create user: %v", err))
 	}

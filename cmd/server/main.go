@@ -12,6 +12,7 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/db"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
 
 	"github.com/joho/godotenv"
@@ -27,6 +28,14 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found or could not be loaded, using OS environment variables.")
 	}
+
+	// Initialize Logger
+	logConfig := logger.DefaultConfig()
+	logConfig.LogDir = os.Getenv("LOG_DIR") // 空ならstdout/stderr
+	if err := logger.Init(logConfig); err != nil {
+		log.Fatal("Failed to initialize logger:", err)
+	}
+	defer logger.Close()
 
 	// 1. Database Setup (for projects)
 	conn, err := sql.Open("sqlite", "file:app.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(on)")
@@ -85,7 +94,7 @@ func main() {
 			if err == sql.ErrNoRows {
 				return fmt.Errorf("このメールアドレスは登録されていません。")
 			}
-			log.Printf("Database error in AllowLogin: %v", err)
+			logger.Error("Database error in AllowLogin", "error", err, "email", email)
 			return fmt.Errorf("システムエラーが発生しました。")
 		}
 
@@ -142,7 +151,7 @@ func main() {
 	// 4. Echo Setup
 	e := echo.New()
 	e.HTTPErrorHandler = handlers.CustomHTTPErrorHandler // カスタムエラーハンドラ
-	e.Use(middleware.Logger())
+	e.Use(appMiddleware.AccessLogMiddleware(logger.AccessWriter()))
 	e.Use(middleware.Recover())
 	e.Use(appMiddleware.UserContextMiddleware(ml, conn)) // Add UserContext middleware globally
 

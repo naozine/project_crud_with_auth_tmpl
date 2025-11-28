@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/naozine/nz-magic-link/magiclink"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/layouts"
 )
@@ -67,7 +67,7 @@ func (h *ProfileHandler) UpdateProfile(c echo.Context) error {
 	})
 
 	if err != nil {
-		log.Printf("Failed to update profile: %v", err)
+		logger.Error("Failed to update profile", "error", err, "email", email)
 		return c.String(http.StatusInternalServerError, "Failed to update profile")
 	}
 
@@ -83,14 +83,14 @@ func (h *ProfileHandler) DeletePasskeys(c echo.Context) error {
 	// Get all credentials for the user
 	creds, err := h.ML.DB.GetPasskeyCredentialsByUserID(email)
 	if err != nil {
-		log.Printf("Failed to get passkeys: %v", err)
+		logger.Error("Failed to get passkeys", "error", err, "email", email)
 		return c.String(http.StatusInternalServerError, "Failed to get passkeys")
 	}
 
 	// Delete each credential
 	for _, cred := range creds {
 		if err := h.ML.DB.DeletePasskeyCredential(cred.ID); err != nil {
-			log.Printf("Failed to delete passkey %s: %v", cred.ID, err)
+			logger.Error("Failed to delete passkey", "error", err, "credentialID", cred.ID)
 			// Continue deleting others even if one fails
 		}
 	}
