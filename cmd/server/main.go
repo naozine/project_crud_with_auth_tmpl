@@ -141,6 +141,7 @@ func main() {
 
 	// 4. Echo Setup
 	e := echo.New()
+	e.HTTPErrorHandler = handlers.CustomHTTPErrorHandler // カスタムエラーハンドラ
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(appMiddleware.UserContextMiddleware(ml, conn)) // Add UserContext middleware globally
