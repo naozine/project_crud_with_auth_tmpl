@@ -3,10 +3,11 @@
 # -----------------------------------------------------------------------------
 # このファイルを 'deploy.config' にリネームまたはコピーして使用してください。
 # gitにはコミットしないでください (.gitignore推奨)。
-#
-# ※ このファイルは主に `make deploy` (バイナリ直接デプロイ) 用の設定です。
-#    `make docker-deploy` を使う場合は、.env.production も作成してください。
 # -----------------------------------------------------------------------------
+
+# =============================================================================
+# 共通設定（両方式で使用）
+# =============================================================================
 
 # VPSのSSH接続ユーザー
 VPS_USER = ubuntu
@@ -18,41 +19,52 @@ VPS_HOST = 192.168.1.100
 SSH_PORT = 2222
 
 # デプロイ先のディレクトリパス
-VPS_DIR  = /home/ubuntu/apps/my-app
+VPS_DIR = /home/ubuntu/apps/myapp
 
-# -----------------------------------------------------------------------------
-# バイナリ直接デプロイ (make deploy) 用の設定
-# -----------------------------------------------------------------------------
-
-# アプリケーションが使用するポート番号 (デフォルト: 8080)
-# ※ docker-deploy では使用されません。.env.production の HOST_PORT を使用してください。
-APP_PORT = 8080
-
-# 初期管理者ユーザー (初回起動時にユーザーが0人の場合のみ作成される)
-# ※ docker-deploy では .env.production の ADMIN_EMAIL/ADMIN_NAME を使用してください。
-ADMIN_EMAIL = admin@example.com
-ADMIN_NAME  = Administrator
-
-# サーバーの公開アドレス (Magic Linkで使用)
-# ※ docker-deploy では .env.production の SERVER_ADDR を使用してください。
-SERVER_ADDR = https://example.com
-
-# Systemdのサービス名 (ユーザーサービスとして登録される)
-# ※ docker-deploy では使用されません。
-SERVICE_NAME = my-app.service
-
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Docker デプロイ (make docker-deploy) 用の設定
-# -----------------------------------------------------------------------------
-# docker-deploy では、アプリの環境変数は .env.production で管理します。
+# =============================================================================
+
+# アプリ名（コンテナ名として使用。Caddyがこの名前でアクセスする）
+APP_NAME = myapp
+
+# 公開ホスト名（Caddyのリバースプロキシ設定で使用）
+# ※ DNSでこのホスト名がVPSのIPを指すよう設定してください
+PUBLIC_HOST = myapp.example.com
+
+# Caddy設定（VPS上の共有リバースプロキシ）
+CADDY_DIR = /home/ubuntu/caddy
+CADDY_NETWORK = caddy-net
+
+# アプリの環境変数は .env.production で管理します。
 # .env.production を作成し、以下のような内容を設定してください:
 #
-#   HOST_PORT=8080
-#   SERVER_ADDR=https://example.com
+#   SERVER_ADDR=https://myapp.example.com
 #   ADMIN_EMAIL=admin@example.com
 #   ADMIN_NAME=Administrator
 #   SMTP_HOST=smtp.example.com
 #   SMTP_PORT=587
-#   ... etc
+#   SMTP_USERNAME=...
+#   SMTP_PASSWORD=...
+#   SMTP_FROM=noreply@example.com
+#   SMTP_FROM_NAME=MyApp
 #
 # デプロイ時に .env.production が VPS の .env として転送されます。
+
+# =============================================================================
+# バイナリ直接デプロイ (make deploy) 用の設定
+# =============================================================================
+# ※ Docker を使わない従来方式。systemd user service で管理。
+
+# アプリケーションが使用するポート番号 (デフォルト: 8080)
+APP_PORT = 8080
+
+# 初期管理者ユーザー (初回起動時にユーザーが0人の場合のみ作成される)
+ADMIN_EMAIL = admin@example.com
+ADMIN_NAME  = Administrator
+
+# サーバーの公開アドレス (Magic Linkで使用)
+SERVER_ADDR = https://example.com
+
+# Systemdのサービス名 (ユーザーサービスとして登録される)
+SERVICE_NAME = myapp.service

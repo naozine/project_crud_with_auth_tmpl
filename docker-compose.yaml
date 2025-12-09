@@ -6,6 +6,8 @@
 #   2. docker compose up -d
 #   3. docker compose logs -f で確認
 #
+# Caddy (リバースプロキシ) と同じネットワークに参加し、
+# コンテナ名でアクセス可能。ホストにポートは公開しない。
 # サーバ再起動時も自動起動 (restart: always)
 # =============================================================================
 
@@ -19,13 +21,18 @@ services:
         COMMIT: ${COMMIT:-unknown}
         BUILD_DATE: ${BUILD_DATE:-unknown}
     image: ${IMAGE_NAME:-project-crud-auth}:${IMAGE_TAG:-latest}
-    container_name: ${CONTAINER_NAME:-project-crud-auth}
+    container_name: ${APP_NAME:-project-crud-auth}
     restart: always
-    ports:
-      - "${HOST_PORT:-8080}:8080"
+    expose:
+      - "8080"
+    networks:
+      - caddy-net
     volumes:
       # SQLite データベースの永続化
-      - app-data:/app/data
+      # /app ディレクトリ全体をマウントすると実行ファイルも含まれるため、
+      # 作業ディレクトリを変更してDBを別ディレクトリに配置
+      - app-db:/data
+    working_dir: /data
     environment:
       # アプリケーション設定
       - PORT=8080
@@ -54,6 +61,10 @@ services:
       retries: 3
       start_period: 10s
 
+networks:
+  caddy-net:
+    external: true
+
 volumes:
-  app-data:
-    name: ${VOLUME_NAME:-project-crud-auth-data}
+  app-db:
+    name: ${APP_NAME:-project-crud-auth}-db

@@ -28,19 +28,27 @@ APP_PORT     ?= 8080
 ADMIN_EMAIL  ?=
 ADMIN_NAME   ?= Admin
 
-# Server Configuration (deploy.config で設定)
-SERVER_ADDR    ?= http://localhost:8080
-
 # Docker Settings
 IMAGE_NAME    ?= project-crud-auth
 IMAGE_TAG     ?= $(VERSION)
-CONTAINER_NAME ?= project-crud-auth
+APP_NAME      ?= project-crud-auth
+
+# Caddy Settings (共有リバースプロキシ)
+PUBLIC_HOST   ?= localhost
+CADDY_DIR     ?= /home/$(VPS_USER)/caddy
+CADDY_NETWORK ?= caddy-net
+
+# Server Configuration
+# PUBLIC_HOST が設定されていれば https:// を付けて自動生成
+# バイナリ直接デプロイ (make deploy) では SERVER_ADDR を直接指定も可
+SERVER_ADDR   ?= https://$(PUBLIC_HOST)
 
 # -----------------------------------------------------------------------------
 # Targets
 # -----------------------------------------------------------------------------
 .PHONY: all build build-linux deploy sync restart logs clean generate \
-        docker-build docker-push docker-up docker-down docker-logs docker-dev
+        docker-build docker-push docker-up docker-down docker-logs docker-dev \
+        caddy-setup caddy-status docker-deploy docker-restart docker-remote-logs
 
 all: build-linux
 
@@ -192,11 +200,49 @@ docker-dev:
 docker-dev-down:
 	docker compose -f docker-compose.dev.yaml down
 
-# Deploy to VPS using Docker (VPS上でビルド・実行)
+# =============================================================================
+# Caddy (共有リバースプロキシ) 関連
+# =============================================================================
+
+# Caddy 初回セットアップ（VPSに Caddy がなければ構築）
+caddy-setup:
+	@echo ">> Setting up Caddy on $(VPS_HOST)..."
+	# 1. Caddy ディレクトリを作成
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(CADDY_DIR)/sites"
+	# 2. Caddy 設定ファイルを転送
+	rsync -avz -e "ssh -p $(SSH_PORT)" caddy/docker-compose.yaml $(VPS_USER)@$(VPS_HOST):$(CADDY_DIR)/
+	rsync -avz -e "ssh -p $(SSH_PORT)" caddy/Caddyfile $(VPS_USER)@$(VPS_HOST):$(CADDY_DIR)/
+	# 3. Docker ネットワークを作成（存在しなければ）
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "docker network create $(CADDY_NETWORK) 2>/dev/null || true"
+	# 4. Caddy を起動
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(CADDY_DIR) && docker compose up -d"
+	@echo ">> Caddy setup complete!"
+
+# Caddy の状態確認
+caddy-status:
+	@echo ">> Caddy status on $(VPS_HOST)..."
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(CADDY_DIR) && docker compose ps"
+
+# Caddy のログ確認
+caddy-logs:
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(CADDY_DIR) && docker compose logs -f"
+
+# Caddy をリロード（設定変更を反映）
+caddy-reload:
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "docker exec caddy caddy reload --config /etc/caddy/Caddyfile"
+
+# =============================================================================
+# Docker Deploy (VPS上でビルド・実行 + Caddy 設定)
+# =============================================================================
+
+# Deploy to VPS using Docker
 # ソースを転送してVPS上でビルドするため、アーキテクチャの違いを気にしなくてよい
 docker-deploy: generate
 	@echo ">> Deploying Docker to $(VPS_HOST) (build on VPS)..."
-	# 1. ソースコードを転送
+	@echo ">> App: $(APP_NAME) -> $(PUBLIC_HOST)"
+	# 1. Caddy が起動しているか確認（なければセットアップ）
+	@ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "docker ps -q -f name=caddy" | grep -q . || $(MAKE) caddy-setup
+	# 2. ソースコードを転送
 	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DIR)"
 	rsync -avz -e "ssh -p $(SSH_PORT)" \
 		--exclude '.git' \
@@ -207,17 +253,30 @@ docker-deploy: generate
 		--exclude '.env' \
 		--exclude 'deploy.config' \
 		--exclude '.bypass_emails' \
+		--exclude 'caddy/' \
 		./ $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/
-	# 2. 本番用 .env を転送
+	# 3. 本番用 .env を転送（APP_NAME を追加）
 	@if [ -f ".env.production" ]; then \
-		rsync -avz -e "ssh -p $(SSH_PORT)" .env.production $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/.env; \
+		echo "APP_NAME=$(APP_NAME)" > /tmp/.env.deploy && \
+		cat .env.production >> /tmp/.env.deploy && \
+		rsync -avz -e "ssh -p $(SSH_PORT)" /tmp/.env.deploy $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/.env && \
+		rm /tmp/.env.deploy; \
+	else \
+		echo "APP_NAME=$(APP_NAME)" | ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cat > $(VPS_DIR)/.env"; \
 	fi
-	# 3. VPS上でビルド・起動
+	# 4. VPS上でビルド・起動
 	@echo ">> Building and starting on VPS..."
 	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && \
 		docker compose build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg BUILD_DATE=$(BUILD_DATE) && \
 		docker compose up -d"
+	# 5. Caddy 設定を追加
+	@echo ">> Configuring Caddy for $(PUBLIC_HOST)..."
+	@echo '$(PUBLIC_HOST) {\n    reverse_proxy $(APP_NAME):8080\n}' | \
+		ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cat > $(CADDY_DIR)/sites/$(APP_NAME).caddy"
+	# 6. Caddy をリロード
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "docker exec caddy caddy reload --config /etc/caddy/Caddyfile"
 	@echo ">> Docker deployment complete!"
+	@echo ">> Access: https://$(PUBLIC_HOST)"
 
 # Restart containers on VPS
 docker-restart:
