@@ -1,0 +1,59 @@
+# =============================================================================
+# docker-compose.yaml - 本番環境用
+# =============================================================================
+# 使い方:
+#   1. .env ファイルを作成し、必要な環境変数を設定
+#   2. docker compose up -d
+#   3. docker compose logs -f で確認
+#
+# サーバ再起動時も自動起動 (restart: always)
+# =============================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-dev}
+        COMMIT: ${COMMIT:-unknown}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+    image: ${IMAGE_NAME:-project-crud-auth}:${IMAGE_TAG:-latest}
+    container_name: ${CONTAINER_NAME:-project-crud-auth}
+    restart: always
+    ports:
+      - "${HOST_PORT:-8080}:8080"
+    volumes:
+      # SQLite データベースの永続化
+      - app-data:/app/data
+    environment:
+      # アプリケーション設定
+      - PORT=8080
+      - SERVER_ADDR=${SERVER_ADDR:-http://localhost:8080}
+
+      # 管理者設定
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_NAME=${ADMIN_NAME:-Admin}
+
+      # SMTP設定
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-}
+
+      # WebAuthn設定
+      - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:-localhost}
+      - WEBAUTHN_RP_NAME=${WEBAUTHN_RP_NAME:-Project CRUD}
+      - WEBAUTHN_ALLOWED_ORIGINS=${WEBAUTHN_ALLOWED_ORIGINS:-http://localhost:8080}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  app-data:
+    name: ${VOLUME_NAME:-project-crud-auth-data}

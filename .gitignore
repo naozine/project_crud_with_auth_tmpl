@@ -4,6 +4,7 @@
 /bin
 /tmp
 /.idea
+/dev_local
 *.log
 .env
 .DS_Store

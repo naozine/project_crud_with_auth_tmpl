@@ -31,10 +31,16 @@ ADMIN_NAME   ?= Admin
 # Server Configuration (deploy.config で設定)
 SERVER_ADDR    ?= http://localhost:8080
 
+# Docker Settings
+IMAGE_NAME    ?= project-crud-auth
+IMAGE_TAG     ?= $(VERSION)
+CONTAINER_NAME ?= project-crud-auth
+
 # -----------------------------------------------------------------------------
 # Targets
 # -----------------------------------------------------------------------------
-.PHONY: all build build-linux deploy sync restart logs clean generate
+.PHONY: all build build-linux deploy sync restart logs clean generate \
+        docker-build docker-push docker-up docker-down docker-logs docker-dev
 
 all: build-linux
 
@@ -118,3 +124,105 @@ logs:
 
 clean:
 	rm -f $(BUILD_DIR)/$(BINARY_NAME)-linux
+
+# -----------------------------------------------------------------------------
+# Docker Targets
+# -----------------------------------------------------------------------------
+
+# Build Docker image for linux/amd64 (VPS deployment)
+# M4 Mac (arm64) から x86 VPS へのデプロイに対応
+# 方法: VPS上でビルドするか、マルチアーキテクチャ対応の場合は buildx を使用
+docker-build: generate
+	@echo ">> Building Docker image $(IMAGE_NAME):$(IMAGE_TAG)..."
+	@if docker buildx version >/dev/null 2>&1; then \
+		echo "Using buildx for cross-platform build (linux/amd64)..."; \
+		docker buildx build \
+			--platform linux/amd64 \
+			--build-arg VERSION=$(VERSION) \
+			--build-arg COMMIT=$(COMMIT) \
+			--build-arg BUILD_DATE=$(BUILD_DATE) \
+			-t $(IMAGE_NAME):$(IMAGE_TAG) \
+			-t $(IMAGE_NAME):latest \
+			--load \
+			.; \
+	else \
+		echo "buildx not available, building for local architecture..."; \
+		echo "Note: VPS上でイメージをビルドするか、buildxをインストールしてください"; \
+		docker build \
+			--build-arg VERSION=$(VERSION) \
+			--build-arg COMMIT=$(COMMIT) \
+			--build-arg BUILD_DATE=$(BUILD_DATE) \
+			-t $(IMAGE_NAME):$(IMAGE_TAG) \
+			-t $(IMAGE_NAME):latest \
+			.; \
+	fi
+
+# Push Docker image to registry (要: DOCKER_REGISTRY 設定)
+docker-push: docker-build
+	@if [ -z "$(DOCKER_REGISTRY)" ]; then \
+		echo "Error: DOCKER_REGISTRY is not set"; \
+		exit 1; \
+	fi
+	@echo ">> Pushing to $(DOCKER_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)..."
+	docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(DOCKER_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+	docker tag $(IMAGE_NAME):latest $(DOCKER_REGISTRY)/$(IMAGE_NAME):latest
+	docker push $(DOCKER_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+	docker push $(DOCKER_REGISTRY)/$(IMAGE_NAME):latest
+
+# Start production containers
+docker-up:
+	@echo ">> Starting containers..."
+	docker compose up -d
+
+# Stop production containers
+docker-down:
+	@echo ">> Stopping containers..."
+	docker compose down
+
+# View container logs
+docker-logs:
+	docker compose logs -f
+
+# Start development environment with hot reload
+docker-dev:
+	@echo ">> Starting development environment..."
+	docker compose -f docker-compose.dev.yaml up --build
+
+# Stop development environment
+docker-dev-down:
+	docker compose -f docker-compose.dev.yaml down
+
+# Deploy to VPS using Docker (VPS上でビルド・実行)
+# ソースを転送してVPS上でビルドするため、アーキテクチャの違いを気にしなくてよい
+docker-deploy: generate
+	@echo ">> Deploying Docker to $(VPS_HOST) (build on VPS)..."
+	# 1. ソースコードを転送
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DIR)"
+	rsync -avz -e "ssh -p $(SSH_PORT)" \
+		--exclude '.git' \
+		--exclude '.idea' \
+		--exclude 'bin/' \
+		--exclude 'tmp/' \
+		--exclude '*.db*' \
+		--exclude '.env' \
+		--exclude 'deploy.config' \
+		--exclude '.bypass_emails' \
+		./ $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/
+	# 2. 本番用 .env を転送
+	@if [ -f ".env.production" ]; then \
+		rsync -avz -e "ssh -p $(SSH_PORT)" .env.production $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/.env; \
+	fi
+	# 3. VPS上でビルド・起動
+	@echo ">> Building and starting on VPS..."
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && \
+		docker compose build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg BUILD_DATE=$(BUILD_DATE) && \
+		docker compose up -d"
+	@echo ">> Docker deployment complete!"
+
+# Restart containers on VPS
+docker-restart:
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && docker compose restart"
+
+# View container logs on VPS
+docker-remote-logs:
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && docker compose logs -f"
