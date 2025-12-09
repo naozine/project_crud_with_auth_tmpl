@@ -11,7 +11,8 @@ templ LoginForm(errorMessage string) {
             <div>
                 <label for="email" class="block text-sm font-medium leading-6 text-gray-900">メールアドレス</label>
                 <div class="mt-2">
-                    <input type="email" name="email" id="email" required 
+                    <input type="email" name="email" id="email" required
+                        autocomplete="username webauthn"
                         class="block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"
                         placeholder="test@example.com"
                     />

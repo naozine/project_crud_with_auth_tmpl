@@ -1,5 +1,129 @@
 // Authentication and WebAuthn functions
 
+// Conditional UI (Passkey autofill) initialization
+// ページロード時にパスキーの自動補完を開始
+document.addEventListener('DOMContentLoaded', function() {
+    initConditionalUI();
+});
+
+async function initConditionalUI() {
+    // WebAuthn がサポートされているか確認
+    if (!window.PublicKeyCredential) {
+        console.log('WebAuthn is not supported');
+        return;
+    }
+
+    // Conditional Mediation がサポートされているか確認
+    if (!PublicKeyCredential.isConditionalMediationAvailable) {
+        console.log('Conditional Mediation is not available');
+        return;
+    }
+
+    try {
+        const available = await PublicKeyCredential.isConditionalMediationAvailable();
+        if (!available) {
+            console.log('Conditional Mediation is not available on this browser');
+            return;
+        }
+
+        console.log('Conditional UI available, starting...');
+
+        // Discoverable 認証のオプションを取得
+        const startResp = await fetch('/webauthn/login/discoverable', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        }).then(r => r.json());
+
+        if (startResp.error) {
+            console.log('No passkeys registered or error:', startResp.error);
+            return;
+        }
+
+        // オプションを準備
+        const options = startResp.options;
+        options.challenge = base64urlToBuffer(options.challenge);
+
+        if (options.allowCredentials) {
+            options.allowCredentials = options.allowCredentials.map(c => {
+                c.id = base64urlToBuffer(c.id);
+                return c;
+            });
+        }
+
+        // Conditional UI でパスキー認証を開始（ユーザーがパスキーを選択するまで待機）
+        const assertion = await navigator.credentials.get({
+            publicKey: options,
+            mediation: 'conditional'  // ← これが Conditional UI のキー
+        });
+
+        // パスキーが選択されたら認証を完了
+        showAuthMessage("パスキーでログイン中...", false);
+
+        const finishReq = {
+            challenge_id: startResp.challenge_id,
+            response: {
+                id: assertion.id,
+                rawId: bufferToBase64url(assertion.rawId),
+                type: assertion.type,
+                response: {
+                    authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
+                    clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),
+                    signature: bufferToBase64url(assertion.response.signature),
+                    userHandle: assertion.response.userHandle ? bufferToBase64url(assertion.response.userHandle) : null
+                }
+            }
+        };
+
+        const finishResp = await fetch('/webauthn/login/finish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(finishReq)
+        }).then(r => r.json());
+
+        if (finishResp.error) {
+            showAuthMessage("ログインエラー: " + finishResp.error, true);
+            return;
+        }
+
+        if (finishResp.redirect_url) {
+            window.location.href = finishResp.redirect_url;
+        }
+
+    } catch (e) {
+        // ユーザーがキャンセルした場合やエラーの場合
+        if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') {
+            console.error('Conditional UI error:', e);
+        }
+    }
+}
+
+// Base64URL utility functions
+function base64urlToBuffer(base64url) {
+    if (!base64url || typeof base64url !== 'string') {
+        throw new Error('Invalid base64url input');
+    }
+    const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
+    const binaryString = atob(paddedBase64);
+    const buffer = new ArrayBuffer(binaryString.length);
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < binaryString.length; i++) {
+        view[i] = binaryString.charCodeAt(i);
+    }
+    return buffer;
+}
+
+function bufferToBase64url(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binaryString = '';
+    for (let i = 0; i < bytes.length; i++) {
+        binaryString += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binaryString);
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
 // HTMX Login Form Handler
 document.body.addEventListener('htmx:afterRequest', function(evt) {
     if (evt.detail.elt.id !== 'login-form') return;
