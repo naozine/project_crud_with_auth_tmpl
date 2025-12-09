@@ -29,11 +29,10 @@ services:
       - caddy-net
     volumes:
       # SQLite データベースの永続化
-      # /app ディレクトリ全体をマウントすると実行ファイルも含まれるため、
-      # 作業ディレクトリを変更してDBを別ディレクトリに配置
-      - app-db:/data
-    working_dir: /data
+      - app-db:/app/data
     environment:
+      # DB パス（ボリューム内に配置）
+      - DB_PATH=/app/data/app.db
       # アプリケーション設定
       - PORT=8080
       - SERVER_ADDR=${SERVER_ADDR:-http://localhost:8080}

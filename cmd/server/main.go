@@ -38,7 +38,12 @@ func main() {
 	defer logger.Close()
 
 	// 1. Database Setup (for projects)
-	conn, err := sql.Open("sqlite", "file:app.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(on)")
+	// DB_PATH 環境変数でパスを指定可能（Docker ボリューム対応）
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "app.db"
+	}
+	conn, err := sql.Open("sqlite", "file:"+dbPath+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(on)")
 	if err != nil {
 		log.Fatal("Failed to connect to app.db:", err)
 	}
