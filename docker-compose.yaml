@@ -20,7 +20,7 @@ services:
         VERSION: ${VERSION:-dev}
         COMMIT: ${COMMIT:-unknown}
         BUILD_DATE: ${BUILD_DATE:-unknown}
-    image: ${IMAGE_NAME:-project-crud-auth}:${IMAGE_TAG:-latest}
+    image: ${APP_NAME:-project-crud-auth}:latest
     container_name: ${APP_NAME:-project-crud-auth}
     restart: always
     expose:
