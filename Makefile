@@ -8,11 +8,7 @@ BINARY_NAME ?= server
 BUILD_DIR   ?= bin
 CMD_PATH    ?= ./cmd/server
 # プロジェクトの go.mod に合わせる
-GO_VERSION  ?= 1.25.0
-
-# VPS 上の Go 設定
-VPS_GO_ROOT  = /home/$(VPS_USER)/.go/go$(GO_VERSION)
-VPS_GO_BIN   = $(VPS_GO_ROOT)/bin/go
+GO_VERSION  ?= 1.25
 
 # Version Info (git から自動取得)
 VERSION    := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -53,7 +49,7 @@ SERVER_ADDR   ?= https://$(PUBLIC_HOST)
 .PHONY: all build build-linux deploy sync restart logs clean generate \
         docker-build docker-push docker-up docker-down docker-logs docker-dev \
         caddy-setup caddy-status docker-deploy docker-restart docker-remote-logs \
-        vps-go-install vps-go-version
+        fly-deploy fly-logs fly-status
 
 all: build-linux
 
@@ -137,28 +133,6 @@ logs:
 
 clean:
 	rm -f $(BUILD_DIR)/$(BINARY_NAME)-linux
-
-# -----------------------------------------------------------------------------
-# VPS Go Management
-# -----------------------------------------------------------------------------
-
-# VPS に Go をインストール（指定バージョンがなければ）
-vps-go-install:
-	@echo ">> Checking Go $(GO_VERSION) on VPS..."
-	@ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "\
-		if [ -f $(VPS_GO_BIN) ]; then \
-			echo 'Go $(GO_VERSION) already installed'; \
-		else \
-			echo 'Installing Go $(GO_VERSION)...'; \
-			mkdir -p /home/$(VPS_USER)/.go && \
-			curl -fsSL https://go.dev/dl/go$(GO_VERSION).linux-amd64.tar.gz | tar -C /home/$(VPS_USER)/.go -xzf - && \
-			mv /home/$(VPS_USER)/.go/go $(VPS_GO_ROOT) && \
-			echo 'Go $(GO_VERSION) installed successfully'; \
-		fi"
-
-# VPS の Go バージョン確認
-vps-go-version:
-	@ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "$(VPS_GO_BIN) version 2>/dev/null || echo 'Go not installed at $(VPS_GO_BIN)'"
 
 # -----------------------------------------------------------------------------
 # Docker Targets
@@ -259,24 +233,23 @@ caddy-reload:
 	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "docker exec caddy caddy reload --config /etc/caddy/Caddyfile"
 
 # =============================================================================
-# Docker Deploy (VPS上でビルド・実行 + Caddy 設定)
+# Docker Deploy (VPS上でDockerビルド・実行 + Caddy 設定)
 # =============================================================================
 
 # Deploy to VPS using Docker
-# ホワイトリスト方式で必要なファイルのみ転送し、VPS上でGoビルド後にDockerイメージ化
+# ソースを転送し、VPS上でDockerマルチステージビルド
 docker-deploy: generate
-	@echo ">> Deploying Docker to $(VPS_HOST) (build on VPS)..."
+	@echo ">> Deploying Docker to $(VPS_HOST)..."
 	@echo ">> App: $(APP_NAME) -> $(PUBLIC_HOST)"
-	# 1. VPS に Go がインストールされているか確認（なければインストール）
-	@$(MAKE) vps-go-install
-	# 2. Caddy が起動しているか確認（なければセットアップ）
+	# 1. Caddy が起動しているか確認（なければセットアップ）
 	@ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "docker ps -q -f name=caddy" | grep -q . || $(MAKE) caddy-setup
-	# 3. ソースコードを転送（ホワイトリスト方式：必要なものだけ）
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DIR)/web"
+	# 2. ソースコードを転送（ホワイトリスト方式：必要なものだけ）
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DIR)"
 	rsync -avz -e "ssh -p $(SSH_PORT)" --delete \
 		--include='go.mod' \
 		--include='go.sum' \
 		--include='Dockerfile' \
+		--include='.dockerignore' \
 		--include='docker-compose.yaml' \
 		--include='cmd/***' \
 		--include='internal/***' \
@@ -284,7 +257,7 @@ docker-deploy: generate
 		--include='web/***' \
 		--exclude='*' \
 		./ $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/
-	# 4. 本番用 .env を転送（APP_NAME, SERVER_ADDR, WebAuthn設定を追加）
+	# 3. 本番用 .env を転送（APP_NAME, SERVER_ADDR, WebAuthn設定を追加）
 	@if [ -f ".env.production" ]; then \
 		echo "APP_NAME=$(APP_NAME)" > /tmp/.env.deploy && \
 		echo "SERVER_ADDR=$(SERVER_ADDR)" >> /tmp/.env.deploy && \
@@ -297,28 +270,25 @@ docker-deploy: generate
 		echo "APP_NAME=$(APP_NAME)\nSERVER_ADDR=$(SERVER_ADDR)\nWEBAUTHN_RP_ID=$(PUBLIC_HOST)\nWEBAUTHN_ALLOWED_ORIGINS=$(SERVER_ADDR)" | \
 		ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cat > $(VPS_DIR)/.env"; \
 	fi
-	# 5. VPS上で Go ビルド
-	@echo ">> Building Go binary on VPS..."
+	# 4. Docker イメージをビルド（マルチステージビルド）
+	@echo ">> Building Docker image on VPS..."
 	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && \
-		CGO_ENABLED=0 $(VPS_GO_BIN) build \
-			-ldflags \"-X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Version=$(VERSION)' \
-			          -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Commit=$(COMMIT)' \
-			          -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.BuildDate=$(BUILD_DATE)'\" \
-			-o server ./cmd/server"
-	# 6. Docker イメージをビルド（バイナリコピーのみなので高速）
-	@echo ">> Building Docker image..."
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && docker build -t $(APP_NAME):latest ."
-	# 7. データディレクトリの作成と権限設定（nonroot ユーザー用）
+		docker build \
+			--build-arg VERSION=$(VERSION) \
+			--build-arg COMMIT=$(COMMIT) \
+			--build-arg BUILD_DATE=$(BUILD_DATE) \
+			-t $(APP_NAME):latest ."
+	# 5. データディレクトリの作成と権限設定（nonroot ユーザー用）
 	@echo ">> Setting data directory permissions..."
 	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DIR)/data && chmod 777 $(VPS_DIR)/data"
-	# 8. コンテナ起動
+	# 6. コンテナ起動（イメージが更新されたので再作成）
 	@echo ">> Starting container..."
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && docker compose up -d"
-	# 9. Caddy 設定を追加
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && docker compose up -d --force-recreate"
+	# 7. Caddy 設定を追加
 	@echo ">> Configuring Caddy for $(PUBLIC_HOST)..."
 	@echo '$(PUBLIC_HOST) {\n    reverse_proxy $(APP_NAME):8080\n}' | \
 		ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cat > $(CADDY_DIR)/sites/$(APP_NAME).caddy"
-	# 10. Caddy をリロード
+	# 8. Caddy をリロード
 	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "docker exec caddy caddy reload --config /etc/caddy/Caddyfile"
 	@echo ">> Docker deployment complete!"
 	@echo ">> Access: https://$(PUBLIC_HOST)"
@@ -330,3 +300,25 @@ docker-restart:
 # View container logs on VPS
 docker-remote-logs:
 	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && docker compose logs -f"
+
+# =============================================================================
+# fly.io Deploy
+# =============================================================================
+
+# fly.io へデプロイ
+# 事前準備: fly.toml.example を fly.toml にコピーし、app 名を設定
+fly-deploy: generate
+	@echo ">> Deploying to fly.io..."
+	@if [ ! -f "fly.toml" ]; then \
+		echo "Error: fly.toml not found. Copy fly.toml.example to fly.toml and configure it."; \
+		exit 1; \
+	fi
+	fly deploy --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg BUILD_DATE=$(BUILD_DATE)
+
+# fly.io のログを表示
+fly-logs:
+	fly logs
+
+# fly.io のステータス確認
+fly-status:
+	fly status

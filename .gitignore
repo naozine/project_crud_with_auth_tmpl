@@ -28,6 +28,7 @@ web/layouts/*_templ.go
 .bypass_emails
 /tmp/build-errors.log
 deploy.config
+fly.toml
 
 # ==========================================
 # BUSINESS LOGIC SETTINGS (EDIT FREELY)

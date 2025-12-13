@@ -1,19 +1,50 @@
 # =============================================================================
-# Dockerfile - ビルド済みバイナリをコピー
+# Dockerfile - マルチステージビルド
 # =============================================================================
-# VPS 上で Go ビルド後、バイナリと静的ファイルをコピーするだけの軽量イメージ
+# VPS (docker-deploy) と fly.io (fly-deploy) の両方で使用
 # SQLite は modernc.org/sqlite (Pure Go) を使用
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# Stage 1: Build
+# -----------------------------------------------------------------------------
+FROM golang:1.25-alpine AS builder
+
+# ビルドに必要なツールをインストール
+RUN apk add --no-cache git
+
+WORKDIR /app
+
+# 依存関係を先にコピーしてキャッシュを活用
+COPY go.mod go.sum ./
+RUN go mod download
+
+# ソースコードをコピー
+COPY . .
+
+# バージョン情報を埋め込んでビルド
+ARG VERSION=dev
+ARG COMMIT=unknown
+ARG BUILD_DATE=unknown
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags "-X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Version=${VERSION}' \
+              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Commit=${COMMIT}' \
+              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.BuildDate=${BUILD_DATE}'" \
+    -o /app/server ./cmd/server
+
+# -----------------------------------------------------------------------------
+# Stage 2: Runtime
+# -----------------------------------------------------------------------------
 FROM gcr.io/distroless/static-debian12:nonroot
 
 WORKDIR /app
 
-# ビルド済みバイナリをコピー（docker-deploy で事前にビルド）
-COPY server /app/server
+# バイナリをコピー
+COPY --from=builder /app/server /app/server
 
 # 静的ファイルをコピー
-COPY web/static /app/web/static
+COPY --from=builder /app/web/static /app/web/static
 
 # データディレクトリ (SQLite DB用) - ボリュームマウント先
 VOLUME ["/app/data"]
