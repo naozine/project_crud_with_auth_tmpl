@@ -20,6 +20,12 @@ function abortConditionalUI() {
 }
 
 async function initConditionalUI() {
+    // セットアップページではConditional UIを開始しない（ユーザーが存在しないため）
+    if (window.location.pathname === '/setup') {
+        console.log('Skipping Conditional UI on setup page');
+        return;
+    }
+
     // WebAuthn がサポートされているか確認
     if (!window.PublicKeyCredential) {
         console.log('WebAuthn is not supported');
