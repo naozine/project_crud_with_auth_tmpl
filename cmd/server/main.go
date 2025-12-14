@@ -6,14 +6,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/naozine/project_crud_with_auth_tmpl/db"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/version"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -70,10 +74,8 @@ func main() {
 	// Use existing SQLite connection, so DatabasePath is not used for connection but kept for config consistency
 	mlConfig.DatabaseType = "sqlite"
 
-	mlConfig.ServerAddr = os.Getenv("SERVER_ADDR")
-	if mlConfig.ServerAddr == "" {
-		mlConfig.ServerAddr = "http://localhost:8080"
-	}
+	// ServerAddr: 開発時はPORT環境変数から動的生成、本番はビルド時注入
+	mlConfig.ServerAddr = resolveServerAddr()
 
 	// Only use bypass file if it exists (mainly for local development)
 	if _, err := os.Stat(".bypass_emails"); err == nil {
@@ -83,6 +85,9 @@ func main() {
 	mlConfig.RedirectURL = "/projects"        // Redirect to projects list after login
 	mlConfig.ErrorRedirectURL = "/auth/login" // Redirect to login page on error
 	mlConfig.LoginSuccessMessage = "ログイン用のメールを送信しました"
+
+	// CookieName を ProjectName から生成（派生プロジェクト間のクッキー衝突を防ぐ）
+	mlConfig.CookieName = generateCookieName(version.ProjectName)
 
 	// AllowLogin callback to check against users table
 	mlConfig.AllowLogin = func(c echo.Context, email string) error {
@@ -118,24 +123,15 @@ func main() {
 	mlConfig.SMTPFrom = os.Getenv("SMTP_FROM")
 	mlConfig.SMTPFromName = os.Getenv("SMTP_FROM_NAME")
 
-	// WebAuthn Configuration
+	// WebAuthn Configuration（ServerAddr から自動導出）
 	mlConfig.WebAuthnEnabled = true
-	mlConfig.WebAuthnRPID = os.Getenv("WEBAUTHN_RP_ID")
-	if mlConfig.WebAuthnRPID == "" {
-		mlConfig.WebAuthnRPID = "localhost"
-	}
+	mlConfig.WebAuthnRPID = extractHost(mlConfig.ServerAddr)
 	mlConfig.WebAuthnRPName = os.Getenv("WEBAUTHN_RP_NAME")
 	if mlConfig.WebAuthnRPName == "" {
 		mlConfig.WebAuthnRPName = "Project CRUD"
 	}
 	mlConfig.WebAuthnRedirectURL = "/projects" // Redirect to projects list after passkey login
-
-	allowedOrigins := os.Getenv("WEBAUTHN_ALLOWED_ORIGINS")
-	if allowedOrigins != "" {
-		mlConfig.WebAuthnAllowedOrigins = []string{allowedOrigins}
-	} else {
-		mlConfig.WebAuthnAllowedOrigins = []string{"http://localhost:8080"}
-	}
+	mlConfig.WebAuthnAllowedOrigins = []string{mlConfig.ServerAddr}
 
 	// Allow business logic to configure MagicLink settings
 	ConfigureBusinessSettings(&mlConfig)
@@ -152,6 +148,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(ml)
 	adminHandler := handlers.NewAdminHandler(queries)
 	profileHandler := handlers.NewProfileHandler(queries, ml)
+	setupHandler := handlers.NewSetupHandler(queries, ml)
 
 	// 4. Echo Setup
 	e := echo.New()
@@ -171,6 +168,10 @@ func main() {
 		return c.Redirect(http.StatusSeeOther, "/auth/login")
 	})
 	e.GET("/auth/login", authHandler.LoginPage)
+
+	// Initial Setup Routes (only accessible when no users exist)
+	e.GET("/setup", setupHandler.SetupPage)
+	e.POST("/setup", setupHandler.CreateInitialAdmin)
 
 	// MagicLink internal handlers
 	ml.RegisterHandlers(e)
@@ -255,4 +256,49 @@ func ensureAdminUser(conn *sql.DB) error {
 
 	log.Println("Initial admin user created successfully.")
 	return nil
+}
+
+// generateCookieName は ProjectName からクッキー名を生成する
+// クッキー名は英数字とアンダースコアのみ使用可能（RFC 6265準拠）
+func generateCookieName(projectName string) string {
+	// 小文字に変換
+	name := strings.ToLower(projectName)
+	// 英数字以外をアンダースコアに置換
+	reg := regexp.MustCompile(`[^a-z0-9]+`)
+	name = reg.ReplaceAllString(name, "_")
+	// 先頭・末尾のアンダースコアを削除
+	name = strings.Trim(name, "_")
+	// 空になった場合はデフォルト値
+	if name == "" {
+		name = "app"
+	}
+	return name + "_session"
+}
+
+// resolveServerAddr は ServerAddr を解決する
+// 開発時（Version=dev）はPORT環境変数から動的生成、本番はビルド時注入値を使用
+func resolveServerAddr() string {
+	if version.Version == "dev" {
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = "8080"
+		}
+		return "http://localhost:" + port
+	}
+	return version.ServerAddr
+}
+
+// extractHost は URL からホスト名を抽出する（WebAuthn RP ID 用）
+// 例: "https://example.com:8080" -> "example.com"
+func extractHost(serverAddr string) string {
+	u, err := url.Parse(serverAddr)
+	if err != nil || u.Host == "" {
+		return "localhost"
+	}
+	// ポート番号を除去
+	host := u.Hostname()
+	if host == "" {
+		return "localhost"
+	}
+	return host
 }

@@ -20,8 +20,8 @@ services:
         VERSION: ${VERSION:-dev}
         COMMIT: ${COMMIT:-unknown}
         BUILD_DATE: ${BUILD_DATE:-unknown}
-    image: ${APP_NAME:-project-crud-auth}:latest
-    container_name: ${APP_NAME:-project-crud-auth}
+    image: ${APP_NAME}:latest
+    container_name: ${APP_NAME}
     restart: always
     expose:
       - "8080"
@@ -35,7 +35,7 @@ services:
       - DB_PATH=/app/data/app.db
       # アプリケーション設定
       - PORT=8080
-      - SERVER_ADDR=${SERVER_ADDR:-http://localhost:8080}
+      - SERVER_ADDR=${SERVER_ADDR}
 
       # 管理者設定
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}

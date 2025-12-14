@@ -3,10 +3,17 @@
 # -----------------------------------------------------------------------------
 # このファイルを 'deploy.config' にリネームまたはコピーして使用してください。
 # gitにはコミットしないでください (.gitignore推奨)。
+#
+# NOTE: 多くの設定はフォルダ名から自動生成されます:
+#   - IMAGE_NAME, APP_NAME: フォルダ名がデフォルト
+#   - VPS_DEPLOY_DIR: VPS_BASE_DIR/フォルダ名
+#   - SERVER_ADDR: https://PUBLIC_HOST （ビルド時に埋め込み）
+#   - WEBAUTHN_*: SERVER_ADDR から自動導出
+#   - fly.io app名: フォルダ名、SERVER_ADDR: https://フォルダ名.fly.dev
 # -----------------------------------------------------------------------------
 
 # =============================================================================
-# 共通設定（両方式で使用）
+# VPS Docker デプロイ (make docker-deploy) 用の設定
 # =============================================================================
 
 # VPSのSSH接続ユーザー
@@ -18,19 +25,15 @@ VPS_HOST = 192.168.1.100
 # SSHのポート番号 (デフォルト: 22)
 SSH_PORT = 2222
 
-# デプロイ先のディレクトリパス
-VPS_DIR = /home/ubuntu/apps/myapp
-
-# =============================================================================
-# Docker デプロイ (make docker-deploy) 用の設定
-# =============================================================================
-
-# アプリ名（コンテナ名として使用。Caddyがこの名前でアクセスする）
-APP_NAME = myapp
+# VPS上のベースディレクトリ (実際のパスは VPS_BASE_DIR/フォルダ名 になる)
+VPS_BASE_DIR = /var/www
 
 # 公開ホスト名（Caddyのリバースプロキシ設定で使用）
 # ※ DNSでこのホスト名がVPSのIPを指すよう設定してください
 PUBLIC_HOST = myapp.example.com
+
+# サーバーアドレス（ビルド時に埋め込み。Magic Link URL、WebAuthn設定に使用）
+SERVER_ADDR = https://myapp.example.com
 
 # Caddy設定（VPS上の共有リバースプロキシ）
 CADDY_DIR = /home/ubuntu/caddy
@@ -39,7 +42,6 @@ CADDY_NETWORK = caddy-net
 # アプリの環境変数は .env.production で管理します。
 # .env.production を作成し、以下のような内容を設定してください:
 #
-#   SERVER_ADDR=https://myapp.example.com
 #   ADMIN_EMAIL=admin@example.com
 #   ADMIN_NAME=Administrator
 #   SMTP_HOST=smtp.example.com
@@ -50,21 +52,21 @@ CADDY_NETWORK = caddy-net
 #   SMTP_FROM_NAME=MyApp
 #
 # デプロイ時に .env.production が VPS の .env として転送されます。
+# ※ SERVER_ADDR, WEBAUTHN_* はビルド時に埋め込まれるため .env には不要です。
 
 # =============================================================================
-# バイナリ直接デプロイ (make deploy) 用の設定
+# Cloudflare DNS 設定 (make dns-setup 用)
 # =============================================================================
-# ※ Docker を使わない従来方式。systemd user service で管理。
+# DNS レコードを自動作成する場合に設定
+# ※ DNS 伝播後に make docker-deploy を実行してください（1-2分待つ）
 
-# アプリケーションが使用するポート番号 (デフォルト: 8080)
-APP_PORT = 8080
+# CF_API_TOKEN = your-cloudflare-api-token
+# CF_ZONE_ID   = your-zone-id
+# VPS_IP       = xxx.xxx.xxx.xxx
 
-# 初期管理者ユーザー (初回起動時にユーザーが0人の場合のみ作成される)
-ADMIN_EMAIL = admin@example.com
-ADMIN_NAME  = Administrator
+# =============================================================================
+# オプション: デフォルト値を上書きする場合のみ設定
+# =============================================================================
 
-# サーバーの公開アドレス (Magic Linkで使用)
-SERVER_ADDR = https://example.com
-
-# Systemdのサービス名 (ユーザーサービスとして登録される)
-SERVICE_NAME = myapp.service
+# APP_NAME = myapp        # デフォルト: フォルダ名
+# IMAGE_NAME = myapp      # デフォルト: フォルダ名

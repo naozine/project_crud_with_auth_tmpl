@@ -2,11 +2,30 @@
 
 // Conditional UI (Passkey autofill) initialization
 // ページロード時にパスキーの自動補完を開始
+
+// AbortController for Conditional UI - パスキー登録前に中止するため
+let conditionalUIController = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     initConditionalUI();
 });
 
+// Conditional UI を中止する関数
+function abortConditionalUI() {
+    if (conditionalUIController) {
+        conditionalUIController.abort();
+        conditionalUIController = null;
+        console.log('Conditional UI aborted');
+    }
+}
+
 async function initConditionalUI() {
+    // セットアップページではConditional UIを開始しない（ユーザーが存在しないため）
+    if (window.location.pathname === '/setup') {
+        console.log('Skipping Conditional UI on setup page');
+        return;
+    }
+
     // WebAuthn がサポートされているか確認
     if (!window.PublicKeyCredential) {
         console.log('WebAuthn is not supported');
@@ -51,10 +70,14 @@ async function initConditionalUI() {
             });
         }
 
+        // AbortController を作成
+        conditionalUIController = new AbortController();
+
         // Conditional UI でパスキー認証を開始（ユーザーがパスキーを選択するまで待機）
         const assertion = await navigator.credentials.get({
             publicKey: options,
-            mediation: 'conditional'  // ← これが Conditional UI のキー
+            mediation: 'conditional',  // ← これが Conditional UI のキー
+            signal: conditionalUIController.signal
         });
 
         // パスキーが選択されたら認証を完了
@@ -141,7 +164,7 @@ document.body.addEventListener('htmx:afterRequest', function(evt) {
                 msgDiv.innerHTML = '<p class="font-bold mb-2">' + resp.message + '</p>' +
                     '<a href="' + resp.magic_link + '" class="underline break-all hover:text-green-900">ログインリンクをクリックして続行</a>';
             } else {
-                    msgDiv.textContent = resp.message;
+                msgDiv.textContent = resp.message;
             }
         } else {
             msgDiv.classList.add('bg-red-50', 'text-red-700');
@@ -162,8 +185,8 @@ function showAuthMessage(text, isError = false) {
         return;
     }
     el.textContent = text;
-    el.className = isError 
-        ? 'p-4 rounded-md bg-red-50 text-red-700' 
+    el.className = isError
+        ? 'p-4 rounded-md bg-red-50 text-red-700'
         : 'p-4 rounded-md bg-green-50 text-green-700';
     el.classList.remove('hidden');
 }
@@ -175,23 +198,26 @@ async function registerPasskey(email) {
         showAuthMessage("メールアドレスが見つかりません。", true);
         return;
     }
-    
+
     if (!window.MagicLink) {
         console.error("MagicLink JS library not loaded");
         return;
     }
 
     try {
+        // Conditional UI が実行中の場合は中止する（WebAuthn は同時に1つの操作のみ許可）
+        abortConditionalUI();
+
         // If on dashboard, we might use alert for progress
         const isDashboard = !document.getElementById('auth-messages');
         if(isDashboard) {
-             if(!confirm("この端末をパスキーとして登録しますか？")) return;
+            if(!confirm("この端末をパスキーとして登録しますか？")) return;
         } else {
-             showAuthMessage("パスキーを登録中...", false);
+            showAuthMessage("パスキーを登録中...", false);
         }
 
         const res = await MagicLink.register(email);
-        
+
         if (res.success) {
             // Always reload to reflect the new passkey status from server
             location.reload();
@@ -206,13 +232,16 @@ async function loginPasskey() {
     const emailInput = document.getElementById('email');
     if (!emailInput) return;
     const email = emailInput.value;
-    
+
     if (!email) {
         showAuthMessage("メールアドレスを入力してください。", true);
         return;
     }
 
     try {
+        // Conditional UI が実行中の場合は中止する
+        abortConditionalUI();
+
         showAuthMessage("パスキーでログイン中...", false);
         const res = await MagicLink.login(email);
         if (res.success) {
@@ -226,6 +255,9 @@ async function loginPasskey() {
 
 async function loginDiscoverable() {
     try {
+        // Conditional UI が実行中の場合は中止する
+        abortConditionalUI();
+
         showAuthMessage("端末認証でログイン中...", false);
         const res = await MagicLink.loginDiscoverable();
         if (res.success) {
