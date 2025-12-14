@@ -47,8 +47,8 @@ VPS_DEPLOY_DIR := $(VPS_BASE_DIR)/$(PROJECT_NAME)
 # -----------------------------------------------------------------------------
 .PHONY: build generate migrate-new \
         docker-build docker-push docker-up docker-down docker-logs docker-dev \
-        caddy-setup caddy-status docker-deploy docker-restart docker-remote-logs \
-        fly-deploy fly-logs fly-status
+        caddy-setup caddy-status caddy-reload docker-deploy docker-restart docker-remote-logs \
+        dns-setup fly-deploy fly-logs fly-status
 
 # Generate all auto-generated code (sqlc, templ)
 generate:
@@ -166,6 +166,27 @@ caddy-logs:
 # Caddy をリロード（設定変更を反映）
 caddy-reload:
 	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "docker exec caddy caddy reload --config /etc/caddy/Caddyfile"
+
+# =============================================================================
+# Cloudflare DNS 設定
+# =============================================================================
+
+# DNS レコードを設定（Cloudflare）
+# 必要な環境変数: CF_API_TOKEN, CF_ZONE_ID, VPS_IP
+dns-setup:
+	@if [ -z "$(CF_API_TOKEN)" ] || [ -z "$(CF_ZONE_ID)" ] || [ -z "$(VPS_IP)" ]; then \
+		echo "Error: CF_API_TOKEN, CF_ZONE_ID, VPS_IP を deploy.config に設定してください"; \
+		exit 1; \
+	fi
+	@echo ">> Setting up DNS for $(PUBLIC_HOST)..."
+	@curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$(CF_ZONE_ID)/dns_records" \
+		-H "Authorization: Bearer $(CF_API_TOKEN)" \
+		-H "Content-Type: application/json" \
+		--data '{"type":"A","name":"$(PROJECT_NAME)","content":"$(VPS_IP)","proxied":true,"ttl":1}' \
+		| jq -r 'if .success then "DNS record created: \(.result.name)" else "Error: \(.errors[0].message)" end'
+	@echo ""
+	@echo ">> DNS の伝播を待ってから make docker-deploy を実行してください（1-2分程度）"
+	@echo ">> 確認: dig $(PUBLIC_HOST) で $(VPS_IP) ではなく Cloudflare の IP が返れば OK"
 
 # =============================================================================
 # Docker Deploy (VPS上でDockerビルド・実行 + Caddy 設定)

@@ -27,7 +27,7 @@ web/layouts/*_templ.go
 /app
 .bypass_emails
 /tmp/build-errors.log
-deploy.config
+deploy.config*
 fly.toml
 
 # ==========================================
