@@ -89,3 +89,85 @@ git merge template/main --allow-unrelated-histories
 go mod tidy
 make generate
 ```
+
+---
+
+## デプロイ
+
+このテンプレートは **VPS (Docker)** と **fly.io** の2つのデプロイ方法をサポートしています。
+
+### 共通設定
+
+`deploy.config.example` を `deploy.config` にコピーして編集:
+
+```bash
+cp deploy.config.example deploy.config
+```
+
+主な設定項目:
+- `PUBLIC_HOST`: 公開ドメイン名（例: `myapp.example.com`）
+- `CF_API_TOKEN`, `CF_ZONE_ID`: Cloudflare DNS 自動設定用（オプション）
+
+### fly.io へのデプロイ
+
+軽量で自動スケーリング対応。スケールトゥゼロでコスト削減可能。
+
+```bash
+# 1. 初回セットアップ（アプリ作成 + ボリューム作成 + fly.toml生成）
+make fly-setup
+
+# 2. シークレット設定
+fly secrets set -a <フォルダ名> \
+  ADMIN_EMAIL=admin@example.com \
+  SMTP_HOST=smtp.example.com \
+  SMTP_PORT=587 \
+  SMTP_USERNAME=user \
+  SMTP_PASSWORD=pass \
+  SMTP_FROM=noreply@example.com
+
+# 3. デプロイ
+make fly-deploy
+
+# 4. カスタムドメイン設定（オプション、Cloudflare使用時）
+make fly-dns-setup
+# → 完了後、Cloudflare でProxy ON (オレンジ雲) に切り替え
+```
+
+その他のコマンド:
+- `make fly-status`: ステータス確認
+- `make fly-logs`: ログ表示
+
+### VPS (Docker) へのデプロイ
+
+自前のVPSにDockerでデプロイ。Caddyをリバースプロキシとして使用。
+
+```bash
+# 1. deploy.config を設定（VPS_USER, VPS_HOST, PUBLIC_HOST等）
+
+# 2. 本番用環境変数を設定
+cp .env.example .env.production
+# .env.production を編集（SMTP設定等）
+
+# 3. DNS設定（Cloudflare使用時、オプション）
+make dns-setup
+
+# 4. デプロイ
+make docker-deploy
+
+# 5. Caddy設定（初回のみ）
+make caddy-setup
+```
+
+その他のコマンド:
+- `make docker-remote-logs`: コンテナログ表示
+- `make docker-restart`: コンテナ再起動
+
+### ビルド時に自動設定される値
+
+以下の値はデプロイ時に自動設定されます（.env での設定不要）:
+
+- `SERVER_ADDR`: `https://$(PUBLIC_HOST)` から生成
+- `WEBAUTHN_RP_ID`: `SERVER_ADDR` のホスト名部分
+- `WEBAUTHN_ALLOWED_ORIGINS`: `SERVER_ADDR` と同じ
+
+開発時（`air` 使用時）は `http://localhost:PORT` が自動で使用されます。
