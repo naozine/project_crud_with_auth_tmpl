@@ -15,9 +15,8 @@ primary_region = "nrt"  # 東京リージョン
 
 [env]
   PORT = "8080"
-  # SERVER_ADDR は fly secrets で設定 (例: https://your-app-name.fly.dev)
+  # SERVER_ADDR, WEBAUTHN_* はビルド時に自動設定されます
   # SMTP_* は fly secrets で設定
-  # WEBAUTHN_* は fly secrets で設定
 
 [http_service]
   internal_port = 8080
@@ -46,14 +45,13 @@ primary_region = "nrt"  # 東京リージョン
 # 1. fly apps create <フォルダ名>
 # 2. fly volumes create data --region nrt --size 1 -a <フォルダ名>
 # 3. fly secrets set -a <フォルダ名> \
-#      SERVER_ADDR=https://<フォルダ名>.fly.dev \
 #      ADMIN_EMAIL=admin@example.com \
 #      SMTP_HOST=smtp.example.com \
 #      SMTP_PORT=587 \
 #      SMTP_USERNAME=user \
 #      SMTP_PASSWORD=pass \
-#      SMTP_FROM=noreply@example.com \
-#      WEBAUTHN_RP_ID=<フォルダ名>.fly.dev \
-#      WEBAUTHN_ALLOWED_ORIGINS=https://<フォルダ名>.fly.dev
+#      SMTP_FROM=noreply@example.com
 # 4. make fly-deploy
+#
+# ※ SERVER_ADDR, WEBAUTHN_* はビルド時に自動設定されます
 # =============================================================================

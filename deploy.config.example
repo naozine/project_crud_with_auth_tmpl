@@ -7,7 +7,9 @@
 # NOTE: 多くの設定はフォルダ名から自動生成されます:
 #   - IMAGE_NAME, APP_NAME: フォルダ名がデフォルト
 #   - VPS_DEPLOY_DIR: VPS_BASE_DIR/フォルダ名
-#   - fly.io app名: フォルダ名
+#   - SERVER_ADDR: https://PUBLIC_HOST （ビルド時に埋め込み）
+#   - WEBAUTHN_*: SERVER_ADDR から自動導出
+#   - fly.io app名: フォルダ名、SERVER_ADDR: https://フォルダ名.fly.dev
 # -----------------------------------------------------------------------------
 
 # =============================================================================
@@ -30,6 +32,9 @@ VPS_BASE_DIR = /var/www
 # ※ DNSでこのホスト名がVPSのIPを指すよう設定してください
 PUBLIC_HOST = myapp.example.com
 
+# サーバーアドレス（ビルド時に埋め込み。Magic Link URL、WebAuthn設定に使用）
+SERVER_ADDR = https://myapp.example.com
+
 # Caddy設定（VPS上の共有リバースプロキシ）
 CADDY_DIR = /home/ubuntu/caddy
 CADDY_NETWORK = caddy-net
@@ -47,7 +52,7 @@ CADDY_NETWORK = caddy-net
 #   SMTP_FROM_NAME=MyApp
 #
 # デプロイ時に .env.production が VPS の .env として転送されます。
-# (APP_NAME, SERVER_ADDR, WEBAUTHN_* は自動追加されます)
+# ※ SERVER_ADDR, WEBAUTHN_* はビルド時に埋め込まれるため .env には不要です。
 
 # =============================================================================
 # Cloudflare DNS 設定 (make dns-setup 用)

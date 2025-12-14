@@ -15,10 +15,11 @@ PROJECT_NAME := $(subst _,-,$(notdir $(CURDIR)))
 VERSION    := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT     := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-LDFLAGS    := -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Version=$(VERSION)' \
+LDFLAGS     = -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Version=$(VERSION)' \
               -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Commit=$(COMMIT)' \
               -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.BuildDate=$(BUILD_DATE)' \
-              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.ProjectName=$(PROJECT_NAME)'
+              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.ProjectName=$(PROJECT_NAME)' \
+              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.ServerAddr=$(SERVER_ADDR)'
 
 # VPS Connection Info (deploy.config または環境変数で上書き可能)
 VPS_USER     ?= user
@@ -36,8 +37,8 @@ PUBLIC_HOST   ?= localhost
 CADDY_DIR     ?= /home/$(VPS_USER)/caddy
 CADDY_NETWORK ?= caddy-net
 
-# Server Configuration
-SERVER_ADDR   ?= https://$(PUBLIC_HOST)
+# Server Configuration（ローカル開発時は http://localhost:8080）
+SERVER_ADDR   ?= http://localhost:8080
 
 # VPS上の実際のデプロイパス
 VPS_DEPLOY_DIR := $(VPS_BASE_DIR)/$(PROJECT_NAME)
@@ -214,18 +215,11 @@ docker-deploy: generate
 		--include='web/***' \
 		--exclude='*' \
 		./ $(VPS_USER)@$(VPS_HOST):$(VPS_DEPLOY_DIR)/
-	# 3. 本番用 .env を転送（APP_NAME, SERVER_ADDR, WebAuthn設定を追加）
+	# 3. 本番用 .env を転送（SMTP設定など。SERVER_ADDR, WEBAUTHN_* はビルド時注入）
 	@if [ -f ".env.production" ]; then \
-		echo "APP_NAME=$(APP_NAME)" > /tmp/.env.deploy && \
-		echo "SERVER_ADDR=$(SERVER_ADDR)" >> /tmp/.env.deploy && \
-		echo "WEBAUTHN_RP_ID=$(PUBLIC_HOST)" >> /tmp/.env.deploy && \
-		echo "WEBAUTHN_ALLOWED_ORIGINS=$(SERVER_ADDR)" >> /tmp/.env.deploy && \
-		cat .env.production >> /tmp/.env.deploy && \
-		rsync -avz -e "ssh -p $(SSH_PORT)" /tmp/.env.deploy $(VPS_USER)@$(VPS_HOST):$(VPS_DEPLOY_DIR)/.env && \
-		rm /tmp/.env.deploy; \
+		rsync -avz -e "ssh -p $(SSH_PORT)" .env.production $(VPS_USER)@$(VPS_HOST):$(VPS_DEPLOY_DIR)/.env; \
 	else \
-		echo "APP_NAME=$(APP_NAME)\nSERVER_ADDR=$(SERVER_ADDR)\nWEBAUTHN_RP_ID=$(PUBLIC_HOST)\nWEBAUTHN_ALLOWED_ORIGINS=$(SERVER_ADDR)" | \
-		ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cat > $(VPS_DEPLOY_DIR)/.env"; \
+		ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "touch $(VPS_DEPLOY_DIR)/.env"; \
 	fi
 	# 4. Docker イメージをビルド（マルチステージビルド）
 	@echo ">> Building Docker image on VPS..."
@@ -235,13 +229,14 @@ docker-deploy: generate
 			--build-arg COMMIT=$(COMMIT) \
 			--build-arg BUILD_DATE=$(BUILD_DATE) \
 			--build-arg PROJECT_NAME=$(PROJECT_NAME) \
+			--build-arg SERVER_ADDR=$(SERVER_ADDR) \
 			-t $(APP_NAME):latest ."
 	# 5. データディレクトリの作成と権限設定（nonroot ユーザー用）
 	@echo ">> Setting data directory permissions..."
 	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DEPLOY_DIR)/data && chmod 777 $(VPS_DEPLOY_DIR)/data"
 	# 6. コンテナ起動（イメージが更新されたので再作成）
 	@echo ">> Starting container..."
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DEPLOY_DIR) && docker compose up -d --force-recreate"
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DEPLOY_DIR) && APP_NAME=$(APP_NAME) docker compose up -d --force-recreate"
 	# 7. Caddy 設定を追加
 	@echo ">> Configuring Caddy for $(PUBLIC_HOST)..."
 	@echo '$(PUBLIC_HOST) {\n    reverse_proxy $(APP_NAME):8080\n}' | \
@@ -266,6 +261,7 @@ docker-remote-logs:
 # fly.io へデプロイ
 # アプリ名はフォルダ名 (PROJECT_NAME) を使用
 # 初回は fly apps create $(PROJECT_NAME) でアプリを作成しておくこと
+# SERVER_ADDR は https://$(PROJECT_NAME).fly.dev を使用
 fly-deploy: generate
 	@echo ">> Deploying to fly.io..."
 	@echo ">> App: $(PROJECT_NAME)"
@@ -273,7 +269,8 @@ fly-deploy: generate
 		--build-arg VERSION=$(VERSION) \
 		--build-arg COMMIT=$(COMMIT) \
 		--build-arg BUILD_DATE=$(BUILD_DATE) \
-		--build-arg PROJECT_NAME=$(PROJECT_NAME)
+		--build-arg PROJECT_NAME=$(PROJECT_NAME) \
+		--build-arg SERVER_ADDR=https://$(PROJECT_NAME).fly.dev
 
 # fly.io のログを表示
 fly-logs:
