@@ -258,14 +258,30 @@ docker-remote-logs:
 # fly.io Deploy
 # =============================================================================
 
-# fly.io 初回セットアップ（アプリ作成 + ボリューム作成）
+# fly.io 初回セットアップ（アプリ作成 + ボリューム作成 + fly.toml生成）
+# 既存アプリ/ボリューム/fly.tomlがある場合はスキップ
 fly-setup:
-	@echo ">> Creating fly.io app: $(PROJECT_NAME)"
-	fly apps create $(PROJECT_NAME)
-	@echo ">> Creating volume for SQLite data..."
-	fly volumes create data --region nrt --size 1 -a $(PROJECT_NAME)
+	@echo ">> Setting up fly.io app: $(PROJECT_NAME)"
+	@if fly apps list --json | jq -e '.[] | select(.Name == "$(PROJECT_NAME)")' > /dev/null 2>&1; then \
+		echo ">> App already exists, skipping creation"; \
+	else \
+		echo ">> Creating app..."; \
+		fly apps create $(PROJECT_NAME); \
+	fi
+	@if fly volumes list -a $(PROJECT_NAME) --json | jq -e '.[] | select(.Name == "data")' > /dev/null 2>&1; then \
+		echo ">> Volume 'data' already exists, skipping creation"; \
+	else \
+		echo ">> Creating volume for SQLite data..."; \
+		fly volumes create data --region nrt --size 1 -a $(PROJECT_NAME) -y; \
+	fi
+	@if [ -f fly.toml ]; then \
+		echo ">> fly.toml already exists, skipping generation"; \
+	else \
+		echo ">> Generating fly.toml from template..."; \
+		sed 's/^app = .*/app = "$(PROJECT_NAME)"/' fly.toml.example > fly.toml; \
+	fi
 	@echo ">> fly-setup complete!"
-	@echo ">> Next: make fly-deploy"
+	@echo ">> Next: fly secrets set ... && make fly-deploy"
 
 # fly.io へデプロイ
 # カスタムドメインを使う場合は deploy.config で PUBLIC_HOST を設定
@@ -294,6 +310,7 @@ fly-status:
 # 事前に fly-deploy でアプリがデプロイ済みであること
 # PUBLIC_HOST にカスタムドメインを設定してから実行
 # 既存の A/AAAA/CNAME レコードがあれば削除してから CNAME を作成
+# 証明書発行のため Proxy OFF で作成 → 発行後にユーザーが Proxy ON にする
 fly-dns-setup:
 	@if [ -z "$(CF_API_TOKEN)" ] || [ -z "$(CF_ZONE_ID)" ]; then \
 		echo "Error: CF_API_TOKEN, CF_ZONE_ID を deploy.config に設定してください"; \
@@ -314,15 +331,30 @@ fly-dns-setup:
 		curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/$(CF_ZONE_ID)/dns_records/$$RECORD_ID" \
 			-H "Authorization: Bearer $(CF_API_TOKEN)" | jq -r '.success'; \
 	fi
-	# 2. Cloudflare に CNAME 追加 (Proxy ON)
+	# 2. Cloudflare に CNAME 追加 (Proxy OFF - 証明書発行のため)
 	@curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$(CF_ZONE_ID)/dns_records" \
 		-H "Authorization: Bearer $(CF_API_TOKEN)" \
 		-H "Content-Type: application/json" \
-		--data '{"type":"CNAME","name":"$(PUBLIC_HOST)","content":"$(PROJECT_NAME).fly.dev","proxied":true,"ttl":1}' \
-		| jq -r 'if .success then "DNS record created: \(.result.name)" else "Error: \(.errors[0].message)" end'
+		--data '{"type":"CNAME","name":"$(PUBLIC_HOST)","content":"$(PROJECT_NAME).fly.dev","proxied":false,"ttl":1}' \
+		| jq -r 'if .success then "DNS record created: \(.result.name) (Proxy OFF)" else "Error: \(.errors[0].message)" end'
 	# 3. fly.io にカスタムドメインの証明書を追加
 	@echo ">> Adding certificate for $(PUBLIC_HOST) on fly.io..."
 	fly certs add $(PUBLIC_HOST) -a $(PROJECT_NAME)
+	# 4. 証明書発行を待機
+	@echo ">> Waiting for certificate issuance..."
+	@for i in 1 2 3 4 5 6; do \
+		sleep 10; \
+		STATUS=$$(fly certs show $(PUBLIC_HOST) -a $(PROJECT_NAME) 2>/dev/null | grep "^Status" | awk '{print $$NF}'); \
+		echo ">> Certificate status: $$STATUS"; \
+		if [ "$$STATUS" = "Ready" ]; then \
+			echo ">> Certificate issued successfully!"; \
+			break; \
+		fi; \
+		if [ $$i -eq 6 ]; then \
+			echo ">> Certificate not ready yet. Check with: fly certs show $(PUBLIC_HOST) -a $(PROJECT_NAME)"; \
+		fi; \
+	done
 	@echo ""
 	@echo ">> fly-dns-setup complete!"
+	@echo ">> Next: Cloudflare ダッシュボードで $(PUBLIC_HOST) の Proxy を ON (オレンジ雲) にしてください"
 	@echo ">> Access: https://$(PUBLIC_HOST)"
