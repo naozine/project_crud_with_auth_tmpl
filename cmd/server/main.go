@@ -7,13 +7,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/naozine/project_crud_with_auth_tmpl/db"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/version"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -83,6 +86,9 @@ func main() {
 	mlConfig.RedirectURL = "/projects"        // Redirect to projects list after login
 	mlConfig.ErrorRedirectURL = "/auth/login" // Redirect to login page on error
 	mlConfig.LoginSuccessMessage = "ログイン用のメールを送信しました"
+
+	// CookieName を ProjectName から生成（派生プロジェクト間のクッキー衝突を防ぐ）
+	mlConfig.CookieName = generateCookieName(version.ProjectName)
 
 	// AllowLogin callback to check against users table
 	mlConfig.AllowLogin = func(c echo.Context, email string) error {
@@ -260,4 +266,21 @@ func ensureAdminUser(conn *sql.DB) error {
 
 	log.Println("Initial admin user created successfully.")
 	return nil
+}
+
+// generateCookieName は ProjectName からクッキー名を生成する
+// クッキー名は英数字とアンダースコアのみ使用可能（RFC 6265準拠）
+func generateCookieName(projectName string) string {
+	// 小文字に変換
+	name := strings.ToLower(projectName)
+	// 英数字以外をアンダースコアに置換
+	reg := regexp.MustCompile(`[^a-z0-9]+`)
+	name = reg.ReplaceAllString(name, "_")
+	// 先頭・末尾のアンダースコアを削除
+	name = strings.Trim(name, "_")
+	// 空になった場合はデフォルト値
+	if name == "" {
+		name = "app"
+	}
+	return name + "_session"
 }

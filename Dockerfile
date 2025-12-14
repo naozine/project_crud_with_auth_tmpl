@@ -22,15 +22,17 @@ RUN go mod download
 # ソースコードをコピー
 COPY . .
 
-# バージョン情報を埋め込んでビルド
+# バージョン情報とプロジェクト名を埋め込んでビルド
 ARG VERSION=dev
 ARG COMMIT=unknown
 ARG BUILD_DATE=unknown
+ARG PROJECT_NAME=app
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags "-X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Version=${VERSION}' \
               -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Commit=${COMMIT}' \
-              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.BuildDate=${BUILD_DATE}'" \
+              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.BuildDate=${BUILD_DATE}' \
+              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.ProjectName=${PROJECT_NAME}'" \
     -o /app/server ./cmd/server
 
 # -----------------------------------------------------------------------------

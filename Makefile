@@ -4,11 +4,12 @@
 # プロジェクト固有の設定を読み込む（存在する場合）
 -include deploy.config
 
-BINARY_NAME ?= server
 BUILD_DIR   ?= bin
 CMD_PATH    ?= ./cmd/server
-# プロジェクトの go.mod に合わせる
-GO_VERSION  ?= 1.25
+
+# Project Name (フォルダ名から自動取得、_ は - に変換)
+# Docker イメージ名、コンテナ名、fly.io app名、クッキー名などに使用
+PROJECT_NAME := $(subst _,-,$(notdir $(CURDIR)))
 
 # Version Info (git から自動取得)
 VERSION    := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -16,22 +17,19 @@ COMMIT     := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS    := -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Version=$(VERSION)' \
               -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.Commit=$(COMMIT)' \
-              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.BuildDate=$(BUILD_DATE)'
+              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.BuildDate=$(BUILD_DATE)' \
+              -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/version.ProjectName=$(PROJECT_NAME)'
 
 # VPS Connection Info (deploy.config または環境変数で上書き可能)
-VPS_USER    ?= user
-VPS_HOST    ?= 192.168.1.100
-SSH_PORT    ?= 22
-VPS_DIR     ?= /var/www/project_crud_with_auth_tmpl
-SERVICE_NAME ?= my-app.service
-APP_PORT     ?= 8080
-ADMIN_EMAIL  ?=
-ADMIN_NAME   ?= Admin
+VPS_USER     ?= user
+VPS_HOST     ?= 192.168.1.100
+SSH_PORT     ?= 22
+VPS_BASE_DIR ?= /var/www
 
-# Docker Settings
-IMAGE_NAME    ?= project-crud-auth
+# Docker Settings (デフォルトはフォルダ名から自動生成)
+IMAGE_NAME    ?= $(PROJECT_NAME)
 IMAGE_TAG     ?= $(VERSION)
-APP_NAME      ?= project-crud-auth
+APP_NAME      ?= $(PROJECT_NAME)
 
 # Caddy Settings (共有リバースプロキシ)
 PUBLIC_HOST   ?= localhost
@@ -39,19 +37,18 @@ CADDY_DIR     ?= /home/$(VPS_USER)/caddy
 CADDY_NETWORK ?= caddy-net
 
 # Server Configuration
-# PUBLIC_HOST が設定されていれば https:// を付けて自動生成
-# バイナリ直接デプロイ (make deploy) では SERVER_ADDR を直接指定も可
 SERVER_ADDR   ?= https://$(PUBLIC_HOST)
+
+# VPS上の実際のデプロイパス
+VPS_DEPLOY_DIR := $(VPS_BASE_DIR)/$(PROJECT_NAME)
 
 # -----------------------------------------------------------------------------
 # Targets
 # -----------------------------------------------------------------------------
-.PHONY: all build build-linux deploy sync restart logs clean generate \
+.PHONY: build generate migrate-new \
         docker-build docker-push docker-up docker-down docker-logs docker-dev \
         caddy-setup caddy-status docker-deploy docker-restart docker-remote-logs \
         fly-deploy fly-logs fly-status
-
-all: build-linux
 
 # Generate all auto-generated code (sqlc, templ)
 generate:
@@ -59,80 +56,16 @@ generate:
 	sqlc generate
 	templ generate
 
-# 0. Local build (開発・テスト用)
+# Local build (開発・テスト用)
 build: generate
 	@echo ">> Building $(VERSION)..."
-	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) $(CMD_PATH)
-
-# 1. Cross-compile for Linux (amd64) using Pure Go (no CGO required)
-#    modernc.org/sqlite (Pure Go) を使用しているため、Docker不要でクロスコンパイル可能です。
-build-linux: generate
-	@echo ">> Building $(VERSION) for Linux/amd64..."
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -v -o $(BUILD_DIR)/$(BINARY_NAME)-linux $(CMD_PATH)
-
-# 2. Deploy: Build -> Push Binary -> Push Service Config -> Restart Service
-deploy: build-linux
-	@echo ">> Deploying to $(VPS_HOST) (Port: $(SSH_PORT))..."
-
-	# 1. リモートディレクトリ構造を作成
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DIR)/web/static && mkdir -p ~/.config/systemd/user"
-
-	# 2. ローカルで一時的なサービスファイルを作成
-	@echo "[Unit]\nDescription=$(SERVICE_NAME)\nAfter=network.target\n\n[Service]\nWorkingDirectory=$(VPS_DIR)\nExecStart=$(VPS_DIR)/$(BINARY_NAME)\n\
-	Environment=\"PORT=$(APP_PORT)\"\n\
-	Environment=\"ADMIN_EMAIL=$(ADMIN_EMAIL)\"\n\
-	Environment=\"ADMIN_NAME=$(ADMIN_NAME)\"\n\
-	Environment=\"SERVER_ADDR=$(SERVER_ADDR)\"\n\
-	SyslogIdentifier=$(SERVICE_NAME)\n\
-	Restart=always\nRestartSec=5\nStandardOutput=journal\nStandardError=journal\n\n[Install]\nWantedBy=default.target" > $(BINARY_NAME).service
-
-	# 3. バイナリとサービスファイルを転送
-	rsync -avz -e "ssh -p $(SSH_PORT)" --progress $(BUILD_DIR)/$(BINARY_NAME)-linux $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/$(BINARY_NAME)
-	rsync -avz -e "ssh -p $(SSH_PORT)" $(BINARY_NAME).service $(VPS_USER)@$(VPS_HOST):~/.config/systemd/user/$(SERVICE_NAME)
-	
-	# 4. 静的ファイルを転送
-	rsync -avz -e "ssh -p $(SSH_PORT)" --delete web/static/ $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/web/static/
-
-	# 5. サービス登録・有効化・再起動・永続化
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "\
-		loginctl enable-linger $(VPS_USER) && \
-		systemctl --user daemon-reload && \
-		systemctl --user enable $(SERVICE_NAME) && \
-		systemctl --user restart $(SERVICE_NAME)"
-	
-	# 6. ローカルの一時ファイルを削除
-	@rm $(BINARY_NAME).service
-	@echo ">> Deployment complete!"
-
-# (Option) Sync Source Code Only (開発用: サーバー上でビルドする場合に使用)
-sync:
-	@echo ">> Syncing source code to VPS (Port: $(SSH_PORT))..."
-	rsync -avz -e "ssh -p $(SSH_PORT)" --delete \
-		--exclude '.git' \
-		--exclude '.idea' \
-		--exclude 'bin/' \
-		--exclude 'tmp/' \
-		--exclude '*.db*' \
-		--exclude '.env' \
-		--exclude 'deploy.config' \
-		./ $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)
+	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/server $(CMD_PATH)
 
 # Utility: Create New Migration
 # Usage: make migrate-new NAME=add_users_table
 migrate-new:
 	@if [ -z "$(NAME)" ]; then echo "Usage: make migrate-new NAME=description"; exit 1; fi
 	go run github.com/pressly/goose/v3/cmd/goose -dir db/migrations create $(NAME) sql
-
-# Utility: Restart Service
-restart:
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "systemctl --user restart $(SERVICE_NAME)"
-
-# Utility: View Logs
-logs:
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "journalctl --user -u $(SERVICE_NAME) -f"
-
-clean:
-	rm -f $(BUILD_DIR)/$(BINARY_NAME)-linux
 
 # -----------------------------------------------------------------------------
 # Docker Targets
@@ -150,6 +83,7 @@ docker-build: generate
 			--build-arg VERSION=$(VERSION) \
 			--build-arg COMMIT=$(COMMIT) \
 			--build-arg BUILD_DATE=$(BUILD_DATE) \
+			--build-arg PROJECT_NAME=$(PROJECT_NAME) \
 			-t $(IMAGE_NAME):$(IMAGE_TAG) \
 			-t $(IMAGE_NAME):latest \
 			--load \
@@ -161,6 +95,7 @@ docker-build: generate
 			--build-arg VERSION=$(VERSION) \
 			--build-arg COMMIT=$(COMMIT) \
 			--build-arg BUILD_DATE=$(BUILD_DATE) \
+			--build-arg PROJECT_NAME=$(PROJECT_NAME) \
 			-t $(IMAGE_NAME):$(IMAGE_TAG) \
 			-t $(IMAGE_NAME):latest \
 			.; \
@@ -241,10 +176,11 @@ caddy-reload:
 docker-deploy: generate
 	@echo ">> Deploying Docker to $(VPS_HOST)..."
 	@echo ">> App: $(APP_NAME) -> $(PUBLIC_HOST)"
+	@echo ">> Deploy path: $(VPS_DEPLOY_DIR)"
 	# 1. Caddy が起動しているか確認（なければセットアップ）
 	@ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "docker ps -q -f name=caddy" | grep -q . || $(MAKE) caddy-setup
 	# 2. ソースコードを転送（ホワイトリスト方式：必要なものだけ）
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DIR)"
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DEPLOY_DIR)"
 	rsync -avz -e "ssh -p $(SSH_PORT)" --delete \
 		--include='go.mod' \
 		--include='go.sum' \
@@ -256,7 +192,7 @@ docker-deploy: generate
 		--include='db/***' \
 		--include='web/***' \
 		--exclude='*' \
-		./ $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/
+		./ $(VPS_USER)@$(VPS_HOST):$(VPS_DEPLOY_DIR)/
 	# 3. 本番用 .env を転送（APP_NAME, SERVER_ADDR, WebAuthn設定を追加）
 	@if [ -f ".env.production" ]; then \
 		echo "APP_NAME=$(APP_NAME)" > /tmp/.env.deploy && \
@@ -264,26 +200,27 @@ docker-deploy: generate
 		echo "WEBAUTHN_RP_ID=$(PUBLIC_HOST)" >> /tmp/.env.deploy && \
 		echo "WEBAUTHN_ALLOWED_ORIGINS=$(SERVER_ADDR)" >> /tmp/.env.deploy && \
 		cat .env.production >> /tmp/.env.deploy && \
-		rsync -avz -e "ssh -p $(SSH_PORT)" /tmp/.env.deploy $(VPS_USER)@$(VPS_HOST):$(VPS_DIR)/.env && \
+		rsync -avz -e "ssh -p $(SSH_PORT)" /tmp/.env.deploy $(VPS_USER)@$(VPS_HOST):$(VPS_DEPLOY_DIR)/.env && \
 		rm /tmp/.env.deploy; \
 	else \
 		echo "APP_NAME=$(APP_NAME)\nSERVER_ADDR=$(SERVER_ADDR)\nWEBAUTHN_RP_ID=$(PUBLIC_HOST)\nWEBAUTHN_ALLOWED_ORIGINS=$(SERVER_ADDR)" | \
-		ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cat > $(VPS_DIR)/.env"; \
+		ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cat > $(VPS_DEPLOY_DIR)/.env"; \
 	fi
 	# 4. Docker イメージをビルド（マルチステージビルド）
 	@echo ">> Building Docker image on VPS..."
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && \
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DEPLOY_DIR) && \
 		docker build \
 			--build-arg VERSION=$(VERSION) \
 			--build-arg COMMIT=$(COMMIT) \
 			--build-arg BUILD_DATE=$(BUILD_DATE) \
+			--build-arg PROJECT_NAME=$(PROJECT_NAME) \
 			-t $(APP_NAME):latest ."
 	# 5. データディレクトリの作成と権限設定（nonroot ユーザー用）
 	@echo ">> Setting data directory permissions..."
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DIR)/data && chmod 777 $(VPS_DIR)/data"
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DEPLOY_DIR)/data && chmod 777 $(VPS_DEPLOY_DIR)/data"
 	# 6. コンテナ起動（イメージが更新されたので再作成）
 	@echo ">> Starting container..."
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && docker compose up -d --force-recreate"
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DEPLOY_DIR) && docker compose up -d --force-recreate"
 	# 7. Caddy 設定を追加
 	@echo ">> Configuring Caddy for $(PUBLIC_HOST)..."
 	@echo '$(PUBLIC_HOST) {\n    reverse_proxy $(APP_NAME):8080\n}' | \
@@ -295,30 +232,32 @@ docker-deploy: generate
 
 # Restart containers on VPS
 docker-restart:
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && docker compose restart"
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DEPLOY_DIR) && docker compose restart"
 
 # View container logs on VPS
 docker-remote-logs:
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DIR) && docker compose logs -f"
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DEPLOY_DIR) && docker compose logs -f"
 
 # =============================================================================
 # fly.io Deploy
 # =============================================================================
 
 # fly.io へデプロイ
-# 事前準備: fly.toml.example を fly.toml にコピーし、app 名を設定
+# アプリ名はフォルダ名 (PROJECT_NAME) を使用
+# 初回は fly apps create $(PROJECT_NAME) でアプリを作成しておくこと
 fly-deploy: generate
 	@echo ">> Deploying to fly.io..."
-	@if [ ! -f "fly.toml" ]; then \
-		echo "Error: fly.toml not found. Copy fly.toml.example to fly.toml and configure it."; \
-		exit 1; \
-	fi
-	fly deploy --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg BUILD_DATE=$(BUILD_DATE)
+	@echo ">> App: $(PROJECT_NAME)"
+	fly deploy -a $(PROJECT_NAME) \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg BUILD_DATE=$(BUILD_DATE) \
+		--build-arg PROJECT_NAME=$(PROJECT_NAME)
 
 # fly.io のログを表示
 fly-logs:
-	fly logs
+	fly logs -a $(PROJECT_NAME)
 
 # fly.io のステータス確認
 fly-status:
-	fly status
+	fly status -a $(PROJECT_NAME)
