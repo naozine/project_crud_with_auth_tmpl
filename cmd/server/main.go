@@ -152,6 +152,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(ml)
 	adminHandler := handlers.NewAdminHandler(queries)
 	profileHandler := handlers.NewProfileHandler(queries, ml)
+	setupHandler := handlers.NewSetupHandler(queries, ml)
 
 	// 4. Echo Setup
 	e := echo.New()
@@ -171,6 +172,10 @@ func main() {
 		return c.Redirect(http.StatusSeeOther, "/auth/login")
 	})
 	e.GET("/auth/login", authHandler.LoginPage)
+
+	// Initial Setup Routes (only accessible when no users exist)
+	e.GET("/setup", setupHandler.SetupPage)
+	e.POST("/setup", setupHandler.CreateInitialAdmin)
 
 	// MagicLink internal handlers
 	ml.RegisterHandlers(e)
