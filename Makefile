@@ -49,7 +49,7 @@ VPS_DEPLOY_DIR := $(VPS_BASE_DIR)/$(PROJECT_NAME)
 .PHONY: build generate migrate-new \
         docker-build docker-push docker-up docker-down docker-logs docker-dev \
         caddy-setup caddy-status caddy-reload docker-deploy docker-restart docker-remote-logs \
-        dns-setup fly-setup fly-deploy fly-logs fly-status fly-dns-setup
+        dns-setup fly-setup fly-deploy fly-secrets fly-secrets-list fly-logs fly-status fly-dns-setup
 
 # Generate all auto-generated code (sqlc, templ)
 generate:
@@ -297,6 +297,22 @@ fly-deploy: generate
 		--build-arg BUILD_DATE=$(BUILD_DATE) \
 		--build-arg PROJECT_NAME=$(PROJECT_NAME) \
 		--build-arg SERVER_ADDR=$(FLY_SERVER_ADDR)
+
+# fly.io に .env.production の環境変数を設定
+# .env.production ファイルの内容を fly secrets にインポート
+fly-secrets:
+	@if [ ! -f ".env.production" ]; then \
+		echo "Error: .env.production ファイルが見つかりません"; \
+		exit 1; \
+	fi
+	@echo ">> Importing secrets from .env.production to fly.io app: $(PROJECT_NAME)"
+	@cat .env.production | fly secrets import -a $(PROJECT_NAME)
+	@echo ">> Secrets imported successfully!"
+	@echo ">> 確認: fly secrets list -a $(PROJECT_NAME)"
+
+# fly.io の secrets を一覧表示
+fly-secrets-list:
+	fly secrets list -a $(PROJECT_NAME)
 
 # fly.io のログを表示
 fly-logs:
