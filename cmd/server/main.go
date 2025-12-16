@@ -276,15 +276,18 @@ func generateCookieName(projectName string) string {
 }
 
 // resolveServerAddr は ServerAddr を解決する
-// 開発時（Version=dev）はPORT環境変数から動的生成、本番はビルド時注入値を使用
+// 開発時（APP_ENV=dev）はPORT環境変数から動的生成、本番はビルド時注入値を使用
 func resolveServerAddr() string {
-	if version.Version == "dev" {
+	// 開発モード（Air: APP_ENV=dev）なら PORT から動的生成
+	if os.Getenv("APP_ENV") == "dev" {
 		port := os.Getenv("PORT")
 		if port == "" {
 			port = "8080"
 		}
 		return "http://localhost:" + port
 	}
+
+	// 本番：ビルド時注入値を使用
 	return version.ServerAddr
 }
 
