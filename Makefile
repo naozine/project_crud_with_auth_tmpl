@@ -62,6 +62,11 @@ build: generate
 	@echo ">> Building $(VERSION)..."
 	go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/server $(CMD_PATH)
 
+# Air 用ビルド (ホットリロード開発用)
+# generate は Air の include_ext で監視しているため省略
+dev-build:
+	go build -ldflags "$(LDFLAGS)" -o ./tmp/main $(CMD_PATH)
+
 # Utility: Create New Migration
 # Usage: make migrate-new NAME=add_users_table
 migrate-new:
