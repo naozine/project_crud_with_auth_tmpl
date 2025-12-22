@@ -77,6 +77,12 @@ func main() {
 	// ServerAddr: 開発時はPORT環境変数から動的生成、本番はビルド時注入
 	mlConfig.ServerAddr = resolveServerAddr()
 
+	// 開発モードかつ HTTP の場合のみ CookieSecure を false にする
+	// （本番で誤って HTTP を設定しても CookieSecure は true のまま）
+	if os.Getenv("APP_ENV") == "dev" && strings.HasPrefix(mlConfig.ServerAddr, "http://") {
+		mlConfig.CookieSecure = false
+	}
+
 	// Only use bypass file if it exists (mainly for local development)
 	if _, err := os.Stat(".bypass_emails"); err == nil {
 		mlConfig.DevBypassEmailFilePath = ".bypass_emails"
@@ -276,8 +282,14 @@ func generateCookieName(projectName string) string {
 }
 
 // resolveServerAddr は ServerAddr を解決する
-// 開発時（APP_ENV=dev）はPORT環境変数から動的生成、本番はビルド時注入値を使用
+// 優先順位: 1. SERVER_ADDR環境変数 2. 開発モード時はlocalhost 3. ビルド時注入値
 func resolveServerAddr() string {
+	// SERVER_ADDR 環境変数が設定されていれば最優先で使用
+	// LAN内アクセス等で localhost 以外を使いたい場合に有用
+	if serverAddr := os.Getenv("SERVER_ADDR"); serverAddr != "" {
+		return serverAddr
+	}
+
 	// 開発モード（Air: APP_ENV=dev）なら PORT から動的生成
 	if os.Getenv("APP_ENV") == "dev" {
 		port := os.Getenv("PORT")
