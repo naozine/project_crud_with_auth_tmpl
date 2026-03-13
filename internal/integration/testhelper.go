@@ -168,3 +168,11 @@ func DoRequest(e *echo.Echo, method, path string, user *database.User, body ...s
 	e.ServeHTTP(rec, req)
 	return rec
 }
+
+// queryFromConn は sql.DB から Queries を生成するヘルパー
+func queryFromConn(conn *sql.DB) *database.Queries {
+	return database.New(conn)
+}
+
+// sprintf は fmt.Sprintf のエイリアス（テストコードの簡略化用）
+var sprintf = fmt.Sprintf
