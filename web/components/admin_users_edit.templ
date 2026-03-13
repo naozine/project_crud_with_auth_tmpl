@@ -29,18 +29,16 @@ templ AdminUserEdit(user database.User) {
                 @StatusSelect("status", user.IsActive)
             }
 
-            <div class="flex items-center justify-end gap-x-4 pt-6 border-t border-gray-100">
-                <a href="/admin/users" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">キャンセル</a>
-                <button type="submit" class="rounded-md bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
-                    更新
-                </button>
-            </div>
+            @FormFooter() {
+                @CancelLink("/admin/users")
+                @PrimaryButton("更新")
+            }
         </form>
 
         <!-- 削除フォーム（更新フォームとは独立） -->
         <div class="mt-8 pt-6 border-t border-red-100">
             <form action={ templ.URL(fmt.Sprintf("/admin/users/%d/delete", user.ID)) } method="POST" onsubmit="return confirm('本当にこのユーザーを削除しますか？この操作は元に戻せません。');">
-                <button type="submit" class="text-sm font-semibold leading-6 text-red-600 hover:text-red-800">このユーザーを削除する</button>
+                @DangerTextButton("このユーザーを削除する")
             </form>
         </div>
     </div>

@@ -17,12 +17,10 @@ templ ProjectEdit(project database.Project) {
                 @TextInput("name", project.Name, "")
             }
 
-            <div class="flex items-center justify-end gap-x-4 pt-6 border-t border-gray-100">
-                <a href={ templ.URL(fmt.Sprintf("/projects/%d", project.ID)) } class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">キャンセル</a>
-                <button type="submit" class="rounded-md bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
-                    保存
-                </button>
-            </div>
+            @FormFooter() {
+                @CancelLink(templ.URL(fmt.Sprintf("/projects/%d", project.ID)))
+                @PrimaryButton("保存")
+            }
         </form>
     </div>
 }

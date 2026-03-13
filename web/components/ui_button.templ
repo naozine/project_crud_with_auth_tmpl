@@ -1,0 +1,41 @@
+package components
+
+// PrimaryButton はフォーム送信用のプライマリボタンを描画する。
+templ PrimaryButton(text string) {
+    <button type="submit" class="rounded-md bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
+        { text }
+    </button>
+}
+
+// SecondaryButton は補助的なアクション用のボタンを描画する。
+templ SecondaryButton(text string) {
+    <button type="button" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+        { text }
+    </button>
+}
+
+// DangerButton は破壊的アクション用のボタンを描画する。
+templ DangerButton(text string) {
+    <button type="submit" class="inline-flex items-center rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-100">
+        { text }
+    </button>
+}
+
+// DangerTextButton はテキストのみの破壊的アクションボタンを描画する。
+templ DangerTextButton(text string) {
+    <button type="submit" class="text-sm font-semibold leading-6 text-red-600 hover:text-red-800">
+        { text }
+    </button>
+}
+
+// CancelLink はキャンセル用のテキストリンクを描画する。
+templ CancelLink(href templ.SafeURL) {
+    <a href={ href } class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">キャンセル</a>
+}
+
+// FormFooter はフォーム下部のキャンセル + 送信ボタンのレイアウトを描画する。
+templ FormFooter() {
+    <div class="flex items-center justify-end gap-x-4 pt-6 border-t border-gray-100">
+        { children... }
+    </div>
+}
