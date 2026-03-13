@@ -20,20 +20,7 @@ func NewAdminHandler(queries *database.Queries) *AdminHandler {
 	return &AdminHandler{Queries: queries}
 }
 
-// EnsureAdmin checks if the current user is an admin
-func (h *AdminHandler) checkAdmin(c echo.Context) error {
-	role := appcontext.GetUserRole(c.Request().Context())
-	if role != "admin" {
-		return echo.NewHTTPError(http.StatusForbidden, "Access denied: Admin role required")
-	}
-	return nil
-}
-
 func (h *AdminHandler) ListUsers(c echo.Context) error {
-	if err := h.checkAdmin(c); err != nil {
-		return err
-	}
-
 	users, err := h.Queries.ListUsers(c.Request().Context())
 	if err != nil {
 		logger.Error("Failed to list users", "error", err)
@@ -44,17 +31,10 @@ func (h *AdminHandler) ListUsers(c echo.Context) error {
 }
 
 func (h *AdminHandler) NewUserPage(c echo.Context) error {
-	if err := h.checkAdmin(c); err != nil {
-		return err
-	}
 	return components.UserForm().Render(c.Request().Context(), c.Response().Writer)
 }
 
 func (h *AdminHandler) CreateUser(c echo.Context) error {
-	if err := h.checkAdmin(c); err != nil {
-		return err
-	}
-
 	name := c.FormValue("name")
 	email := c.FormValue("email")
 	role := c.FormValue("role")
@@ -96,10 +76,6 @@ func (h *AdminHandler) CreateUser(c echo.Context) error {
 }
 
 func (h *AdminHandler) EditUserPage(c echo.Context) error {
-	if err := h.checkAdmin(c); err != nil {
-		return err
-	}
-
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return c.String(http.StatusBadRequest, "Invalid ID")
@@ -140,10 +116,6 @@ func (h *AdminHandler) EditUserPage(c echo.Context) error {
 }
 
 func (h *AdminHandler) UpdateUser(c echo.Context) error {
-	if err := h.checkAdmin(c); err != nil {
-		return err
-	}
-
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return c.String(http.StatusBadRequest, "Invalid ID")
@@ -173,10 +145,6 @@ func (h *AdminHandler) UpdateUser(c echo.Context) error {
 }
 
 func (h *AdminHandler) DeleteUser(c echo.Context) error {
-	if err := h.checkAdmin(c); err != nil {
-		return err
-	}
-
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return c.String(http.StatusBadRequest, "Invalid ID")

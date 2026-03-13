@@ -188,8 +188,7 @@ func main() {
 	// Admin Routes
 	adminGroup := e.Group("/admin")
 	adminGroup.Use(appMiddleware.RequireAuth(ml, "/auth/login")) // 未認証時はログインページへリダイレクト
-	// In a real app, we'd add a RequireRole("admin") middleware here too,
-	// but the handler checks it internally for now.
+	adminGroup.Use(appMiddleware.RequireRole("admin"))
 
 	adminGroup.GET("/users", adminHandler.ListUsers)
 	adminGroup.GET("/users/new", adminHandler.NewUserPage)

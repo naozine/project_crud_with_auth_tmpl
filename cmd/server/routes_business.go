@@ -30,13 +30,17 @@ func RegisterBusinessRoutes(e *echo.Echo, queries *database.Queries, ml *magicli
 	projectGroup := e.Group("/projects")
 	projectGroup.Use(appMiddleware.RequireAuth(ml, "/auth/login")) // 未認証時はログインページへリダイレクト
 
+	// 読み取り — 認証済みユーザー全員
 	projectGroup.GET("", projectHandler.ListProjects)
-	projectGroup.GET("/new", projectHandler.NewProjectPage)
-	projectGroup.POST("/new", projectHandler.CreateProject)
 	projectGroup.GET("/:id", projectHandler.ShowProject)
-	projectGroup.GET("/:id/edit", projectHandler.EditProjectPage)
-	projectGroup.POST("/:id/update", projectHandler.UpdateProject)
-	projectGroup.POST("/:id/delete", projectHandler.DeleteProject)
+
+	// 書き込み — admin または editor のみ
+	requireWrite := appMiddleware.RequireRole("admin", "editor")
+	projectGroup.GET("/new", projectHandler.NewProjectPage, requireWrite)
+	projectGroup.POST("/new", projectHandler.CreateProject, requireWrite)
+	projectGroup.GET("/:id/edit", projectHandler.EditProjectPage, requireWrite)
+	projectGroup.POST("/:id/update", projectHandler.UpdateProject, requireWrite)
+	projectGroup.POST("/:id/delete", projectHandler.DeleteProject, requireWrite)
 
 	// Other business logic routes can be added here in derived projects
 }
