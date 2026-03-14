@@ -49,6 +49,8 @@ github.com/naozine/nz-magic-link v0.2.1 h1:l+L7jcbdmThjnXIoWbYz1+e2AQj+SVJeR6ccx
 github.com/naozine/nz-magic-link v0.2.1/go.mod h1:Xq8SwN78+zo9/Sajz5xmlHuJB3bdzg2f3xK3209XuCU=
 github.com/naozine/nz-magic-link v0.2.2 h1:URAHiunfMqAsgn1tdeyZAqj5sSGBZM9T+6FrcwhIBN0=
 github.com/naozine/nz-magic-link v0.2.2/go.mod h1:Xq8SwN78+zo9/Sajz5xmlHuJB3bdzg2f3xK3209XuCU=
+github.com/naozine/nz-magic-link v0.2.3 h1:Ug4LpxLfe7V48DulLLZVb458D2/L2jE8JJ0dWjPoGP4=
+github.com/naozine/nz-magic-link v0.2.3/go.mod h1:Xq8SwN78+zo9/Sajz5xmlHuJB3bdzg2f3xK3209XuCU=
 github.com/ncruces/go-strftime v1.0.0 h1:HMFp8mLCTPp341M/ZnA4qaf7ZlsbTc+miZjCLOFAw7w=
 github.com/ncruces/go-strftime v1.0.0/go.mod h1:Fwc5htZGVVkseilnfgOVb9mKy6w1naJmn9CehxcKcls=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
