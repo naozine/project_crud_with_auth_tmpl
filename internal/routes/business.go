@@ -26,4 +26,11 @@ func RegisterBusinessRoutes(e *echo.Echo, queries *database.Queries, authMW echo
 	projectGroup.GET("/:id/edit", projectHandler.EditProjectPage, requireWrite)
 	projectGroup.POST("/:id/update", projectHandler.UpdateProject, requireWrite)
 	projectGroup.POST("/:id/delete", projectHandler.DeleteProject, requireWrite)
+
+	// ユーザー一括インポート（admin のみ）
+	importHandler := handlers.NewUserImportHandler(queries)
+	requireAdmin := appMiddleware.RequireRole("admin")
+	e.GET("/admin/users/import", importHandler.ImportPage, authMW, requireAdmin)
+	e.POST("/admin/users/import", importHandler.ExecuteImport, authMW, requireAdmin)
+	e.GET("/admin/users/import/template", importHandler.TemplateDownload, authMW, requireAdmin)
 }
