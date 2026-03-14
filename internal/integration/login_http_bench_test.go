@@ -79,8 +79,7 @@ func setupHTTPBench(b *testing.B, numUsers int) (*echo.Echo, *magiclink.MagicLin
 	mlConfig.RedirectURL = "/projects"
 	mlConfig.ErrorRedirectURL = "/auth/login"
 	mlConfig.ServerAddr = "http://localhost:8080"
-	mlConfig.MaxLoginAttempts = 100000 // ベンチマーク用にレート制限を実質無効化
-	mlConfig.RateLimitWindow = 1 * time.Second
+	mlConfig.DisableRateLimiting = true // ベンチマーク用にレート制限を無効化
 	mlConfig.AllowLogin = func(c echo.Context, email string) error {
 		_, err := q.GetUserByEmail(c.Request().Context(), email)
 		if err != nil {
@@ -348,27 +347,6 @@ func BenchmarkHTTPBurstFullFlow(b *testing.B) {
 func benchHTTPBurstFull(b *testing.B, concurrency int) {
 	e, _, _ := setupHTTPBench(b, concurrency)
 
-	// Login フェーズは直列で事前実行（nz-magic-link のレート制限 map が非スレッドセーフなため）
-	// Verify フェーズのみ並行実行してバースト性能を計測
-	ipCounter := 0
-	type tokenSet struct {
-		tokens []string
-	}
-	sets := make([]tokenSet, concurrency)
-	for i := 0; i < concurrency; i++ {
-		email := fmt.Sprintf("user%d@test.com", i)
-		sets[i].tokens = make([]string, b.N)
-		for j := 0; j < b.N; j++ {
-			ipCounter++
-			remoteAddr := fmt.Sprintf("10.%d.%d.%d:1234", (ipCounter/65536)%256, (ipCounter/256)%256, (ipCounter%256)+1)
-			token, err := doHTTPLogin(e, email, remoteAddr)
-			if err != nil {
-				b.Fatalf("user%d iter%d login に失敗: %v", i, j, err)
-			}
-			sets[i].tokens[j] = token
-		}
-	}
-
 	b.ResetTimer()
 	for iter := 0; iter < b.N; iter++ {
 		start := time.Now()
@@ -382,7 +360,21 @@ func benchHTTPBurstFull(b *testing.B, concurrency int) {
 			wg.Add(1)
 			go func(userIdx int) {
 				defer wg.Done()
-				_, err := doHTTPVerify(e, sets[userIdx].tokens[iter])
+				email := fmt.Sprintf("user%d@test.com", userIdx)
+				remoteAddr := fmt.Sprintf("10.%d.%d.%d:1234", (userIdx/65536)%256, (userIdx/256)%256, (userIdx%256)+1)
+
+				token, err := doHTTPLogin(e, email, remoteAddr)
+				if err != nil {
+					failed.Add(1)
+					mu.Lock()
+					if len(errors) < 3 {
+						errors = append(errors, fmt.Sprintf("user%d login: %s", userIdx, err))
+					}
+					mu.Unlock()
+					return
+				}
+
+				_, err = doHTTPVerify(e, token)
 				if err != nil {
 					failed.Add(1)
 					mu.Lock()

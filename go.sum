@@ -47,6 +47,8 @@ github.com/mfridman/interpolate v0.0.2 h1:pnuTK7MQIxxFz1Gr+rjSIx9u7qVjf5VOoM/u6B
 github.com/mfridman/interpolate v0.0.2/go.mod h1:p+7uk6oE07mpE/Ik1b8EckO0O4ZXiGAfshKBWLUM9Xg=
 github.com/naozine/nz-magic-link v0.2.1 h1:l+L7jcbdmThjnXIoWbYz1+e2AQj+SVJeR6ccxYEDmw8=
 github.com/naozine/nz-magic-link v0.2.1/go.mod h1:Xq8SwN78+zo9/Sajz5xmlHuJB3bdzg2f3xK3209XuCU=
+github.com/naozine/nz-magic-link v0.2.2 h1:URAHiunfMqAsgn1tdeyZAqj5sSGBZM9T+6FrcwhIBN0=
+github.com/naozine/nz-magic-link v0.2.2/go.mod h1:Xq8SwN78+zo9/Sajz5xmlHuJB3bdzg2f3xK3209XuCU=
 github.com/ncruces/go-strftime v1.0.0 h1:HMFp8mLCTPp341M/ZnA4qaf7ZlsbTc+miZjCLOFAw7w=
 github.com/ncruces/go-strftime v1.0.0/go.mod h1:Fwc5htZGVVkseilnfgOVb9mKy6w1naJmn9CehxcKcls=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
