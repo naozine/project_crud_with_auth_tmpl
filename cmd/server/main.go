@@ -86,8 +86,12 @@ func main() {
 	}
 
 	// Only use bypass file if it exists (mainly for local development)
-	if _, err := os.Stat(".bypass_emails"); err == nil {
-		mlConfig.DevBypassEmailFilePath = ".bypass_emails"
+	// ローカル: .bypass_emails、Docker/fly.io: データボリューム内を参照
+	for _, path := range []string{".bypass_emails", "data/.bypass_emails"} {
+		if _, err := os.Stat(path); err == nil {
+			mlConfig.DevBypassEmailFilePath = path
+			break
+		}
 	}
 
 	mlConfig.RedirectURL = "/projects"        // Redirect to projects list after login
