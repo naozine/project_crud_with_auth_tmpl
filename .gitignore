@@ -8,6 +8,7 @@
 *.log
 .env
 .env.*
+!.env.production.example
 .DS_Store
 
 # SQLC Generated Code

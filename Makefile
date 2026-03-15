@@ -124,3 +124,44 @@ docker-dev:
 # Stop development environment
 docker-dev-down:
 	docker compose -f docker-compose.dev.yaml down
+
+# -----------------------------------------------------------------------------
+# Litestream Targets (ローカルから R2 レプリカを操作)
+# -----------------------------------------------------------------------------
+# .env.production から Litestream 関連の環境変数を読み込む
+# LITESTREAM_BUCKET 未設定時は <プロジェクト名>-litestream をデフォルト使用
+LITESTREAM_BUCKET_NAME ?= $(PROJECT_NAME)-litestream
+LITESTREAM_ENV = $(shell grep '^LITESTREAM_' .env.production 2>/dev/null)
+
+.PHONY: ls-restore ls-restore-timestamp ls-apply
+
+# R2 から最新状態をローカルにリストア
+# Usage: make ls-restore
+ls-restore:
+	@if [ -z "$(LITESTREAM_ENV)" ]; then echo "Error: .env.production に LITESTREAM_* を設定してください"; exit 1; fi
+	@rm -f ./restored.db
+	env $(LITESTREAM_ENV) LITESTREAM_BUCKET=$${LITESTREAM_BUCKET:-$(LITESTREAM_BUCKET_NAME)} \
+		litestream restore -config litestream.yml -o ./restored.db /app/data/app.db
+	@echo ">> リストア完了: ./restored.db"
+
+# R2 から特定時点の状態をローカルにリストア
+# Usage: make ls-restore-timestamp TIMESTAMP="2026-03-15T04:00:00Z"
+ls-restore-timestamp:
+	@if [ -z "$(LITESTREAM_ENV)" ]; then echo "Error: .env.production に LITESTREAM_* を設定してください"; exit 1; fi
+	@if [ -z "$(TIMESTAMP)" ]; then echo "Usage: make ls-restore-timestamp TIMESTAMP=\"2026-03-15T04:00:00Z\""; exit 1; fi
+	@rm -f ./restored.db
+	env $(LITESTREAM_ENV) LITESTREAM_BUCKET=$${LITESTREAM_BUCKET:-$(LITESTREAM_BUCKET_NAME)} \
+		litestream restore -config litestream.yml -timestamp "$(TIMESTAMP)" -o ./restored.db /app/data/app.db
+	@echo ">> リストア完了: ./restored.db (時点: $(TIMESTAMP))"
+
+# restored.db をローカルの app.db に反映
+# 既存の app.db はバックアップしてから上書き
+ls-apply:
+	@if [ ! -f ./restored.db ]; then echo "Error: restored.db がありません。先に make ls-restore を実行してください"; exit 1; fi
+	@if [ -f ./app.db ]; then \
+		cp ./app.db ./app.db.bak; \
+		echo ">> 既存 DB をバックアップ: ./app.db.bak"; \
+	fi
+	@mv ./restored.db ./app.db
+	@rm -f ./app.db-shm ./app.db-wal
+	@echo ">> 反映完了: ./app.db"

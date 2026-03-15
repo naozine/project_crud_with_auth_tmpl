@@ -53,6 +53,15 @@ services:
       - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:-localhost}
       - WEBAUTHN_RP_NAME=${WEBAUTHN_RP_NAME:-Project CRUD}
       - WEBAUTHN_ALLOWED_ORIGINS=${WEBAUTHN_ALLOWED_ORIGINS:-http://localhost:8080}
+
+      # Litestream (Cloudflare R2 バックアップ) - 任意
+      # バケットはプロジェクトごとに分離し、API トークンもバケット単位で発行すること
+      # LITESTREAM_BUCKET 未設定時は <APP_NAME>-litestream がデフォルト
+      - LITESTREAM_ACCESS_KEY_ID=${LITESTREAM_ACCESS_KEY_ID:-}
+      - LITESTREAM_SECRET_ACCESS_KEY=${LITESTREAM_SECRET_ACCESS_KEY:-}
+      - LITESTREAM_R2_ENDPOINT=${LITESTREAM_R2_ENDPOINT:-}
+      - LITESTREAM_BUCKET=${LITESTREAM_BUCKET:-}
+      - LITESTREAM_PATH=${LITESTREAM_PATH:-}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s

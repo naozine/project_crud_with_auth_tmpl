@@ -45,7 +45,9 @@ FROM alpine:3.21
 # シェルやメンテナンスコマンドが使える軽量ランタイム
 # ca-certificates: HTTPS通信（SMTP TLS等）に必要
 # tzdata: タイムゾーン処理に必要
-RUN apk add --no-cache ca-certificates tzdata su-exec
+RUN apk add --no-cache ca-certificates tzdata su-exec \
+    && wget -qO- https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64.tar.gz \
+    | tar -C /usr/local/bin -xz
 
 # nonroot ユーザーで実行（entrypoint.sh で root → appuser に降格）
 RUN adduser -D -u 10001 appuser
@@ -62,10 +64,15 @@ COPY --from=builder /app/web/static /app/web/static
 VOLUME ["/app/data"]
 
 # 環境変数のデフォルト値
+ARG PROJECT_NAME=app
 ENV PORT=8080
+ENV APP_NAME=${PROJECT_NAME}
 
 # ポートを公開
 EXPOSE 8080
+
+# Litestream 設定ファイル
+COPY litestream.yml /etc/litestream.yml
 
 # エントリポイント（データディレクトリの所有権修正後、appuser で実行）
 COPY --from=builder /app/entrypoint.sh /app/entrypoint.sh

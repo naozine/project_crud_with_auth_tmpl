@@ -19,7 +19,10 @@ CF_ZONE_ID    ?=
 # カスタムドメインがあればそれを、なければ $(PROJECT_NAME).fly.dev を使用
 FLY_SERVER_ADDR = $(if $(filter localhost,$(PUBLIC_HOST)),https://$(PROJECT_NAME).fly.dev,https://$(PUBLIC_HOST))
 
-.PHONY: fly-setup fly-deploy fly-secrets fly-secrets-list fly-logs fly-status fly-dns-setup
+# Litestream Settings
+LITESTREAM_BUCKET_NAME ?= $(PROJECT_NAME)-litestream
+
+.PHONY: fly-setup fly-deploy fly-secrets fly-secrets-list fly-litestream-setup fly-litestream-secrets fly-litestream-status fly-logs fly-status fly-dns-setup
 
 # fly.io 初回セットアップ（アプリ作成 + ボリューム作成 + fly.toml生成）
 # 既存アプリ/ボリューム/fly.tomlがある場合はスキップ
@@ -74,6 +77,61 @@ fly-secrets:
 # fly.io の secrets を一覧表示
 fly-secrets-list:
 	fly secrets list -a $(PROJECT_NAME)
+
+# Litestream 初回セットアップ（R2 バケット作成）
+# wrangler CLI が必要: npm install -g wrangler
+# 既存バケットがあればスキップ
+fly-litestream-setup:
+	@echo ">> Setting up Litestream R2 bucket: $(LITESTREAM_BUCKET_NAME)"
+	@if wrangler r2 bucket list 2>/dev/null | grep -q "$(LITESTREAM_BUCKET_NAME)"; then \
+		echo ">> Bucket already exists, skipping creation"; \
+	else \
+		echo ">> Creating R2 bucket..."; \
+		wrangler r2 bucket create $(LITESTREAM_BUCKET_NAME); \
+	fi
+	@echo ""
+	@echo ">> fly-litestream-setup complete!"
+	@echo ">> Next: Cloudflare ダッシュボードで API トークンを作成してください"
+	@echo ">>   1. https://dash.cloudflare.com/ → R2 → API トークンを管理"
+	@echo ">>   2. 「API トークンを作成」→ 権限: オブジェクトの読み取りと書き込み"
+	@echo ">>   3. バケットを「$(LITESTREAM_BUCKET_NAME)」のみに制限"
+	@echo ">>   4. 取得した Access Key ID / Secret Access Key を以下で設定:"
+	@echo ">>      make fly-litestream-secrets \\"
+	@echo ">>        LITESTREAM_ACCESS_KEY_ID=xxx \\"
+	@echo ">>        LITESTREAM_SECRET_ACCESS_KEY=xxx \\"
+	@echo ">>        LITESTREAM_R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com"
+
+# fly.io に Litestream (Cloudflare R2) 用の secrets を設定
+# バケット命名規則: <プロジェクト名>-litestream（未指定時のデフォルト）
+# プロジェクトごとにバケットと API トークンを分けること（セキュリティ分離）
+# 事前に環境変数を設定してから実行:
+#   LITESTREAM_ACCESS_KEY_ID, LITESTREAM_SECRET_ACCESS_KEY, LITESTREAM_R2_ENDPOINT
+#   LITESTREAM_BUCKET (任意: デフォルト <project-name>-litestream)
+#   LITESTREAM_PATH (任意: デフォルト replica)
+fly-litestream-secrets:
+	@if [ -z "$(LITESTREAM_ACCESS_KEY_ID)" ] || [ -z "$(LITESTREAM_SECRET_ACCESS_KEY)" ] || [ -z "$(LITESTREAM_R2_ENDPOINT)" ]; then \
+		echo "Error: 以下の環境変数を設定してください:"; \
+		echo "  LITESTREAM_ACCESS_KEY_ID, LITESTREAM_SECRET_ACCESS_KEY, LITESTREAM_R2_ENDPOINT"; \
+		exit 1; \
+	fi
+	@echo ">> Setting Litestream secrets for fly.io app: $(PROJECT_NAME)"
+	@echo ">> Bucket: $(or $(LITESTREAM_BUCKET),$(PROJECT_NAME)-litestream) (デフォルト)"
+	fly secrets set -a $(PROJECT_NAME) \
+		LITESTREAM_ACCESS_KEY_ID="$(LITESTREAM_ACCESS_KEY_ID)" \
+		LITESTREAM_SECRET_ACCESS_KEY="$(LITESTREAM_SECRET_ACCESS_KEY)" \
+		LITESTREAM_R2_ENDPOINT="$(LITESTREAM_R2_ENDPOINT)" \
+		LITESTREAM_BUCKET="$(or $(LITESTREAM_BUCKET),$(LITESTREAM_BUCKET_NAME))" \
+		$(if $(LITESTREAM_PATH),LITESTREAM_PATH="$(LITESTREAM_PATH)",)
+	@echo ">> Litestream secrets set successfully!"
+	@echo ">> 確認: fly secrets list -a $(PROJECT_NAME)"
+
+# fly.io VM 上の Litestream レプリケーション状態を確認
+fly-litestream-status:
+	@echo ">> Generations:"
+	@fly ssh console -a $(PROJECT_NAME) -C "litestream generations -config /etc/litestream.yml /app/data/app.db"
+	@echo ""
+	@echo ">> Snapshots:"
+	@fly ssh console -a $(PROJECT_NAME) -C "litestream snapshots -config /etc/litestream.yml /app/data/app.db"
 
 # fly.io のログを表示
 fly-logs:
