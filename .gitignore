@@ -23,6 +23,8 @@ web/layouts/*_templ.go
 *.db
 *.db-shm
 *.db-wal
+*.db.bak
+*.db.tmp-*
 
 # etc
 /app
