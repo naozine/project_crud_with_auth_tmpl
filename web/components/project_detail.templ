@@ -18,31 +18,21 @@ templ ProjectDetail(project database.Project) {
             </div>
             if userRole == "admin" || userRole == "editor" {
                 <div class="flex space-x-3">
-                    <a href={ templ.URL(fmt.Sprintf("/projects/%d/edit", project.ID)) } class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
-                        編集
-                    </a>
+                    @SecondaryLink("編集", templ.URL(fmt.Sprintf("/projects/%d/edit", project.ID)))
                     <form action={ templ.URL(fmt.Sprintf("/projects/%d/delete", project.ID)) } method="POST" onsubmit="return confirm('本当に削除しますか？');">
-                        <button type="submit" class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-                            削除
-                        </button>
+                        @DangerSolidButton("削除")
                     </form>
                 </div>
             }
         </div>
 
-        <div class="bg-white shadow sm:rounded-lg border border-gray-200">
-            <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-base font-semibold leading-6 text-gray-900">プロジェクト詳細</h3>
-                <div class="mt-2 max-w-xl text-sm text-gray-500">
-                    <p>現在、このプロジェクトには追加の詳細情報はありません。</p>
-                </div>
+        @Card() {
+            <h3 class="text-base font-semibold leading-6 text-gray-900">プロジェクト詳細</h3>
+            <div class="mt-2 max-w-xl text-sm text-gray-500">
+                <p>現在、このプロジェクトには追加の詳細情報はありません。</p>
             </div>
-        </div>
+        }
 
-        <div class="mt-6">
-            <a href="/projects" class="text-sm font-medium text-gray-600 hover:text-gray-900">
-                ← 一覧に戻る
-            </a>
-        </div>
+        @BackLink("一覧に戻る", "/projects")
     </div>
 }

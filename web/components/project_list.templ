@@ -11,22 +11,14 @@ templ ProjectList(projects []database.Project) {
         userRole := appcontext.GetUserRole(ctx)
     }}
     <div class="space-y-6">
-		<div class="flex justify-between items-end">
-			<div>
-                <h2 class="text-2xl font-bold tracking-tight text-gray-900">プロジェクト</h2>
-                <p class="mt-1 text-sm text-gray-500">進行中のプロジェクトを管理します。</p>
-            </div>
+        @ListPageHeader("プロジェクト", "進行中のプロジェクトを管理します。") {
             if userRole == "admin" || userRole == "editor" {
-			    <a href="/projects/new" class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
-				    新規作成
-			    </a>
+                @PrimaryLink("新規作成", "/projects/new")
             }
-		</div>
-        
+        }
+
         if len(projects) == 0 {
-             <div class="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                <p class="text-gray-500">プロジェクトが見つかりません。最初のプロジェクトを作成してください。</p>
-            </div>
+            @EmptyState("プロジェクトが見つかりません。最初のプロジェクトを作成してください。")
         } else {
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 for _, p := range projects {
@@ -44,5 +36,5 @@ templ ProjectList(projects []database.Project) {
                 }
             </div>
         }
-	</div>
+    </div>
 }

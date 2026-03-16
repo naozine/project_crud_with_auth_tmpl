@@ -10,49 +10,41 @@ templ Profile(user database.User, hasPasskey bool) {
 
         <div class="space-y-10 divide-y divide-gray-900/10">
             <!-- プロフィール編集 -->
-            <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3">
-                <div class="px-4 sm:px-0">
-                    <h2 class="text-base font-semibold leading-7 text-gray-900">プロフィール</h2>
-                    <p class="mt-1 text-sm leading-6 text-gray-600">表示名を変更できます。</p>
-                </div>
+            @FormSection("プロフィール", "表示名を変更できます。") {
+                @CardWithFooter() {
+                    <form action="/profile" method="POST">
+                        @CardBody() {
+                            <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                                <div class="sm:col-span-4">
+                                    @FormField("名前", "") {
+                                        @TextInput("name", user.Name, "")
+                                    }
+                                </div>
 
-                <form action="/profile" method="POST" class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
-                    <div class="px-4 py-6 sm:p-8">
-                        <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-                            <div class="sm:col-span-4">
-                                @FormField("名前", "") {
-                                    @TextInput("name", user.Name, "")
-                                }
-                            </div>
+                                <div class="sm:col-span-4">
+                                    @FormField("メールアドレス", "") {
+                                        @ReadOnlyField(user.Email)
+                                    }
+                                </div>
 
-                            <div class="sm:col-span-4">
-                                @FormField("メールアドレス", "") {
-                                    @ReadOnlyField(user.Email)
-                                }
+                                <div class="sm:col-span-4">
+                                    @FormField("ロール", "") {
+                                        @ReadOnlyRoleField(user.Role)
+                                    }
+                                </div>
                             </div>
-
-                            <div class="sm:col-span-4">
-                                @FormField("ロール", "") {
-                                    @ReadOnlyRoleField(user.Role)
-                                }
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-x-6 border-t border-gray-900/10 px-4 py-4 sm:px-8">
-                        @PrimaryButton("保存")
-                    </div>
-                </form>
-            </div>
+                        }
+                        @CardFooter() {
+                            @PrimaryButton("保存")
+                        }
+                    </form>
+                }
+            }
 
             <!-- セキュリティ設定 (パスキー) -->
-            <div class="grid grid-cols-1 gap-x-8 gap-y-8 pt-10 md:grid-cols-3">
-                <div class="px-4 sm:px-0">
-                    <h2 class="text-base font-semibold leading-7 text-gray-900">セキュリティ</h2>
-                    <p class="mt-1 text-sm leading-6 text-gray-600">パスキーを登録すると、次回から指紋認証や顔認証でログインできます。</p>
-                </div>
-
-                <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
-                    <div class="px-4 py-6 sm:p-8">
+            <div class="pt-10">
+                @FormSection("セキュリティ", "パスキーを登録すると、次回から指紋認証や顔認証でログインできます。") {
+                    @Card() {
                         <div class="max-w-2xl space-y-6">
                             <div>
                                 <h3 class="text-sm font-medium leading-6 text-gray-900">パスキー (Passkey)</h3>
@@ -82,10 +74,10 @@ templ Profile(user database.User, hasPasskey bool) {
                                         </div>
                                     } else {
                                         <div id="auth-messages" class="hidden mb-4"></div>
-                                        <button 
+                                        <button
                                             data-email={ user.Email }
                                             onclick="registerPasskey(this.dataset.email)"
-                                            type="button" 
+                                            type="button"
                                             class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                                         >
                                             パスキーを登録する
@@ -94,8 +86,8 @@ templ Profile(user database.User, hasPasskey bool) {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    }
+                }
             </div>
         </div>
     </div>

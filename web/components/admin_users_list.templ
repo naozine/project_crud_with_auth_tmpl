@@ -7,25 +7,15 @@ import (
 
 templ AdminUserList(users []database.User) {
     <div class="space-y-6">
-        <div class="flex justify-between items-end">
-            <div>
-                <h2 class="text-2xl font-bold tracking-tight text-gray-900">ユーザー管理</h2>
-                <p class="mt-1 text-sm text-gray-500">システムにログイン可能なユーザーの一覧です。</p>
-            </div>
+        @ListPageHeader("ユーザー管理", "システムにログイン可能なユーザーの一覧です。") {
             <div class="flex gap-3">
-                <a href="/admin/users/import" class="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
-                    一括インポート
-                </a>
-                <a href="/admin/users/new" class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
-                    ユーザーを追加
-                </a>
+                @SecondaryLink("一括インポート", "/admin/users/import")
+                @PrimaryLink("ユーザーを追加", "/admin/users/new")
             </div>
-        </div>
+        }
 
         if len(users) == 0 {
-            <div class="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                <p class="text-gray-500">ユーザーが登録されていません。</p>
-            </div>
+            @EmptyState("ユーザーが登録されていません。")
         } else {
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-300">

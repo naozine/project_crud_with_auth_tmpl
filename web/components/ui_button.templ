@@ -7,6 +7,20 @@ templ PrimaryButton(text string) {
     </button>
 }
 
+// PrimaryButtonFull は横幅いっぱいのプライマリボタンを描画する。
+templ PrimaryButtonFull(text string) {
+    <button type="submit" class="w-full rounded-md bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
+        { text }
+    </button>
+}
+
+// PrimaryLink はリンクをプライマリボタン風にスタイルする。
+templ PrimaryLink(text string, href templ.SafeURL) {
+    <a href={ href } class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
+        { text }
+    </a>
+}
+
 // SecondaryButton は補助的なアクション用のボタンを描画する。
 templ SecondaryButton(text string) {
     <button type="button" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
@@ -14,9 +28,23 @@ templ SecondaryButton(text string) {
     </button>
 }
 
+// SecondaryLink はリンクを補助ボタン風にスタイルする。
+templ SecondaryLink(text string, href templ.SafeURL) {
+    <a href={ href } class="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+        { text }
+    </a>
+}
+
 // DangerButton は破壊的アクション用のボタンを描画する。
 templ DangerButton(text string) {
     <button type="submit" class="inline-flex items-center rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-100">
+        { text }
+    </button>
+}
+
+// DangerSolidButton は強調された破壊的アクション用ボタンを描画する。
+templ DangerSolidButton(text string) {
+    <button type="submit" class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
         { text }
     </button>
 }

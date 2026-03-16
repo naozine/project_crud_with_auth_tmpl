@@ -59,17 +59,13 @@ templ AdminUserImport(result *models.ImportResult) {
 
 templ importResult(result *models.ImportResult) {
     if result.SuccessCount > 0 {
-        <div class="mb-6 rounded-md bg-green-50 p-4">
-            <div class="flex">
-                <div class="text-sm text-green-800">
-                    <strong>{ fmt.Sprintf("%d", result.SuccessCount) }件</strong>のユーザーを登録しました。
-                </div>
-            </div>
+        <div class="mb-6">
+            @AlertSuccess(fmt.Sprintf("%d件のユーザーを登録しました。", result.SuccessCount))
         </div>
     }
 
     if len(result.Errors) > 0 {
-        <div class="mb-6 rounded-md bg-red-50 p-4">
+        <div class="mb-6 rounded-md bg-red-50 border border-red-200 p-4">
             <div class="text-sm font-medium text-red-800 mb-2">
                 { fmt.Sprintf("%d", len(result.Errors)) }件のエラーがあります
             </div>
