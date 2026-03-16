@@ -1,123 +1,69 @@
 # GOTH Stack Base Template
 
-**Go + Echo + templ + htmx + sqlc + SQLite**
+**Go + Echo + templ + Tailwind CSS + sqlc + SQLite**
 
-Webアプリケーション開発のための、堅牢かつ拡張性の高いベーステンプレートです。
-認証（MagicLink/WebAuthn）、ユーザー管理、DBマイグレーション、ホットリロードなどの必須機能を完備しています。
-
-## コンセプト: コアとビジネスロジックの分離
-
-このテンプレートは、**「不変のコア機能」** と **「可変のビジネスロジック」** を明確に分離するように設計されています。
-これにより、将来的にベーステンプレートの機能（認証ロジックの改善など）がアップデートされた際、あなたのプロジェクトへの取り込み（マージ）を最小限のコンフリクトで行うことができます。
-
-### 構成
-
-*   **Core (Do Not Edit):** 認証、ユーザー管理、基本設定など。
-    *   `cmd/server/main.go`
-    *   `db/schema.sql`, `db/query.sql`
-    *   `internal/handlers/auth.go`, `admin.go` 等
-*   **Business Logic (Edit Freely):** あなたのアプリケーション固有の機能。
-    *   `cmd/server/routes_business.go`: ルーティングとアプリ設定。
-    *   `db/schema_business.sql`, `db/query_business.sql`: 独自のDB定義。
-    *   `internal/handlers/business_*.go`: 独自のハンドラー。
-    *   `web/components/`: 独自のUIコンポーネント。
-
-## 使い方 (Getting Started)
-
-### 1. プロジェクトの作成
-このリポジトリをテンプレートとして使用するか、クローンして新しいリポジトリを作成します。
-
-### 2. ビジネスロジックの実装
-以下のファイルを編集・追加して、あなたのアプリケーションを構築します。
-
-*   **設定:** `cmd/server/routes_business.go` の `ConfigureBusinessSettings` でアプリ名やリダイレクト先を設定します。
-*   **データベース:** `db/schema_business.sql` にテーブルを定義し、`db/query_business.sql` にクエリを書きます。
-*   **ロジック:** `internal/handlers/` にハンドラーを作成します（既存の `business_projects.go` を参考にしてください）。
-*   **UI:** `web/components/` に `templ` ファイルを作成します。
-
-### 3. 開発コマンド
-
-*   **サーバー起動 (ホットリロード):** `air` または `make run`
-*   **コード生成 (sqlc & templ):** `make generate`
-*   **ビルド:** `make build`
-*   **マイグレーション作成:** `make migrate-new NAME=create_my_table`
-
-## ファイル構成ルール
-
-*   **`*_business.*`**: これらのファイル名は「ビジネスロジック領域」であることを示しています。自由に変更・リネームして構いません。
-*   **`.gitignore`**: `internal/database/*.go` (自動生成コード) はバージョン管理から除外されています。CI/CD環境ではビルド前に `make generate` を実行してください。
+Web アプリケーション開発のベーステンプレートです。
+認証（Magic Link / WebAuthn）、ユーザー管理、DB マイグレーション、ホットリロード、バックアップを備えています。
 
 ## 技術スタック
 
-*   **Language:** Go 1.23+
-*   **Framework:** Echo v4
-*   **Template:** templ
-*   **Frontend:** htmx, Alpine.js, Tailwind CSS
-*   **Database:** SQLite (modernc.org/sqlite - CGO free)
-*   **SQL Generator:** sqlc
-*   **Migration:** goose
-*   **Authentication:** Magic Link (Email), WebAuthn (Passkey)
+| カテゴリ | 技術 |
+|---|---|
+| 言語 | Go 1.25+ |
+| フレームワーク | Echo v4 |
+| テンプレート | templ |
+| スタイル | Tailwind CSS（CLI ローカルビルド） |
+| データベース | SQLite (modernc.org/sqlite, CGO free) |
+| SQL 生成 | sqlc |
+| マイグレーション | goose |
+| 認証 | nz-magic-link (Magic Link + WebAuthn/Passkey) |
+| バックアップ | Litestream → Cloudflare R2 |
+| デプロイ | fly.io (Docker) / VPS (Docker + Caddy) |
 
----
+## 使い方
 
-## ベーステンプレートの更新を取り込む方法
+### 1. プロジェクトの作成
 
-このプロジェクトは `project_crud_with_auth_tmpl` をベースにしています。
-ベーステンプレートにセキュリティ修正や新機能が追加された場合、以下の手順であなたのプロジェクトに取り込むことができます。
+このリポジトリをテンプレートとして使用するか、クローンして新しいリポジトリを作成します。
 
-### 1. リモートリポジトリとしてテンプレートを追加
-(初回のみ - 既に設定済みか確認するには `git remote -v` を実行してください)
+### 2. ビジネスロジックの実装
 
-```bash
-git remote add template https://github.com/naozine/project_crud_with_auth_tmpl.git
-```
+既存の `projects` 機能を参考に、以下のファイルを編集・追加します。
 
-### 2. 更新を取得してマージ
+- `cmd/server/routes_business.go` — アプリ名・リダイレクト設定
+- `db/schema_business.sql`, `db/query_business.sql` — テーブル・クエリ定義
+- `internal/handlers/business_*.go` — ハンドラー
+- `internal/routes/business.go` — ルーティング
+- `web/components/*.templ` — UI コンポーネント
 
-```bash
-git fetch template
-git merge template/main --allow-unrelated-histories
-```
+### 3. 開発コマンド
 
-*   **コンフリクトが発生した場合:**
-    *   コア機能（`cmd/server/main.go`, `db/schema.sql` 等）のコンフリクトは、基本的に**テンプレート側の変更**を採用してください。
-    *   ビジネスロジック領域（`routes_business.go`, `*_business.*` 等）のコンフリクトは、**あなたのプロジェクトの変更**を優先してください。
+| コマンド | 説明 |
+|---|---|
+| `air` | ホットリロードでサーバー起動 |
+| `make generate` | コード生成（sqlc + templ + Tailwind CSS） |
+| `make build` | ビルド |
+| `make migrate-new NAME=create_xxx` | マイグレーションファイル作成 |
 
-### 3. 依存関係の更新
+### 4. CSS の開発
 
-```bash
-go mod tidy
-make generate
-```
+Tailwind CSS はローカルビルドです（CDN 不使用）。
 
----
+- 入力: `web/static/css/input.css`
+- 出力: `web/static/css/style.css`（生成ファイル）
+- `make generate` または `air` で自動ビルドされます
+- Tailwind CLI のインストールが必要です
 
 ## デプロイ
 
-このテンプレートは **VPS (Docker)** と **fly.io** の2つのデプロイ方法をサポートしています。
-
-### 共通設定
-
-`deploy.config.example` を `deploy.config` にコピーして編集:
+### fly.io
 
 ```bash
-cp deploy.config.example deploy.config
-```
-
-主な設定項目:
-- `PUBLIC_HOST`: 公開ドメイン名（例: `myapp.example.com`）
-- `CF_API_TOKEN`, `CF_ZONE_ID`: Cloudflare DNS 自動設定用（オプション）
-
-### fly.io へのデプロイ
-
-軽量で自動スケーリング対応。スケールトゥゼロでコスト削減可能。
-
-```bash
-# 1. 初回セットアップ（アプリ作成 + ボリューム作成 + fly.toml生成）
+# 初回セットアップ
 make fly-setup
 
-# 2. シークレット設定
-fly secrets set -a <フォルダ名> \
+# シークレット設定
+fly secrets set -a <アプリ名> \
   ADMIN_EMAIL=admin@example.com \
   SMTP_HOST=smtp.example.com \
   SMTP_PORT=587 \
@@ -125,49 +71,81 @@ fly secrets set -a <フォルダ名> \
   SMTP_PASSWORD=pass \
   SMTP_FROM=noreply@example.com
 
-# 3. デプロイ
+# デプロイ
 make fly-deploy
 
-# 4. カスタムドメイン設定（オプション、Cloudflare使用時）
+# カスタムドメイン設定（オプション）
 make fly-dns-setup
-# → 完了後、Cloudflare でProxy ON (オレンジ雲) に切り替え
 ```
 
-その他のコマンド:
-- `make fly-status`: ステータス確認
-- `make fly-logs`: ログ表示
+その他: `make fly-status`, `make fly-logs`
 
-### VPS (Docker) へのデプロイ
-
-自前のVPSにDockerでデプロイ。Caddyをリバースプロキシとして使用。
+### VPS (Docker)
 
 ```bash
-# 1. deploy.config を設定（VPS_USER, VPS_HOST, PUBLIC_HOST等）
+# deploy.config を設定
+cp deploy.config.example deploy.config
 
-# 2. 本番用環境変数を設定
-cp .env.example .env.production
-# .env.production を編集（SMTP設定等）
+# 環境変数を設定
+cp .env.production.example .env.production
 
-# 3. DNS設定（Cloudflare使用時、オプション）
-make dns-setup
-
-# 4. デプロイ
+# デプロイ
 make docker-deploy
 
-# 5. Caddy設定（初回のみ）
+# Caddy 設定（初回のみ）
 make caddy-setup
 ```
 
-その他のコマンド:
-- `make docker-remote-logs`: コンテナログ表示
-- `make docker-restart`: コンテナ再起動
+その他: `make docker-remote-logs`, `make docker-restart`
+
+### Litestream バックアップ（オプション）
+
+Cloudflare R2 への SQLite リアルタイムバックアップ。環境変数の有無で有効/無効が切り替わります。
+
+```bash
+# R2 バケット作成
+make fly-litestream-setup
+
+# シークレット設定
+make fly-litestream-secrets
+
+# 状態確認
+make fly-litestream-status
+```
+
+ローカルからのリストア: `make ls-restore`, `make ls-restore-timestamp TIMESTAMP="2026-03-15T04:00:00Z"`
 
 ### ビルド時に自動設定される値
 
-以下の値はデプロイ時に自動設定されます（.env での設定不要）:
+以下はデプロイ時に自動設定されます（.env での設定不要）:
 
 - `SERVER_ADDR`: `https://$(PUBLIC_HOST)` から生成
 - `WEBAUTHN_RP_ID`: `SERVER_ADDR` のホスト名部分
 - `WEBAUTHN_ALLOWED_ORIGINS`: `SERVER_ADDR` と同じ
 
 開発時（`air` 使用時）は `http://localhost:PORT` が自動で使用されます。
+
+## テンプレート更新の取り込み
+
+### リモートリポジトリの追加（初回のみ）
+
+```bash
+git remote add template https://github.com/naozine/project_crud_with_auth_tmpl.git
+```
+
+### 更新のマージ
+
+```bash
+git fetch template
+git merge template/master --allow-unrelated-histories
+```
+
+コンフリクトが発生した場合は、ビジネスロジック領域（`*_business.*` 等）は自分の変更を優先し、その後 `go mod tidy && make generate` を実行します。
+
+派生プロジェクトが大きく乖離している場合は、マージよりも AI エージェントに「この機能を参考に実装して」と指示する方が現実的なこともあります。
+
+## ファイル構成
+
+- `*_business.*` はビジネスロジック領域。自由に変更・リネーム可。
+- `internal/database/*.go`（sqlc 自動生成）は `.gitignore` で除外。CI/CD ではビルド前に `make generate` を実行。
+- `db/*.sql` に日本語を書かないこと（sqlc のコード生成がバグる）。
