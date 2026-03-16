@@ -114,14 +114,18 @@ func main() {
 		user, err := q.GetUserByEmail(c.Request().Context(), email)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				return fmt.Errorf("このメールアドレスは登録されていません。")
+				// 未登録でもエラーを返さない（メールアドレスの存在を外部に漏らさない）
+				logger.Warn("Login attempt with unregistered email", "email", email)
+				return nil
 			}
 			logger.Error("Database error in AllowLogin", "error", err, "email", email)
 			return fmt.Errorf("システムエラーが発生しました。")
 		}
 
 		if !user.IsActive {
-			return fmt.Errorf("このアカウントは無効化されています。")
+			// 無効アカウントも同じ扱い（存在を漏らさない）
+			logger.Warn("Login attempt with inactive account", "email", email)
+			return nil
 		}
 
 		return nil

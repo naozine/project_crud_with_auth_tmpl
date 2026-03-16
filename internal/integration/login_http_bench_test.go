@@ -84,7 +84,7 @@ func setupHTTPBench(b *testing.B, numUsers int) (*echo.Echo, *magiclink.MagicLin
 		_, err := q.GetUserByEmail(c.Request().Context(), email)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				return fmt.Errorf("このメールアドレスは登録されていません。")
+				return nil
 			}
 			return fmt.Errorf("システムエラーが発生しました。")
 		}
