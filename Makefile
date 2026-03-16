@@ -34,11 +34,12 @@ IMAGE_TAG     ?= $(VERSION)
 .PHONY: build generate dev-build migrate-new \
         docker-build docker-push docker-up docker-down docker-logs docker-dev docker-dev-down
 
-# Generate all auto-generated code (sqlc, templ)
+# Generate all auto-generated code (sqlc, templ, tailwind)
 generate:
 	@echo ">> Generating code..."
 	sqlc generate
 	templ generate
+	tailwindcss -i web/static/css/input.css -o web/static/css/style.css --minify
 
 # Local build (開発・テスト用)
 build: generate
