@@ -10,9 +10,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         await MagicLink.conditionalLogin();
     } catch (e) {
-        if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') {
-            showAuthMessage("パスキー認証に失敗しました。別の方法でログインしてください。", true);
+        if (e.name === 'AbortError' || e.name === 'NotAllowedError') return;
+        // ネットワークエラー（コールドスタート時のタイムアウト等）は無視
+        if (e.name === 'TypeError' || e.message?.includes('fetch') || e.message?.includes('network')) {
+            console.log('Conditional UI skipped (network error):', e.name, e.message);
+            return;
         }
+        showAuthMessage("パスキー認証に失敗しました。別の方法でログインしてください。", true);
     }
 });
 
