@@ -17,9 +17,37 @@ templ Base(title string, content templ.Component) {
             <!-- WebAuthn Scripts -->
             <script src="/webauthn/static/webauthn.js"></script>
             <script src={ "/static/js/auth.js?v=" + version.Commit } defer></script>
-
+            <style>
+                .loading-bar {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 3px;
+                    z-index: 9999;
+                    pointer-events: none;
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                }
+                .loading-bar.active {
+                    opacity: 1;
+                }
+                .loading-bar::after {
+                    content: '';
+                    display: block;
+                    height: 100%;
+                    width: 30%;
+                    background: #3b82f6;
+                    animation: loading-slide 1s ease-in-out infinite;
+                }
+                @keyframes loading-slide {
+                    0% { margin-left: -30%; }
+                    100% { margin-left: 100%; }
+                }
+            </style>
 		</head>
 		<body class="bg-gray-50 text-gray-900 min-h-screen font-sans antialiased">
+			<div id="loading-bar" class="loading-bar"></div>
 
             // Retrieve user info from context
             {{
@@ -104,6 +132,23 @@ templ Base(title string, content templ.Component) {
 			<main class="py-10 px-4 sm:px-6 lg:px-8">
 				@content
 			</main>
+			<script>
+				(function() {
+					var bar = document.getElementById('loading-bar');
+					document.addEventListener('click', function(e) {
+						var link = e.target.closest('a[href]');
+						if (link && !link.href.startsWith('javascript:') && !link.target && !e.ctrlKey && !e.metaKey) {
+							bar.classList.add('active');
+						}
+					});
+					document.addEventListener('submit', function() {
+						bar.classList.add('active');
+					});
+					window.addEventListener('pageshow', function() {
+						bar.classList.remove('active');
+					});
+				})();
+			</script>
 		</body>
 	</html>
 }
