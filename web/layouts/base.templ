@@ -141,9 +141,6 @@ templ Base(title string, content templ.Component) {
 							bar.classList.add('active');
 						}
 					});
-					document.addEventListener('submit', function() {
-						bar.classList.add('active');
-					});
 					window.addEventListener('pageshow', function() {
 						bar.classList.remove('active');
 					});
