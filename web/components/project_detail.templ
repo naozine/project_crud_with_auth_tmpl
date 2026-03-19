@@ -6,6 +6,13 @@ import (
     "github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 )
 
+templ deleteButton(projectID int64) {
+    <button
+        class="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+        { templ.Attributes{"data-on:click": fmt.Sprintf("confirm('本当に削除しますか？') && @delete('/projects/%d/delete')", projectID)}... }
+    >削除</button>
+}
+
 templ ProjectDetail(project database.Project) {
     {{
         userRole := appcontext.GetUserRole(ctx)
@@ -19,10 +26,8 @@ templ ProjectDetail(project database.Project) {
             if userRole == "admin" || userRole == "editor" {
                 <div class="flex space-x-3">
                     @SecondaryLink("編集", templ.URL(fmt.Sprintf("/projects/%d/edit", project.ID)))
-                    <form action={ templ.URL(fmt.Sprintf("/projects/%d/delete", project.ID)) } method="POST" onsubmit="return confirm('本当に削除しますか？');">
-                        @DangerSolidButton("削除")
-                    </form>
-                </div>
+                    @deleteButton(project.ID)
+                </div>te
             }
         </div>
 

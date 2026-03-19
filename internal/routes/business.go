@@ -27,6 +27,7 @@ func RegisterBusinessRoutes(e *echo.Echo, queries *database.Queries, authMW echo
 	projectGroup.GET("/:id/edit", projectHandler.EditProjectPage, requireWrite)
 	projectGroup.POST("/:id/update", projectHandler.UpdateProject, requireWrite)
 	projectGroup.POST("/:id/delete", projectHandler.DeleteProject, requireWrite)
+	projectGroup.DELETE("/:id/delete", projectHandler.DeleteProject, requireWrite)
 
 	// ユーザー一括インポート（admin のみ）
 	importHandler := handlers.NewUserImportHandler(queries)
