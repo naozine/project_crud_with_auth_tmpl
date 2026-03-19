@@ -9,7 +9,6 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
-	"github.com/starfederation/datastar-go/datastar"
 )
 
 type ProjectHandler struct {
@@ -108,7 +107,5 @@ func (h *ProjectHandler) DeleteProject(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "プロジェクトの削除に失敗しました")
 	}
 
-	sse := datastar.NewSSE(c.Response(), c.Request())
-	sse.Redirect("/projects")
-	return nil
+	return c.Redirect(http.StatusSeeOther, "/projects")
 }
