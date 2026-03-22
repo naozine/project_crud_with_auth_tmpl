@@ -3,8 +3,8 @@
 // Conditional UI (Passkey autofill) initialization
 // ページロード時にパスキーの自動補完を開始
 document.addEventListener('DOMContentLoaded', async function() {
-    // セットアップページではConditional UIを開始しない（ユーザーが存在しないため）
-    if (window.location.pathname === '/setup') return;
+    // ログインページでのみConditional UIを開始する
+    if (window.location.pathname !== '/auth/login') return;
     if (!window.MagicLink) return;
 
     try {

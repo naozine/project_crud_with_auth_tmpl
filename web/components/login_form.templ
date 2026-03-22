@@ -1,6 +1,10 @@
 package components
 
+import "github.com/naozine/project_crud_with_auth_tmpl/internal/version"
+
 templ LoginForm(errorMessage string) {
+    <script src="/webauthn/static/webauthn.js"></script>
+    <script src={ "/static/js/auth.js?v=" + version.Commit } defer></script>
     <div class="max-w-md mx-auto">
         <div class="mb-8 text-center">
             <h2 class="text-2xl font-bold tracking-tight text-gray-900">ログイン</h2>

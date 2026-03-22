@@ -2,9 +2,12 @@ package components
 
 import (
     "github.com/naozine/project_crud_with_auth_tmpl/internal/database"
+    "github.com/naozine/project_crud_with_auth_tmpl/internal/version"
 )
 
 templ Profile(user database.User, hasPasskey bool) {
+    <script src="/webauthn/static/webauthn.js"></script>
+    <script src={ "/static/js/auth.js?v=" + version.Commit } defer></script>
     <div class="max-w-2xl mx-auto">
         @PageHeader("マイページ", "アカウント情報の確認と編集ができます。")
 

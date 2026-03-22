@@ -112,6 +112,8 @@ docker-deploy:
 		--include='Dockerfile' \
 		--include='.dockerignore' \
 		--include='docker-compose.yaml' \
+		--include='litestream.yml' \
+		--include='entrypoint.sh' \
 		--include='cmd/***' \
 		--include='internal/***' \
 		--include='db/***' \
