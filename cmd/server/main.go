@@ -197,6 +197,7 @@ func main() {
 	authMW := appMiddleware.RequireAuth(ml, "/auth/login")
 	routes.RegisterBusinessRoutes(e, queries, authMW)
 	routes.RegisterAdminRoutes(e, queries, authMW)
+	routes.RegisterSSERoutes(e, queries, authMW)
 
 	// Profile Routes
 	e.GET("/profile", profileHandler.ShowProfile, appMiddleware.RequireAuth(ml, "/auth/login"))

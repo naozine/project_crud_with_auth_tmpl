@@ -4,9 +4,12 @@ templ ProjectForm() {
     <div class="max-w-xl mx-auto">
         @PageHeader("新規プロジェクト作成", "進捗を管理するための新しいプロジェクトを開始します。")
 
-        <form action="/projects/new" method="POST" class="space-y-6">
+        <form data-signals="{name: ''}" data-on:submit__prevent="@post('/api/sse/projects/new')" class="space-y-6">
             @FormField("プロジェクト名", "プロジェクトを識別できるユニークな名前を入力してください。") {
-                @TextInput("name", "", "例: Webサイトリニューアル")
+                <input type="text" data-bind="name"
+                    class="block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"
+                    placeholder="例: Webサイトリニューアル"
+                />
             }
 
             @FormFooter() {

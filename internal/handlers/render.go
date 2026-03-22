@@ -10,6 +10,7 @@ import (
 func renderShell(c echo.Context, title string, content templ.Component) error {
 	ctx := c.Request().Context()
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
+	c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	currentPath := c.Request().URL.Path
 	return layouts.Shell(title, currentPath, content).Render(ctx, c.Response().Writer)
 }

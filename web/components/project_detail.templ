@@ -19,9 +19,10 @@ templ ProjectDetail(project database.Project) {
             if userRole == "admin" || userRole == "editor" {
                 <div class="flex space-x-3">
                     @SecondaryLink("編集", templ.URL(fmt.Sprintf("/projects/%d/edit", project.ID)))
-                    <form action={ templ.URL(fmt.Sprintf("/projects/%d/delete", project.ID)) } method="POST" onsubmit="return confirm('本当に削除しますか？');">
-                        @DangerSolidButton("削除")
-                    </form>
+                    <button
+                        class="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500"
+                        data-on:click={ fmt.Sprintf("confirm('本当に削除しますか？') && @delete('/api/sse/projects/%d')", project.ID) }
+                    >削除</button>
                 </div>
             }
         </div>
