@@ -200,9 +200,12 @@ func main() {
 	routes.RegisterSSERoutes(e, queries, authMW)
 
 	// Profile Routes
-	e.GET("/profile", profileHandler.ShowProfile, appMiddleware.RequireAuth(ml, "/auth/login"))
-	e.POST("/profile", profileHandler.UpdateProfile, appMiddleware.RequireAuth(ml, "/auth/login"))
-	e.POST("/profile/passkeys/delete", profileHandler.DeletePasskeys, appMiddleware.RequireAuth(ml, "/auth/login"))
+	e.GET("/profile", profileHandler.ShowProfile, authMW)
+
+	// Profile SSE Routes
+	profileSSE := handlers.NewProfileSSEHandler(queries, ml)
+	e.PUT("/api/sse/profile", profileSSE.UpdateProfileSSE, authMW)
+	e.DELETE("/api/sse/profile/passkeys", profileSSE.DeletePasskeysSSE, authMW)
 
 	// Start server
 	port := os.Getenv("PORT")

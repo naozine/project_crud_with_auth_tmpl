@@ -1,6 +1,8 @@
 package components
 
 import (
+    "fmt"
+
     "github.com/naozine/project_crud_with_auth_tmpl/internal/database"
     "github.com/naozine/project_crud_with_auth_tmpl/internal/version"
 )
@@ -9,71 +11,59 @@ templ Profile(user database.User, hasPasskey bool) {
     <script src="/webauthn/static/webauthn.js"></script>
     <script src={ "/static/js/auth.js?v=" + version.Commit } defer></script>
     <div class="max-w-2xl mx-auto">
-        <div class="space-y-10 divide-y divide-gray-900/10">
+        <div class="space-y-6">
             <!-- プロフィール編集 -->
-            @FormSection("プロフィール", "表示名を変更できます。") {
-                @CardWithFooter() {
-                    <form action="/profile" method="POST">
-                        @CardBody() {
-                            <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-                                <div class="sm:col-span-4">
-                                    @FormField("名前", "") {
-                                        @TextInput("name", user.Name, "")
-                                    }
-                                </div>
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <h3 class="text-sm font-semibold text-gray-900 mb-4">プロフィール</h3>
+                <form data-signals={ fmt.Sprintf("{profileName: '%s', originalName: '%s'}", user.Name, user.Name) }
+                    data-on:submit__prevent="@put('/api/sse/profile')"
+                    class="space-y-4"
+                >
+                    @FormField("名前", "") {
+                        <input type="text" data-bind="profileName" required
+                            class="block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"
+                        />
+                    }
 
-                                <div class="sm:col-span-4">
-                                    @FormField("メールアドレス", "") {
-                                        @ReadOnlyField(user.Email)
-                                    }
-                                </div>
+                    @FormField("メールアドレス", "") {
+                        @ReadOnlyField(user.Email)
+                    }
 
-                                <div class="sm:col-span-4">
-                                    @FormField("ロール", "") {
-                                        @ReadOnlyRoleField(user.Role)
-                                    }
-                                </div>
-                            </div>
-                        }
-                        @CardFooter() {
-                            @PrimaryButton("保存")
-                        }
-                    </form>
-                }
-            }
+                    @FormField("ロール", "") {
+                        @ReadOnlyRoleField(user.Role)
+                    }
+
+                    <div class="flex justify-end pt-4 border-t border-gray-100">
+                        <button type="submit"
+                            data-attr:disabled="$profileName === $originalName || $profileName.trim() === ''"
+                            class="rounded-md bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >保存</button>
+                    </div>
+                </form>
+            </div>
 
             <!-- セキュリティ設定 (パスキー) -->
-            <div class="pt-10">
-                @FormSection("セキュリティ", "パスキーを登録すると、次回から指紋認証や顔認証でログインできます。") {
-                    @Card() {
-                        <div class="max-w-2xl space-y-6">
-                            <div>
-                                <h3 class="text-sm font-medium leading-6 text-gray-900">パスキー (Passkey)</h3>
-                                <div class="mt-2">
-                                    if hasPasskey {
-                                        <div class="flex items-center p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50 border border-green-200" role="alert">
-                                            <svg class="flex-shrink-0 inline w-4 h-4 me-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                                                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
-                                            </svg>
-                                            <span class="sr-only">Check icon</span>
-                                            <div>
-                                                <span class="font-medium">登録済み</span> パスキーが登録されています。次回から生体認証などでログインできます。
-                                            </div>
-                                        </div>
-                                        <div class="flex space-x-4">
-                                            @SecondaryButton("別のパスキーを追加する", templ.Attributes{"data-email": user.Email, "onclick": "registerPasskey(this.dataset.email)"})
-                                            <form action="/profile/passkeys/delete" method="POST" onsubmit="return confirm('本当に全てのパスキーを削除しますか？次回からパスキーでログインできなくなります。');">
-                                                @DangerButton("全削除する")
-                                            </form>
-                                        </div>
-                                    } else {
-                                        <div id="auth-messages" class="hidden mb-4"></div>
-                                        @SecondaryButton("パスキーを登録する", templ.Attributes{"data-email": user.Email, "onclick": "registerPasskey(this.dataset.email)"})
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    }
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <h3 class="text-sm font-semibold text-gray-900 mb-1">セキュリティ</h3>
+                <p class="text-xs text-gray-500 mb-4">パスキーを登録すると、次回から指紋認証や顔認証でログインできます。</p>
+
+                if hasPasskey {
+                    <div class="flex items-center p-3 mb-4 text-sm text-green-800 rounded-lg bg-green-50 border border-green-200">
+                        <svg class="flex-shrink-0 w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+                        </svg>
+                        <span class="font-medium">登録済み</span>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        @SecondaryButton("別のパスキーを追加", templ.Attributes{"data-email": user.Email, "onclick": "registerPasskey(this.dataset.email)"})
+                        <button
+                            class="inline-flex items-center rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-100"
+                            data-on:click="confirm('本当に全てのパスキーを削除しますか？次回からパスキーでログインできなくなります。') && @delete('/api/sse/profile/passkeys')"
+                        >全削除</button>
+                    </div>
+                } else {
+                    <div id="auth-messages" class="hidden mb-4"></div>
+                    @SecondaryButton("パスキーを登録する", templ.Attributes{"data-email": user.Email, "onclick": "registerPasskey(this.dataset.email)"})
                 }
             </div>
         </div>
