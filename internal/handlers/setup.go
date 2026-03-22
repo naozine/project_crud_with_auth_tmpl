@@ -9,7 +9,6 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
-	"github.com/naozine/project_crud_with_auth_tmpl/web/layouts"
 )
 
 // SetupHandler handles initial admin setup when no users exist
@@ -44,8 +43,7 @@ func (h *SetupHandler) SetupPage(c echo.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/auth/login")
 	}
 
-	content := components.SetupForm("")
-	return layouts.Base("初期セットアップ", content).Render(c.Request().Context(), c.Response().Writer)
+	return renderGuest(c, "初期セットアップ", components.SetupForm(""))
 }
 
 // CreateInitialAdmin creates the first admin user and returns setup for passkey registration

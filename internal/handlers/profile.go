@@ -30,7 +30,7 @@ func (h *ProfileHandler) ShowProfile(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "ユーザーが見つかりません")
 	}
 
-	return renderPage(c, "マイページ", components.Profile(user, hasPasskey))
+	return renderShell(c, "マイページ", components.Profile(user, hasPasskey))
 }
 
 func (h *ProfileHandler) UpdateProfile(c echo.Context) error {

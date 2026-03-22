@@ -6,14 +6,17 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/web/layouts"
 )
 
-// renderPage はテンプレートの描画を共通化するヘルパー。
-// HX-Request ヘッダがある場合は部分HTMLを、そうでなければ Base レイアウトで
-// ラップした全体HTMLを返す。
-func renderPage(c echo.Context, title string, content templ.Component) error {
+// renderShell は認証済みページをシェルレイアウトでラップして描画する。
+func renderShell(c echo.Context, title string, content templ.Component) error {
 	ctx := c.Request().Context()
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
-	if c.Request().Header.Get("HX-Request") == "true" {
-		return content.Render(ctx, c.Response().Writer)
-	}
-	return layouts.Base(title, content).Render(ctx, c.Response().Writer)
+	currentPath := c.Request().URL.Path
+	return layouts.Shell(title, currentPath, content).Render(ctx, c.Response().Writer)
+}
+
+// renderGuest はゲスト（未認証）ページを描画する。
+func renderGuest(c echo.Context, title string, content templ.Component) error {
+	ctx := c.Request().Context()
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
+	return layouts.Guest(title, content).Render(ctx, c.Response().Writer)
 }

@@ -2,10 +2,10 @@ package components
 
 // PageHeader はページタイトルと説明文を描画する。
 templ PageHeader(title string, description string) {
-    <div class="mb-8">
-        <h2 class="text-2xl font-bold tracking-tight text-gray-900">{ title }</h2>
+    <div class="mb-6">
+        <h2 class="text-lg font-semibold text-gray-900">{ title }</h2>
         if description != "" {
-            <p class="mt-2 text-sm text-gray-500">{ description }</p>
+            <p class="mt-1 text-sm text-gray-500">{ description }</p>
         }
     </div>
 }

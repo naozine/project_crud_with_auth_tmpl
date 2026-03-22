@@ -34,5 +34,5 @@ func (h *AuthHandler) LoginPage(c echo.Context) error {
 		errorMessage = "無効なログインリンクです。"
 	}
 
-	return renderPage(c, "ログイン", components.LoginForm(errorMessage))
+	return renderGuest(c, "ログイン", components.LoginForm(errorMessage))
 }

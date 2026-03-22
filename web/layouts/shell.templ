@@ -1,0 +1,263 @@
+package layouts
+
+import (
+	"strings"
+
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/appconfig"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/version"
+)
+
+// isNavActive はナビリンクが現在のパスに一致するかを判定する。
+func isNavActive(currentPath, href string) bool {
+	if href == "/" {
+		return currentPath == "/"
+	}
+	return currentPath == href || strings.HasPrefix(currentPath, href+"/")
+}
+
+templ Shell(title string, currentPath string, content templ.Component) {
+	{{
+		userEmail, _, _ := appcontext.GetUser(ctx)
+		userRole := appcontext.GetUserRole(ctx)
+		isAdmin := userRole == "admin"
+		_ = isAdmin
+	}}
+	<!DOCTYPE html>
+	<html lang="ja">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title } - { appconfig.AppName }</title>
+			<link href={ "/static/css/style.css?v=" + version.Commit } rel="stylesheet"/>
+			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.8/bundles/datastar.js"></script>
+		</head>
+		<body class="bg-gray-50 text-gray-900 min-h-screen font-sans antialiased">
+			<!-- Desktop: sidebar + main -->
+			<div class="hidden md:flex h-screen">
+				<!-- Sidebar -->
+				<aside class="w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+					<!-- Logo + User -->
+					<div class="p-4 border-b border-gray-200">
+						<div class="flex items-center gap-2 mb-1">
+							<div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+								@iconApp()
+							</div>
+							<span class="text-lg font-bold text-gray-900">{ appconfig.AppName }</span>
+						</div>
+						<div class="text-sm text-gray-600 truncate">{ userEmail }</div>
+						<div class="text-xs text-gray-400">
+							if userRole == "admin" {
+								Admin
+							} else if userRole == "editor" {
+								Editor
+							} else {
+								Viewer
+							}
+						</div>
+					</div>
+
+					<!-- Nav links -->
+					<nav class="flex-1 overflow-y-auto p-3 space-y-1">
+						@sidebarLink("/projects", "プロジェクト", iconProjects(), isNavActive(currentPath, "/projects"))
+						if isAdmin {
+							@sidebarLink("/admin/users", "ユーザー管理", iconUsers(), isNavActive(currentPath, "/admin/users"))
+						}
+						@sidebarLink("/profile", "マイページ", iconProfile(), isNavActive(currentPath, "/profile"))
+					</nav>
+
+					<!-- Logout -->
+					<div class="p-3 border-t border-gray-200">
+						<form action="/auth/logout" method="POST">
+							<button type="submit" class="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100">
+								@iconLogout()
+								ログアウト
+							</button>
+						</form>
+						<p class="px-3 pt-2 text-xs text-gray-400">{ version.Version }</p>
+					</div>
+				</aside>
+
+				<!-- Main content -->
+				<div class="flex-1 flex flex-col overflow-hidden">
+					<!-- Top bar -->
+					<header class="bg-white border-b border-gray-200 px-6 py-3 flex justify-end items-center flex-shrink-0">
+						<span class="text-sm text-gray-500">{ userEmail }</span>
+					</header>
+					<main class="flex-1 overflow-y-auto p-6">
+						<div id="main-content">
+							@content
+						</div>
+					</main>
+				</div>
+			</div>
+
+			<!-- Mobile: header + bottom tabs -->
+			<div class="md:hidden flex flex-col min-h-screen">
+				<!-- Mobile header -->
+				<header class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+					<div class="flex items-center gap-2">
+						<button type="button" class="p-1 text-gray-600" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+							<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+							</svg>
+						</button>
+						<div class="flex items-center gap-1">
+							<div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+								@iconAppSmall()
+							</div>
+							<span class="font-bold text-gray-900">{ appconfig.AppName }</span>
+						</div>
+					</div>
+					<form action="/auth/logout" method="POST">
+						<button type="submit" class="p-1 text-gray-400 hover:text-red-600" title="ログアウト">
+							@iconLogout()
+						</button>
+					</form>
+				</header>
+
+				<!-- Mobile menu overlay -->
+				<div id="mobile-menu" class="hidden fixed inset-0 z-50 bg-white">
+					<div class="p-4 flex items-center gap-2 border-b border-gray-200">
+						<button type="button" onclick="document.getElementById('mobile-menu').classList.add('hidden')" class="p-1 text-gray-600">
+							<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+							</svg>
+						</button>
+						<div class="flex items-center gap-1">
+							<div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+								@iconAppSmall()
+							</div>
+							<span class="font-bold text-gray-900">{ appconfig.AppName }</span>
+						</div>
+					</div>
+					<div class="p-4 text-sm text-gray-600">
+						{ userEmail }
+						<span class="text-gray-400">
+							/
+							if userRole == "admin" {
+								Admin
+							} else if userRole == "editor" {
+								Editor
+							} else {
+								Viewer
+							}
+						</span>
+					</div>
+					<nav class="p-3 space-y-1">
+						@mobileMenuLink("/projects", "プロジェクト", iconProjects())
+						if isAdmin {
+							@mobileMenuLink("/admin/users", "ユーザー管理", iconUsers())
+						}
+						@mobileMenuLink("/profile", "マイページ", iconProfile())
+					</nav>
+					<div class="p-3 border-t border-gray-200">
+						<form action="/auth/logout" method="POST">
+							<button type="submit" class="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100">
+								@iconLogout()
+								ログアウト
+							</button>
+						</form>
+						<p class="px-3 pt-2 text-xs text-gray-400">{ version.Version }</p>
+					</div>
+				</div>
+
+				<!-- Main content -->
+				<main class="flex-1 p-4 pb-20">
+					<div id="main-content">
+						@content
+					</div>
+				</main>
+
+				<!-- Bottom tab bar -->
+				<nav class="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-40">
+					<div class="flex justify-around py-2">
+						@bottomTab("/projects", "プロジェクト", iconProjects(), isNavActive(currentPath, "/projects"))
+						if isAdmin {
+							@bottomTab("/admin/users", "ユーザー管理", iconUsers(), isNavActive(currentPath, "/admin/users"))
+						}
+						@bottomTab("/profile", "マイページ", iconProfile(), isNavActive(currentPath, "/profile"))
+					</div>
+				</nav>
+			</div>
+
+			<!-- Modal container for Datastar -->
+			<div id="modal-container"></div>
+		</body>
+	</html>
+}
+
+// --- Sidebar link ---
+templ sidebarLink(href, label string, icon templ.Component, active bool) {
+	if active {
+		<a href={ templ.SafeURL(href) } class="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-blue-700 bg-blue-50 rounded-lg">
+			@icon
+			{ label }
+		</a>
+	} else {
+		<a href={ templ.SafeURL(href) } class="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700">
+			@icon
+			{ label }
+		</a>
+	}
+}
+
+// --- Mobile menu link ---
+templ mobileMenuLink(href, label string, icon templ.Component) {
+	<a href={ templ.SafeURL(href) } class="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700" onclick="document.getElementById('mobile-menu').classList.add('hidden')">
+		@icon
+		{ label }
+	</a>
+}
+
+// --- Bottom tab ---
+templ bottomTab(href, label string, icon templ.Component, active bool) {
+	if active {
+		<a href={ templ.SafeURL(href) } class="flex flex-col items-center gap-0.5 text-xs text-blue-600 font-semibold min-w-0 px-1">
+			@icon
+			<span class="truncate">{ label }</span>
+		</a>
+	} else {
+		<a href={ templ.SafeURL(href) } class="flex flex-col items-center gap-0.5 text-xs text-gray-500 hover:text-blue-600 min-w-0 px-1">
+			@icon
+			<span class="truncate">{ label }</span>
+		</a>
+	}
+}
+
+// --- Icons ---
+templ iconApp() {
+	<svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+		<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/>
+	</svg>
+}
+
+templ iconAppSmall() {
+	<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+		<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/>
+	</svg>
+}
+
+templ iconProjects() {
+	<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+		<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/>
+	</svg>
+}
+
+templ iconUsers() {
+	<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+		<path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
+	</svg>
+}
+
+templ iconProfile() {
+	<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+		<path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z"/>
+	</svg>
+}
+
+templ iconLogout() {
+	<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+		<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
+	</svg>
+}

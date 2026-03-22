@@ -26,7 +26,7 @@ func NewUserImportHandler(queries *database.Queries) *UserImportHandler {
 
 // ImportPage はインポートフォームを表示する。
 func (h *UserImportHandler) ImportPage(c echo.Context) error {
-	return renderPage(c, "ユーザー一括インポート", components.AdminUserImport(nil))
+	return renderShell(c, "ユーザー一括インポート", components.AdminUserImport(nil))
 }
 
 // TemplateDownload はインポート用の Excel テンプレートをダウンロードする。
@@ -185,7 +185,7 @@ func (h *UserImportHandler) ExecuteImport(c echo.Context) error {
 		})
 	}
 
-	return renderPage(c, "ユーザー一括インポート", components.AdminUserImport(result))
+	return renderShell(c, "ユーザー一括インポート", components.AdminUserImport(result))
 }
 
 // cellValue は行データから指定インデックスのセル値を取得する。

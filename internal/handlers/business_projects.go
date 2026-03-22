@@ -26,11 +26,11 @@ func (h *ProjectHandler) ListProjects(c echo.Context) error {
 		logger.Error("プロジェクト一覧の取得に失敗", "error", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "プロジェクト一覧の取得に失敗しました")
 	}
-	return renderPage(c, "プロジェクト一覧", components.ProjectList(projects))
+	return renderShell(c, "プロジェクト一覧", components.ProjectList(projects))
 }
 
 func (h *ProjectHandler) NewProjectPage(c echo.Context) error {
-	return renderPage(c, "新規プロジェクト作成", components.ProjectForm())
+	return renderShell(c, "新規プロジェクト作成", components.ProjectForm())
 }
 
 func (h *ProjectHandler) CreateProject(c echo.Context) error {
@@ -56,7 +56,7 @@ func (h *ProjectHandler) ShowProject(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "プロジェクトが見つかりません")
 	}
 
-	return renderPage(c, project.Name, components.ProjectDetail(project))
+	return renderShell(c, project.Name, components.ProjectDetail(project))
 }
 
 func (h *ProjectHandler) EditProjectPage(c echo.Context) error {
@@ -71,7 +71,7 @@ func (h *ProjectHandler) EditProjectPage(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "プロジェクトが見つかりません")
 	}
 
-	return renderPage(c, "編集: "+project.Name, components.ProjectEdit(project))
+	return renderShell(c, "編集: "+project.Name, components.ProjectEdit(project))
 }
 
 func (h *ProjectHandler) UpdateProject(c echo.Context) error {

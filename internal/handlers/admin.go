@@ -25,11 +25,11 @@ func (h *AdminHandler) ListUsers(c echo.Context) error {
 		logger.Error("ユーザー一覧の取得に失敗", "error", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "ユーザー一覧の取得に失敗しました")
 	}
-	return renderPage(c, "ユーザー管理", components.AdminUserList(users))
+	return renderShell(c, "ユーザー管理", components.AdminUserList(users))
 }
 
 func (h *AdminHandler) NewUserPage(c echo.Context) error {
-	return renderPage(c, "ユーザー登録", components.AdminUserForm())
+	return renderShell(c, "ユーザー登録", components.AdminUserForm())
 }
 
 func (h *AdminHandler) CreateUser(c echo.Context) error {
@@ -70,7 +70,7 @@ func (h *AdminHandler) EditUserPage(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "ユーザーが見つかりません")
 	}
 
-	return renderPage(c, "ユーザー編集", components.AdminUserEdit(user))
+	return renderShell(c, "ユーザー編集", components.AdminUserEdit(user))
 }
 
 func (h *AdminHandler) UpdateUser(c echo.Context) error {

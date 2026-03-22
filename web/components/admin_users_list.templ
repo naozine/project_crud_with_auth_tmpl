@@ -7,12 +7,10 @@ import (
 
 templ AdminUserList(users []database.User) {
     <div class="max-w-5xl mx-auto space-y-6">
-        @ListPageHeader("ユーザー管理", "システムにログイン可能なユーザーの一覧です。") {
-            <div class="flex gap-3">
-                @SecondaryLink("一括インポート", "/admin/users/import")
-                @PrimaryLink("ユーザーを追加", "/admin/users/new")
-            </div>
-        }
+        <div class="flex justify-end gap-3">
+            @SecondaryLink("一括インポート", "/admin/users/import")
+            @PrimaryLink("ユーザーを追加", "/admin/users/new")
+        </div>
 
         if len(users) == 0 {
             @EmptyState("ユーザーが登録されていません。")

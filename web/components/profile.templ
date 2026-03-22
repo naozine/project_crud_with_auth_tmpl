@@ -9,8 +9,6 @@ templ Profile(user database.User, hasPasskey bool) {
     <script src="/webauthn/static/webauthn.js"></script>
     <script src={ "/static/js/auth.js?v=" + version.Commit } defer></script>
     <div class="max-w-2xl mx-auto">
-        @PageHeader("マイページ", "アカウント情報の確認と編集ができます。")
-
         <div class="space-y-10 divide-y divide-gray-900/10">
             <!-- プロフィール編集 -->
             @FormSection("プロフィール", "表示名を変更できます。") {
