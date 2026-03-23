@@ -10,20 +10,6 @@ templ PageHeader(title string, description string) {
     </div>
 }
 
-// ListPageHeader はリストページ用のヘッダーを描画する。
-// タイトル + 説明を左に、アクションボタン（children）を右に配置する。
-templ ListPageHeader(title string, description string) {
-    <div class="flex justify-between items-end">
-        <div>
-            <h2 class="text-2xl font-bold tracking-tight text-gray-900">{ title }</h2>
-            if description != "" {
-                <p class="mt-1 text-sm text-gray-500">{ description }</p>
-            }
-        </div>
-        { children... }
-    </div>
-}
-
 // EmptyState はデータが空の場合のプレースホルダーを描画する。
 templ EmptyState(message string) {
     <div class="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
@@ -31,45 +17,55 @@ templ EmptyState(message string) {
     </div>
 }
 
-// Card は白背景のカードコンテナを描画する。
+// SectionCard は白背景の角丸カードを描画する。
+templ SectionCard() {
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        { children... }
+    </div>
+}
+
+// SectionCardTitle はカード内のタイトルを描画する。
+templ SectionCardTitle(title string, description string) {
+    <h3 class="text-sm font-semibold text-gray-900 mb-1">{ title }</h3>
+    if description != "" {
+        <p class="text-xs text-gray-500 mb-4">{ description }</p>
+    }
+}
+
+// Dialog は中央配置のポップオーバーダイアログを描画する。
+templ Dialog(id string, attrs templ.Attributes) {
+    <dialog id={ id } popover
+        class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0 w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-xl backdrop:bg-gray-900/50"
+        { attrs... }
+    >
+        { children... }
+    </dialog>
+}
+
+// DialogHeader はダイアログのタイトルと閉じるボタンを描画する。
+templ DialogHeader(title string, dialogID string) {
+    <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold text-gray-900">{ title }</h3>
+        <button popovertarget={ dialogID } class="text-gray-400 hover:text-gray-600">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+}
+
+// DialogFooter はダイアログ下部のキャンセル + アクションボタンを描画する。
+templ DialogFooter(dialogID string) {
+    <div class="flex items-center justify-end gap-x-4 pt-4 border-t border-gray-100">
+        <button type="button" popovertarget={ dialogID } class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">キャンセル</button>
+        { children... }
+    </div>
+}
+
+// Card は白背景のカードコンテナを描画する（旧スタイル互換）。
 templ Card() {
     <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
         <div class="px-4 py-6 sm:p-8">
-            { children... }
-        </div>
-    </div>
-}
-
-// CardWithFooter はフッター付きのカードコンテナを描画する。
-templ CardWithFooter() {
-    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
-        { children... }
-    </div>
-}
-
-// CardBody はカード内のコンテンツ領域を描画する。
-templ CardBody() {
-    <div class="px-4 py-6 sm:p-8">
-        { children... }
-    </div>
-}
-
-// CardFooter はカードのフッター領域を描画する。
-templ CardFooter() {
-    <div class="flex items-center justify-end gap-x-6 border-t border-gray-900/10 px-4 py-4 sm:px-8">
-        { children... }
-    </div>
-}
-
-// FormSection は2カラムのセクションレイアウトを描画する。
-// 左にタイトルと説明、右に children のコンテンツを配置する。
-templ FormSection(title string, description string) {
-    <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3">
-        <div class="px-4 sm:px-0">
-            <h2 class="text-base font-semibold leading-7 text-gray-900">{ title }</h2>
-            <p class="mt-1 text-sm leading-6 text-gray-600">{ description }</p>
-        </div>
-        <div class="md:col-span-2">
             { children... }
         </div>
     </div>

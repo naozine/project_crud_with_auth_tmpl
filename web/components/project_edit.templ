@@ -11,9 +11,7 @@ templ ProjectEdit(project database.Project) {
 
         <form data-signals={ fmt.Sprintf("{name: '%s'}", project.Name) } data-on:submit__prevent={ fmt.Sprintf("@put('/api/sse/projects/%d')", project.ID) } class="space-y-6">
             @FormField("プロジェクト名", "") {
-                <input type="text" data-bind="name"
-                    class="block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"
-                />
+                @DataInput("name", "")
             }
 
             @FormFooter() {

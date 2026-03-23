@@ -13,16 +13,14 @@ templ Profile(user database.User, hasPasskey bool) {
     <div class="max-w-2xl mx-auto">
         <div class="space-y-6">
             <!-- プロフィール編集 -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h3 class="text-sm font-semibold text-gray-900 mb-4">プロフィール</h3>
+            @SectionCard() {
+                @SectionCardTitle("プロフィール", "")
                 <form data-signals={ fmt.Sprintf("{profileName: '%s', originalName: '%s'}", user.Name, user.Name) }
                     data-on:submit__prevent="@put('/api/sse/profile')"
                     class="space-y-4"
                 >
                     @FormField("名前", "") {
-                        <input type="text" data-bind="profileName" required
-                            class="block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"
-                        />
+                        @DataInput("profileName", "")
                     }
 
                     @FormField("メールアドレス", "") {
@@ -40,12 +38,11 @@ templ Profile(user database.User, hasPasskey bool) {
                         >保存</button>
                     </div>
                 </form>
-            </div>
+            }
 
             <!-- セキュリティ設定 (パスキー) -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h3 class="text-sm font-semibold text-gray-900 mb-1">セキュリティ</h3>
-                <p class="text-xs text-gray-500 mb-4">パスキーを登録すると、次回から指紋認証や顔認証でログインできます。</p>
+            @SectionCard() {
+                @SectionCardTitle("セキュリティ", "パスキーを登録すると、次回から指紋認証や顔認証でログインできます。")
 
                 if hasPasskey {
                     <div class="flex items-center p-3 mb-4 text-sm text-green-800 rounded-lg bg-green-50 border border-green-200">
@@ -65,7 +62,7 @@ templ Profile(user database.User, hasPasskey bool) {
                     <div id="auth-messages" class="hidden mb-4"></div>
                     @SecondaryButton("パスキーを登録する", templ.Attributes{"data-email": user.Email, "onclick": "registerPasskey(this.dataset.email)"})
                 }
-            </div>
+            }
         </div>
     </div>
 }
