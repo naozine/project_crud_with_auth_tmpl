@@ -158,9 +158,10 @@ func main() {
 	r.Post("/setup", setupHandler.CreateInitialAdmin)
 
 	// MagicLink handlers (net/http ベース)
+	// Handler() は /auth/login, /auth/verify, /auth/logout, /webauthn/* をフルパスで登録
 	mlHandler := ml.Handler()
-	r.Mount("/auth", mlHandler)
-	r.Mount("/webauthn", mlHandler)
+	r.Handle("/auth/*", mlHandler)
+	r.Handle("/webauthn/*", mlHandler)
 
 	// Business & Admin Routes
 	authMW := appMiddleware.RequireAuth("/auth/login")

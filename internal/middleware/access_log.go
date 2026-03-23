@@ -48,6 +48,7 @@ func getTraceID(cfRay, upstreamID string) string {
 }
 
 // statusResponseWriter はステータスコードをキャプチャする ResponseWriter ラッパー。
+// http.Flusher も委譲して SSE (Datastar) と互換性を保つ。
 type statusResponseWriter struct {
 	http.ResponseWriter
 	status int
@@ -56,6 +57,17 @@ type statusResponseWriter struct {
 func (w *statusResponseWriter) WriteHeader(code int) {
 	w.status = code
 	w.ResponseWriter.WriteHeader(code)
+}
+
+func (w *statusResponseWriter) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Unwrap は元の ResponseWriter を返す（http.ResponseController 対応）。
+func (w *statusResponseWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
 }
 
 // AccessLogMiddleware はJSON形式のアクセスログを出力するミドルウェア

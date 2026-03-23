@@ -77,13 +77,22 @@ func (h *AdminSSEHandler) EditUserDialogSSE(w http.ResponseWriter, r *http.Reque
 	}
 
 	sse := newSSE(w, r)
-	sse.ExecuteScript("document.getElementById('dialog-container').innerHTML = ''")
-	sse.PatchElementTempl(
+	if err := sse.ExecuteScript("document.getElementById('dialog-container').innerHTML = ''"); err != nil {
+		logger.Error("SSE ExecuteScript failed", "error", err)
+		return
+	}
+	if err := sse.PatchElementTempl(
 		components.AdminUserEditDialog(user),
 		datastar.WithSelectorID("dialog-container"),
 		datastar.WithModeInner(),
-	)
-	sse.ExecuteScript("document.getElementById('user-edit-dialog').showPopover()")
+	); err != nil {
+		logger.Error("SSE PatchElementTempl failed", "error", err)
+		return
+	}
+	if err := sse.ExecuteScript("document.getElementById('user-edit-dialog').showPopover()"); err != nil {
+		logger.Error("SSE ExecuteScript failed", "error", err)
+		return
+	}
 }
 
 func (h *AdminSSEHandler) UpdateUserSSE(w http.ResponseWriter, r *http.Request) {
