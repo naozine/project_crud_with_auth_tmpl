@@ -28,7 +28,13 @@ templ Shell(title string, currentPath string, content templ.Component) {
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta name="color-scheme" content="light"/>
+			<meta name="apple-mobile-web-app-capable" content="yes"/>
+			<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 			<title>{ title } - { appconfig.AppName }</title>
+			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
+			<link rel="icon" href="/static/favicon.ico" sizes="any"/>
+			<link rel="apple-touch-icon" href="/static/favicon.svg"/>
 			<link href={ "/static/css/style.css?v=" + version.Commit } rel="stylesheet"/>
 			<script type="module" src={ "/static/js/datastar.js?v=" + version.Commit }></script>
 		</head>

@@ -11,7 +11,10 @@ templ Guest(title string, content templ.Component) {
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta name="color-scheme" content="light"/>
 			<title>{ title } - { appconfig.AppName }</title>
+			<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
+			<link rel="icon" href="/static/favicon.ico" sizes="any"/>
 			<link href={ "/static/css/style.css?v=" + version.Commit } rel="stylesheet"/>
 		</head>
 		<body class="bg-gray-50 text-gray-900 min-h-screen font-sans antialiased">
