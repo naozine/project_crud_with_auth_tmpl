@@ -30,7 +30,7 @@ templ Shell(title string, currentPath string, content templ.Component) {
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ title } - { appconfig.AppName }</title>
 			<link href={ "/static/css/style.css?v=" + version.Commit } rel="stylesheet"/>
-			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.0-RC.8/bundles/datastar.js"></script>
+			<script type="module" src={ "/static/js/datastar.js?v=" + version.Commit }></script>
 		</head>
 		<body class="bg-gray-50 text-gray-900 min-h-screen font-sans antialiased">
 			<!-- Desktop sidebar (md+) -->

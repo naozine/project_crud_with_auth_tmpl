@@ -136,9 +136,8 @@ docker-deploy:
 			--build-arg PROJECT_NAME=$(PROJECT_NAME) \
 			--build-arg SERVER_ADDR=$(SERVER_ADDR) \
 			-t $(APP_NAME):latest ."
-	# 5. データディレクトリの作成と権限設定（nonroot ユーザー用）
-	@echo ">> Setting data directory permissions..."
-	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DEPLOY_DIR)/data && chmod 777 $(VPS_DEPLOY_DIR)/data"
+	# 5. データディレクトリ作成（存在しなければ）
+	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "mkdir -p $(VPS_DEPLOY_DIR)/data"
 	# 6. コンテナ起動（イメージが更新されたので再作成）
 	@echo ">> Starting container..."
 	ssh -p $(SSH_PORT) $(VPS_USER)@$(VPS_HOST) "cd $(VPS_DEPLOY_DIR) && APP_NAME=$(APP_NAME) docker compose up -d --force-recreate"
