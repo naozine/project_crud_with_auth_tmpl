@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/labstack/echo/v4"
 	"github.com/naozine/nz-magic-link/magiclink"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
@@ -20,50 +19,51 @@ func NewProfileSSEHandler(queries *database.Queries, ml *magiclink.MagicLink) *P
 	return &ProfileSSEHandler{Queries: queries, ML: ml}
 }
 
-// UpdateProfileSSE はプロフィールを更新し、ページをリロードする。
-func (h *ProfileSSEHandler) UpdateProfileSSE(c echo.Context) error {
-	ctx := c.Request().Context()
-	email, _, _ := appcontext.GetUser(ctx)
+func (h *ProfileSSEHandler) UpdateProfileSSE(w http.ResponseWriter, r *http.Request) {
+	email, _, _ := appcontext.GetUser(r.Context())
 
-	currentUser, err := h.Queries.GetUserByEmail(ctx, email)
+	currentUser, err := h.Queries.GetUserByEmail(r.Context(), email)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "ユーザーが見つかりません")
+		http.Error(w, "ユーザーが見つかりません", http.StatusNotFound)
+		return
 	}
 
 	var signals struct {
 		ProfileName string `json:"profileName"`
 	}
-	if err := datastar.ReadSignals(c.Request(), &signals); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "無効なリクエストです")
+	if err := datastar.ReadSignals(r, &signals); err != nil {
+		http.Error(w, "無効なリクエストです", http.StatusBadRequest)
+		return
 	}
 
 	if signals.ProfileName == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "名前は必須です")
+		http.Error(w, "名前は必須です", http.StatusBadRequest)
+		return
 	}
 
-	if _, err := h.Queries.UpdateUser(ctx, database.UpdateUserParams{
+	if _, err := h.Queries.UpdateUser(r.Context(), database.UpdateUserParams{
 		Name:     signals.ProfileName,
 		Role:     currentUser.Role,
 		IsActive: currentUser.IsActive,
 		ID:       currentUser.ID,
 	}); err != nil {
 		logger.Error("プロフィール更新に失敗", "error", err, "email", email)
-		return echo.NewHTTPError(http.StatusInternalServerError, "プロフィールの更新に失敗しました")
+		http.Error(w, "プロフィールの更新に失敗しました", http.StatusInternalServerError)
+		return
 	}
 
-	sse := newSSE(c)
-	return sse.ExecuteScript("window.location.reload()")
+	sse := newSSE(w, r)
+	sse.ExecuteScript("window.location.reload()")
 }
 
-// DeletePasskeysSSE は全パスキーを削除し、ページをリロードする。
-func (h *ProfileSSEHandler) DeletePasskeysSSE(c echo.Context) error {
-	ctx := c.Request().Context()
-	email, _, _ := appcontext.GetUser(ctx)
+func (h *ProfileSSEHandler) DeletePasskeysSSE(w http.ResponseWriter, r *http.Request) {
+	email, _, _ := appcontext.GetUser(r.Context())
 
 	creds, err := h.ML.DB.GetPasskeyCredentialsByUserID(email)
 	if err != nil {
 		logger.Error("パスキーの取得に失敗", "error", err, "email", email)
-		return echo.NewHTTPError(http.StatusInternalServerError, "パスキーの取得に失敗しました")
+		http.Error(w, "パスキーの取得に失敗しました", http.StatusInternalServerError)
+		return
 	}
 
 	for _, cred := range creds {
@@ -72,6 +72,6 @@ func (h *ProfileSSEHandler) DeletePasskeysSSE(c echo.Context) error {
 		}
 	}
 
-	sse := newSSE(c)
-	return sse.ExecuteScript("window.location.reload()")
+	sse := newSSE(w, r)
+	sse.ExecuteScript("window.location.reload()")
 }

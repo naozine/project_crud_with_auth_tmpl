@@ -4,76 +4,69 @@ import (
 	"database/sql"
 	"net/http"
 
+	"github.com/naozine/nz-magic-link/magiclink"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
-
-	"github.com/labstack/echo/v4"
-	"github.com/naozine/nz-magic-link/magiclink"
 )
 
-func UserContextMiddleware(ml *magiclink.MagicLink, dbConn *sql.DB) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			userEmail, isLoggedIn := ml.ValidateSession(c.Request())
+func UserContextMiddleware(ml *magiclink.MagicLink, dbConn *sql.DB) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userEmail, isLoggedIn := ml.ValidateSession(r)
 
 			var hasPasskey bool
 			var role string
 			var userID int64
 
 			if isLoggedIn {
-				// Check passkey
 				creds, err := ml.DB.GetPasskeyCredentialsByUserID(userEmail)
 				if err == nil && len(creds) > 0 {
 					hasPasskey = true
 				}
 
-				// Get user info from app DB
 				q := database.New(dbConn)
-				user, err := q.GetUserByEmail(c.Request().Context(), userEmail)
+				user, err := q.GetUserByEmail(r.Context(), userEmail)
 				if err == nil {
 					role = user.Role
 					userID = user.ID
 				}
 			}
 
-			// Set user info to request context
-			ctx := c.Request().Context()
-			ctx = appcontext.WithUser(ctx, userEmail, isLoggedIn, hasPasskey, role, userID)
-			c.SetRequest(c.Request().WithContext(ctx))
-
-			return next(c)
-		}
+			ctx := appcontext.WithUser(r.Context(), userEmail, isLoggedIn, hasPasskey, role, userID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
 	}
 }
 
 // RequireRole は指定されたロールのいずれかを持つユーザーのみアクセスを許可するミドルウェア。
-func RequireRole(roles ...string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			role := appcontext.GetUserRole(c.Request().Context())
-			for _, r := range roles {
-				if role == r {
-					return next(c)
+func RequireRole(roles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			role := appcontext.GetUserRole(r.Context())
+			for _, allowed := range roles {
+				if role == allowed {
+					next.ServeHTTP(w, r)
+					return
 				}
 			}
-			return echo.NewHTTPError(http.StatusForbidden, "アクセス権限がありません")
-		}
+			http.Error(w, "アクセス権限がありません", http.StatusForbidden)
+		})
 	}
 }
 
 // RequireAuth は認証を必須とするミドルウェア。
 // 未認証の場合はログインページへリダイレクトする。
-// UserContextMiddleware の後に適用すること。
-func RequireAuth(loginURL string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			_, isLoggedIn, _ := appcontext.GetUser(c.Request().Context())
+func RequireAuth(loginURL string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, isLoggedIn, _ := appcontext.GetUser(r.Context())
 
 			if !isLoggedIn {
-				return c.Redirect(http.StatusSeeOther, loginURL)
+				http.Redirect(w, r, loginURL, http.StatusSeeOther)
+				return
 			}
 
-			return next(c)
-		}
+			next.ServeHTTP(w, r)
+		})
 	}
 }

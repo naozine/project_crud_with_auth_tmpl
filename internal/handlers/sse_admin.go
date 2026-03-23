@@ -1,10 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
-	"github.com/labstack/echo/v4"
+	"github.com/go-chi/chi/v5"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
@@ -20,79 +21,76 @@ func NewAdminSSEHandler(queries *database.Queries) *AdminSSEHandler {
 	return &AdminSSEHandler{Queries: queries}
 }
 
-// CreateUserDialogSSE はダイアログからユーザーを作成し、一覧をリロードする。
-func (h *AdminSSEHandler) CreateUserDialogSSE(c echo.Context) error {
+func (h *AdminSSEHandler) CreateUserDialogSSE(w http.ResponseWriter, r *http.Request) {
 	var signals struct {
 		NewName  string `json:"newName"`
 		NewEmail string `json:"newEmail"`
 		NewRole  string `json:"newRole"`
 	}
-	if err := datastar.ReadSignals(c.Request(), &signals); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "無効なリクエストです")
+	if err := datastar.ReadSignals(r, &signals); err != nil {
+		http.Error(w, "無効なリクエストです", http.StatusBadRequest)
+		return
 	}
 
-	if err := h.createUser(c, signals.NewName, signals.NewEmail, signals.NewRole); err != nil {
-		return err
+	if err := h.createUser(r.Context(), signals.NewName, signals.NewEmail, signals.NewRole); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	// ダイアログを閉じて一覧をリロード
-	sse := newSSE(c)
-	return sse.ExecuteScript("document.getElementById('user-add-dialog')?.hidePopover(); window.location.reload()")
+	sse := newSSE(w, r)
+	sse.ExecuteScript("document.getElementById('user-add-dialog')?.hidePopover(); window.location.reload()")
 }
 
-func (h *AdminSSEHandler) createUser(c echo.Context, name, email, role string) error {
+func (h *AdminSSEHandler) createUser(ctx context.Context, name, email, role string) error {
 	if name == "" || email == "" || role == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "名前・メールアドレス・ロールは必須です")
+		return http.ErrAbortHandler
 	}
 
 	if role != "admin" && role != "editor" && role != "viewer" {
-		return echo.NewHTTPError(http.StatusBadRequest, "無効なロールです")
+		return http.ErrAbortHandler
 	}
 
-	if _, err := h.Queries.CreateUser(c.Request().Context(), database.CreateUserParams{
+	if _, err := h.Queries.CreateUser(ctx, database.CreateUserParams{
 		Email:    email,
 		Name:     name,
 		Role:     role,
 		IsActive: true,
 	}); err != nil {
 		logger.Error("ユーザー作成に失敗", "error", err, "email", email)
-		return echo.NewHTTPError(http.StatusInternalServerError, "ユーザーの作成に失敗しました")
+		return err
 	}
 
 	return nil
 }
 
-// EditUserDialogSSE は編集ダイアログをSSEでパッチして表示する。
-func (h *AdminSSEHandler) EditUserDialogSSE(c echo.Context) error {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+func (h *AdminSSEHandler) EditUserDialogSSE(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "無効なIDです")
+		http.Error(w, "無効なIDです", http.StatusBadRequest)
+		return
 	}
 
-	user, err := h.Queries.GetUserByID(c.Request().Context(), id)
+	user, err := h.Queries.GetUserByID(r.Context(), id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "ユーザーが見つかりません")
+		http.Error(w, "ユーザーが見つかりません", http.StatusNotFound)
+		return
 	}
 
-	sse := newSSE(c)
-	if err := sse.ExecuteScript("document.getElementById('dialog-container').innerHTML = ''"); err != nil {
-		return err
-	}
-	if err := sse.PatchElementTempl(
+	sse := newSSE(w, r)
+	sse.ExecuteScript("document.getElementById('dialog-container').innerHTML = ''")
+	sse.PatchElementTempl(
 		components.AdminUserEditDialog(user),
 		datastar.WithSelectorID("dialog-container"),
 		datastar.WithModeInner(),
-	); err != nil {
-		return err
-	}
-	return sse.ExecuteScript("document.getElementById('user-edit-dialog').showPopover()")
+	)
+	sse.ExecuteScript("document.getElementById('user-edit-dialog').showPopover()")
 }
 
-// UpdateUserSSE はユーザーを更新し、ダイアログを閉じて一覧をリロードする。
-func (h *AdminSSEHandler) UpdateUserSSE(c echo.Context) error {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+func (h *AdminSSEHandler) UpdateUserSSE(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "無効なIDです")
+		http.Error(w, "無効なIDです", http.StatusBadRequest)
+		return
 	}
 
 	var signals struct {
@@ -100,44 +98,47 @@ func (h *AdminSSEHandler) UpdateUserSSE(c echo.Context) error {
 		EditRole   string `json:"editRole"`
 		EditStatus string `json:"editStatus"`
 	}
-	if err := datastar.ReadSignals(c.Request(), &signals); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "無効なリクエストです")
+	if err := datastar.ReadSignals(r, &signals); err != nil {
+		http.Error(w, "無効なリクエストです", http.StatusBadRequest)
+		return
 	}
 
 	isActive := signals.EditStatus == "active"
 
-	if _, err := h.Queries.UpdateUser(c.Request().Context(), database.UpdateUserParams{
+	if _, err := h.Queries.UpdateUser(r.Context(), database.UpdateUserParams{
 		Name:     signals.EditName,
 		Role:     signals.EditRole,
 		IsActive: isActive,
 		ID:       id,
 	}); err != nil {
 		logger.Error("ユーザー更新に失敗", "error", err, "id", id)
-		return echo.NewHTTPError(http.StatusInternalServerError, "ユーザーの更新に失敗しました")
+		http.Error(w, "ユーザーの更新に失敗しました", http.StatusInternalServerError)
+		return
 	}
 
-	sse := newSSE(c)
-	return sse.ExecuteScript("document.getElementById('user-edit-dialog')?.hidePopover(); window.location.reload()")
+	sse := newSSE(w, r)
+	sse.ExecuteScript("document.getElementById('user-edit-dialog')?.hidePopover(); window.location.reload()")
 }
 
-// DeleteUserSSE はユーザーを削除し、一覧にリダイレクトする。
-func (h *AdminSSEHandler) DeleteUserSSE(c echo.Context) error {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+func (h *AdminSSEHandler) DeleteUserSSE(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "無効なIDです")
+		http.Error(w, "無効なIDです", http.StatusBadRequest)
+		return
 	}
 
-	// 自分自身の削除を防止
-	currentUserID := appcontext.GetUserID(c.Request().Context())
+	currentUserID := appcontext.GetUserID(r.Context())
 	if id == currentUserID {
-		return echo.NewHTTPError(http.StatusBadRequest, "自分自身を削除することはできません")
+		http.Error(w, "自分自身を削除することはできません", http.StatusBadRequest)
+		return
 	}
 
-	if err := h.Queries.DeleteUser(c.Request().Context(), id); err != nil {
+	if err := h.Queries.DeleteUser(r.Context(), id); err != nil {
 		logger.Error("ユーザー削除に失敗", "error", err, "id", id)
-		return echo.NewHTTPError(http.StatusInternalServerError, "ユーザーの削除に失敗しました")
+		http.Error(w, "ユーザーの削除に失敗しました", http.StatusInternalServerError)
+		return
 	}
 
-	sse := newSSE(c)
-	return sse.ExecuteScript("document.getElementById('user-edit-dialog')?.hidePopover(); window.location.reload()")
+	sse := newSSE(w, r)
+	sse.ExecuteScript("document.getElementById('user-edit-dialog')?.hidePopover(); window.location.reload()")
 }

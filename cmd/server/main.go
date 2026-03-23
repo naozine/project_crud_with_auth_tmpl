@@ -13,6 +13,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/joho/godotenv"
+	"github.com/naozine/nz-magic-link/magiclink"
+	"github.com/pressly/goose/v3"
+	_ "modernc.org/sqlite"
+
 	"github.com/naozine/project_crud_with_auth_tmpl/db"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
@@ -20,13 +27,6 @@ import (
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/routes"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/version"
-
-	"github.com/joho/godotenv"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	"github.com/naozine/nz-magic-link/magiclink"
-	"github.com/pressly/goose/v3"
-	_ "modernc.org/sqlite"
 )
 
 func main() {
@@ -37,14 +37,13 @@ func main() {
 
 	// Initialize Logger
 	logConfig := logger.DefaultConfig()
-	logConfig.LogDir = os.Getenv("LOG_DIR") // 空ならstdout/stderr
+	logConfig.LogDir = os.Getenv("LOG_DIR")
 	if err := logger.Init(logConfig); err != nil {
 		log.Fatal("Failed to initialize logger:", err)
 	}
 	defer logger.Close()
 
-	// 1. Database Setup (for projects)
-	// DB_PATH 環境変数でパスを指定可能（Docker ボリューム対応）
+	// 1. Database Setup
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
 		dbPath = "app.db"
@@ -55,13 +54,11 @@ func main() {
 	}
 	defer conn.Close()
 
-	// Run Migrations (using goose)
+	// Run Migrations
 	goose.SetBaseFS(db.MigrationsFS)
 	if err := goose.SetDialect("sqlite3"); err != nil {
 		log.Fatal("Failed to set goose dialect:", err)
 	}
-	// "migrations" is the directory name inside embed.FS (db/migrations)
-	// Since db.MigrationsFS is rooted at "db", the path is just "migrations"
 	if err := goose.Up(conn, "migrations"); err != nil {
 		log.Fatal("Failed to apply migrations:", err)
 	}
@@ -73,20 +70,13 @@ func main() {
 
 	// 2. MagicLink Setup
 	mlConfig := magiclink.DefaultConfig()
-	// Use existing SQLite connection, so DatabasePath is not used for connection but kept for config consistency
 	mlConfig.DatabaseType = "sqlite"
-
-	// ServerAddr: 開発時はPORT環境変数から動的生成、本番はビルド時注入
 	mlConfig.ServerAddr = resolveServerAddr()
 
-	// 開発モードかつ HTTP の場合のみ CookieSecure を false にする
-	// （本番で誤って HTTP を設定しても CookieSecure は true のまま）
 	if os.Getenv("APP_ENV") == "dev" && strings.HasPrefix(mlConfig.ServerAddr, "http://") {
 		mlConfig.CookieSecure = false
 	}
 
-	// Only use bypass file if it exists (mainly for local development)
-	// ローカル: .bypass_emails、Docker/fly.io: データボリューム内を参照
 	for _, path := range []string{".bypass_emails", "data/.bypass_emails"} {
 		if _, err := os.Stat(path); err == nil {
 			mlConfig.DevBypassEmailFilePath = path
@@ -94,37 +84,30 @@ func main() {
 		}
 	}
 
-	mlConfig.RedirectURL = "/projects"        // Redirect to projects list after login
-	mlConfig.ErrorRedirectURL = "/auth/login" // Redirect to login page on error
+	mlConfig.RedirectURL = "/projects"
+	mlConfig.ErrorRedirectURL = "/auth/login"
 	mlConfig.LoginSuccessMessage = "ログイン用のメールを送信しました"
-
-	// CookieName を ProjectName から生成（派生プロジェクト間のクッキー衝突を防ぐ）
 	mlConfig.CookieName = generateCookieName(version.ProjectName)
 
-	// AllowLogin callback to check against users table
 	mlConfig.AllowLogin = func(r *http.Request, email string) error {
 		q := database.New(conn)
 		user, err := q.GetUserByEmail(r.Context(), email)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				// 未登録でもエラーを返さない（メールアドレスの存在を外部に漏らさない）
 				logger.Warn("Login attempt with unregistered email", "email", email)
 				return nil
 			}
 			logger.Error("Database error in AllowLogin", "error", err, "email", email)
 			return fmt.Errorf("システムエラーが発生しました。")
 		}
-
 		if !user.IsActive {
-			// 無効アカウントも同じ扱い（存在を漏らさない）
 			logger.Warn("Login attempt with inactive account", "email", email)
 			return nil
 		}
-
 		return nil
 	}
 
-	// Configure SMTP
+	// SMTP
 	mlConfig.SMTPHost = os.Getenv("SMTP_HOST")
 	mlConfig.SMTPPort = mustAtoi(os.Getenv("SMTP_PORT"), 587)
 	mlConfig.SMTPUsername = os.Getenv("SMTP_USERNAME")
@@ -132,20 +115,18 @@ func main() {
 	mlConfig.SMTPFrom = os.Getenv("SMTP_FROM")
 	mlConfig.SMTPFromName = os.Getenv("SMTP_FROM_NAME")
 
-	// WebAuthn Configuration（ServerAddr から自動導出）
+	// WebAuthn
 	mlConfig.WebAuthnEnabled = true
 	mlConfig.WebAuthnRPID = extractHost(mlConfig.ServerAddr)
 	mlConfig.WebAuthnRPName = os.Getenv("WEBAUTHN_RP_NAME")
 	if mlConfig.WebAuthnRPName == "" {
 		mlConfig.WebAuthnRPName = "Project CRUD"
 	}
-	mlConfig.WebAuthnRedirectURL = "/projects" // Redirect to projects list after passkey login
+	mlConfig.WebAuthnRedirectURL = "/projects"
 	mlConfig.WebAuthnAllowedOrigins = []string{mlConfig.ServerAddr}
 
-	// Allow business logic to configure MagicLink settings
 	ConfigureBusinessSettings(&mlConfig)
 
-	// Initialize MagicLink with existing DB connection
 	ml, err := magiclink.NewWithDB(mlConfig, conn)
 	if err != nil {
 		log.Fatal("Failed to initialize MagicLink:", err)
@@ -154,67 +135,59 @@ func main() {
 	// 3. Initialize Handlers
 	queries := database.New(conn)
 	authHandler := handlers.NewAuthHandler()
-	profileHandler := handlers.NewProfileHandler(queries, ml)
-	setupHandler := handlers.NewSetupHandler(queries, ml)
+	profileHandler := handlers.NewProfileHandler(queries)
+	setupHandler := handlers.NewSetupHandler(queries)
 
-	// 4. Echo Setup
-	e := echo.New()
-	e.HTTPErrorHandler = handlers.CustomHTTPErrorHandler // カスタムエラーハンドラ
-	e.Use(appMiddleware.AccessLogMiddleware(logger.AccessWriter()))
-	e.Use(middleware.Recover())
-	e.Use(middleware.ContextTimeoutWithConfig(middleware.ContextTimeoutConfig{
-		Timeout: 5 * time.Second, // リクエスト処理の上限
-	}))
-	e.Use(appMiddleware.UserContextMiddleware(ml, conn)) // Add UserContext middleware globally
+	// 4. Chi Router Setup
+	r := chi.NewRouter()
+	r.Use(appMiddleware.AccessLogMiddleware(logger.AccessWriter()))
+	r.Use(chiMiddleware.Recoverer)
+	r.Use(appMiddleware.UserContextMiddleware(ml, conn))
 
-	e.Static("/static", "web/static")
+	// Static files
+	fs := http.FileServer(http.Dir("web/static"))
+	r.Handle("/static/*", http.StripPrefix("/static", fs))
 
 	// 5. Routes
-	// Health Check (公開エンドポイント)
-	e.GET("/health", handlers.HealthCheck)
-
-	// Public Routes
-	e.GET("/", func(c echo.Context) error {
-		return c.Redirect(http.StatusSeeOther, "/auth/login")
+	r.Get("/health", handlers.HealthCheck)
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
 	})
-	e.GET("/auth/login", authHandler.LoginPage)
+	r.Get("/auth/login", authHandler.LoginPage)
+	r.Get("/setup", setupHandler.SetupPage)
+	r.Post("/setup", setupHandler.CreateInitialAdmin)
 
-	// Initial Setup Routes (only accessible when no users exist)
-	e.GET("/setup", setupHandler.SetupPage)
-	e.POST("/setup", setupHandler.CreateInitialAdmin)
-
-	// MagicLink internal handlers (net/http ベース → Echo にラップ)
+	// MagicLink handlers (net/http ベース)
 	mlHandler := ml.Handler()
-	e.Any("/auth/*", echo.WrapHandler(mlHandler))
-	e.Any("/webauthn/*", echo.WrapHandler(mlHandler))
+	r.Mount("/auth", mlHandler)
+	r.Mount("/webauthn", mlHandler)
 
-	// Register Business Logic Routes
+	// Business & Admin Routes
 	authMW := appMiddleware.RequireAuth("/auth/login")
-	routes.RegisterBusinessRoutes(e, queries, authMW)
-	routes.RegisterAdminRoutes(e, queries, authMW)
-	routes.RegisterSSERoutes(e, queries, authMW)
+	routes.RegisterBusinessRoutes(r, queries, authMW)
+	routes.RegisterAdminRoutes(r, queries, authMW)
+	routes.RegisterSSERoutes(r, queries, ml, authMW)
 
 	// Profile Routes
-	e.GET("/profile", profileHandler.ShowProfile, authMW)
-
-	// Profile SSE Routes
-	profileSSE := handlers.NewProfileSSEHandler(queries, ml)
-	e.PUT("/api/sse/profile", profileSSE.UpdateProfileSSE, authMW)
-	e.DELETE("/api/sse/profile/passkeys", profileSSE.DeletePasskeysSSE, authMW)
+	r.Group(func(r chi.Router) {
+		r.Use(authMW)
+		r.Get("/profile", profileHandler.ShowProfile)
+	})
 
 	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-	// サーバータイムアウト設定
 	s := &http.Server{
 		Addr:         ":" + port,
-		ReadTimeout:  10 * time.Second,  // リクエストボディ読み取りの上限
-		WriteTimeout: 10 * time.Second,  // レスポンス書き込みの上限
-		IdleTimeout:  120 * time.Second, // Keep-Alive 接続のアイドル上限
+		Handler:      r,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
-	log.Fatal(e.StartServer(s))
+	log.Printf("Starting server on :%s", port)
+	log.Fatal(s.ListenAndServe())
 }
 
 func mustAtoi(s string, defaultValue int) int {
@@ -230,7 +203,6 @@ func mustAtoi(s string, defaultValue int) int {
 }
 
 func ensureAdminUser(conn *sql.DB) error {
-	// Check if any user exists
 	var count int
 	err := conn.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
 	if err != nil {
@@ -238,10 +210,9 @@ func ensureAdminUser(conn *sql.DB) error {
 	}
 
 	if count > 0 {
-		return nil // Users already exist, skip
+		return nil
 	}
 
-	// No users, check for env var
 	adminEmail := os.Getenv("ADMIN_EMAIL")
 	if adminEmail == "" {
 		log.Println("No users found and ADMIN_EMAIL not set. Skipping admin creation.")
@@ -270,33 +241,21 @@ func ensureAdminUser(conn *sql.DB) error {
 	return nil
 }
 
-// generateCookieName は ProjectName からクッキー名を生成する
-// クッキー名は英数字とアンダースコアのみ使用可能（RFC 6265準拠）
 func generateCookieName(projectName string) string {
-	// 小文字に変換
 	name := strings.ToLower(projectName)
-	// 英数字以外をアンダースコアに置換
 	reg := regexp.MustCompile(`[^a-z0-9]+`)
 	name = reg.ReplaceAllString(name, "_")
-	// 先頭・末尾のアンダースコアを削除
 	name = strings.Trim(name, "_")
-	// 空になった場合はデフォルト値
 	if name == "" {
 		name = "app"
 	}
 	return name + "_session"
 }
 
-// resolveServerAddr は ServerAddr を解決する
-// 優先順位: 1. SERVER_ADDR環境変数 2. 開発モード時はlocalhost 3. ビルド時注入値
 func resolveServerAddr() string {
-	// SERVER_ADDR 環境変数が設定されていれば最優先で使用
-	// LAN内アクセス等で localhost 以外を使いたい場合に有用
 	if serverAddr := os.Getenv("SERVER_ADDR"); serverAddr != "" {
 		return serverAddr
 	}
-
-	// 開発モード（Air: APP_ENV=dev）なら PORT から動的生成
 	if os.Getenv("APP_ENV") == "dev" {
 		port := os.Getenv("PORT")
 		if port == "" {
@@ -304,19 +263,14 @@ func resolveServerAddr() string {
 		}
 		return "http://localhost:" + port
 	}
-
-	// 本番：ビルド時注入値を使用
 	return version.ServerAddr
 }
 
-// extractHost は URL からホスト名を抽出する（WebAuthn RP ID 用）
-// 例: "https://example.com:8080" -> "example.com"
 func extractHost(serverAddr string) string {
 	u, err := url.Parse(serverAddr)
 	if err != nil || u.Host == "" {
 		return "localhost"
 	}
-	// ポート番号を除去
 	host := u.Hostname()
 	if host == "" {
 		return "localhost"

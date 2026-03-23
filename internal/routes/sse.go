@@ -1,31 +1,46 @@
 package routes
 
 import (
-	"github.com/labstack/echo/v4"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/naozine/nz-magic-link/magiclink"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
 )
 
 // RegisterSSERoutes は Datastar SSE 用のルートを登録する。
-func RegisterSSERoutes(e *echo.Echo, queries *database.Queries, authMW echo.MiddlewareFunc) {
+func RegisterSSERoutes(r chi.Router, queries *database.Queries, ml *magiclink.MagicLink, authMW func(http.Handler) http.Handler) {
 	projectSSE := handlers.NewProjectSSEHandler(queries)
 	adminSSE := handlers.NewAdminSSEHandler(queries)
-
-	sseGroup := e.Group("/api/sse")
-	sseGroup.Use(authMW)
+	profileSSE := handlers.NewProfileSSEHandler(queries, ml)
 
 	requireWrite := appMiddleware.RequireRole("admin", "editor")
 	requireAdmin := appMiddleware.RequireRole("admin")
 
-	// Projects
-	sseGroup.POST("/projects/new", projectSSE.CreateProjectSSE, requireWrite)
-	sseGroup.PUT("/projects/:id", projectSSE.UpdateProjectSSE, requireWrite)
-	sseGroup.DELETE("/projects/:id", projectSSE.DeleteProjectSSE, requireWrite)
+	r.Route("/api/sse", func(r chi.Router) {
+		r.Use(authMW)
 
-	// Admin Users
-	sseGroup.POST("/admin/users/create", adminSSE.CreateUserDialogSSE, requireAdmin)
-	sseGroup.GET("/admin/users/:id/edit", adminSSE.EditUserDialogSSE, requireAdmin)
-	sseGroup.PUT("/admin/users/:id", adminSSE.UpdateUserSSE, requireAdmin)
-	sseGroup.DELETE("/admin/users/:id", adminSSE.DeleteUserSSE, requireAdmin)
+		// Projects
+		r.Group(func(r chi.Router) {
+			r.Use(requireWrite)
+			r.Post("/projects/new", projectSSE.CreateProjectSSE)
+			r.Put("/projects/{id}", projectSSE.UpdateProjectSSE)
+			r.Delete("/projects/{id}", projectSSE.DeleteProjectSSE)
+		})
+
+		// Admin Users
+		r.Group(func(r chi.Router) {
+			r.Use(requireAdmin)
+			r.Post("/admin/users/create", adminSSE.CreateUserDialogSSE)
+			r.Get("/admin/users/{id}/edit", adminSSE.EditUserDialogSSE)
+			r.Put("/admin/users/{id}", adminSSE.UpdateUserSSE)
+			r.Delete("/admin/users/{id}", adminSSE.DeleteUserSSE)
+		})
+
+		// Profile
+		r.Put("/profile", profileSSE.UpdateProfileSSE)
+		r.Delete("/profile/passkeys", profileSSE.DeletePasskeysSSE)
+	})
 }

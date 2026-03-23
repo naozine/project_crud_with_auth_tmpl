@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/labstack/echo/v4"
+	"github.com/go-chi/chi/v5"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	"github.com/starfederation/datastar-go/datastar"
@@ -19,70 +19,71 @@ func NewProjectSSEHandler(queries *database.Queries) *ProjectSSEHandler {
 	return &ProjectSSEHandler{Queries: queries}
 }
 
-// DeleteProjectSSE はプロジェクトを削除し、一覧を SSE で再描画する。
-func (h *ProjectSSEHandler) DeleteProjectSSE(c echo.Context) error {
-	ctx := c.Request().Context()
-	id, err := strconv.Atoi(c.Param("id"))
+func (h *ProjectSSEHandler) DeleteProjectSSE(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "無効なIDです")
+		http.Error(w, "無効なIDです", http.StatusBadRequest)
+		return
 	}
 
-	if err := h.Queries.DeleteProject(ctx, int64(id)); err != nil {
+	if err := h.Queries.DeleteProject(r.Context(), int64(id)); err != nil {
 		logger.Error("プロジェクト削除に失敗", "error", err, "id", id)
-		return echo.NewHTTPError(http.StatusInternalServerError, "プロジェクトの削除に失敗しました")
+		http.Error(w, "プロジェクトの削除に失敗しました", http.StatusInternalServerError)
+		return
 	}
 
-	sse := newSSE(c)
-	return sse.ExecuteScript("window.location.replace('/projects')")
+	sse := newSSE(w, r)
+	sse.ExecuteScript("window.location.replace('/projects')")
 }
 
-// CreateProjectSSE はプロジェクトを作成し、一覧にリダイレクトする。
-func (h *ProjectSSEHandler) CreateProjectSSE(c echo.Context) error {
-	ctx := c.Request().Context()
-
+func (h *ProjectSSEHandler) CreateProjectSSE(w http.ResponseWriter, r *http.Request) {
 	var signals struct {
 		Name string `json:"name"`
 	}
-	if err := datastar.ReadSignals(c.Request(), &signals); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "無効なリクエストです")
+	if err := datastar.ReadSignals(r, &signals); err != nil {
+		http.Error(w, "無効なリクエストです", http.StatusBadRequest)
+		return
 	}
 
 	if signals.Name == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "プロジェクト名は必須です")
+		http.Error(w, "プロジェクト名は必須です", http.StatusBadRequest)
+		return
 	}
 
-	if _, err := h.Queries.CreateProject(ctx, signals.Name); err != nil {
+	if _, err := h.Queries.CreateProject(r.Context(), signals.Name); err != nil {
 		logger.Error("プロジェクト作成に失敗", "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "プロジェクトの作成に失敗しました")
+		http.Error(w, "プロジェクトの作成に失敗しました", http.StatusInternalServerError)
+		return
 	}
 
-	sse := newSSE(c)
-	return sse.ExecuteScript("window.location.replace('/projects')")
+	sse := newSSE(w, r)
+	sse.ExecuteScript("window.location.replace('/projects')")
 }
 
-// UpdateProjectSSE はプロジェクトを更新し、詳細ページにリダイレクトする。
-func (h *ProjectSSEHandler) UpdateProjectSSE(c echo.Context) error {
-	ctx := c.Request().Context()
-	id, err := strconv.Atoi(c.Param("id"))
+func (h *ProjectSSEHandler) UpdateProjectSSE(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "無効なIDです")
+		http.Error(w, "無効なIDです", http.StatusBadRequest)
+		return
 	}
 
 	var signals struct {
 		Name string `json:"name"`
 	}
-	if err := datastar.ReadSignals(c.Request(), &signals); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "無効なリクエストです")
+	if err := datastar.ReadSignals(r, &signals); err != nil {
+		http.Error(w, "無効なリクエストです", http.StatusBadRequest)
+		return
 	}
 
-	if _, err := h.Queries.UpdateProject(ctx, database.UpdateProjectParams{
+	if _, err := h.Queries.UpdateProject(r.Context(), database.UpdateProjectParams{
 		Name: signals.Name,
 		ID:   int64(id),
 	}); err != nil {
 		logger.Error("プロジェクト更新に失敗", "error", err, "id", id)
-		return echo.NewHTTPError(http.StatusInternalServerError, "プロジェクトの更新に失敗しました")
+		http.Error(w, "プロジェクトの更新に失敗しました", http.StatusInternalServerError)
+		return
 	}
 
-	sse := newSSE(c)
-	return sse.ExecuteScript(fmt.Sprintf("window.location.replace('/projects/%d')", id))
+	sse := newSSE(w, r)
+	sse.ExecuteScript(fmt.Sprintf("window.location.replace('/projects/%d')", id))
 }
