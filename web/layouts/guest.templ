@@ -17,8 +17,8 @@ templ Guest(title string, content templ.Component) {
 			<link rel="icon" href="/static/favicon.ico" sizes="any"/>
 			<link href={ "/static/css/style.css?v=" + version.Commit } rel="stylesheet"/>
 		</head>
-		<body class="bg-gray-50 text-gray-900 min-h-screen font-sans antialiased">
-			<div class="flex min-h-screen flex-col justify-center py-12 sm:px-6 lg:px-8">
+		<body class="bg-gray-50 text-gray-900 min-h-[100dvh] font-sans antialiased flex flex-col">
+			<div class="flex flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">
 				<div class="sm:mx-auto sm:w-full sm:max-w-md">
 					<div class="flex justify-center">
 						<div class="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center">

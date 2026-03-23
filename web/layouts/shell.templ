@@ -38,7 +38,7 @@ templ Shell(title string, currentPath string, content templ.Component) {
 			<link href={ "/static/css/style.css?v=" + version.Commit } rel="stylesheet"/>
 			<script type="module" src={ "/static/js/datastar.js?v=" + version.Commit }></script>
 		</head>
-		<body class="bg-gray-50 text-gray-900 min-h-screen font-sans antialiased">
+		<body class="bg-gray-50 text-gray-900 min-h-[100dvh] font-sans antialiased">
 			<!-- Desktop sidebar (md+) -->
 			<aside class="hidden md:flex fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex-col z-30">
 				<!-- Logo + User -->
