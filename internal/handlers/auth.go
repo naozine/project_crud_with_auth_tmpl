@@ -4,21 +4,19 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/naozine/nz-magic-link/magiclink"
 
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
 )
 
-type AuthHandler struct {
-	ML *magiclink.MagicLink
-}
+type AuthHandler struct{}
 
-func NewAuthHandler(ml *magiclink.MagicLink) *AuthHandler {
-	return &AuthHandler{ML: ml}
+func NewAuthHandler() *AuthHandler {
+	return &AuthHandler{}
 }
 
 func (h *AuthHandler) LoginPage(c echo.Context) error {
-	_, isLoggedIn := h.ML.GetUserID(c)
+	_, isLoggedIn, _ := appcontext.GetUser(c.Request().Context())
 	if isLoggedIn {
 		return c.Redirect(http.StatusSeeOther, "/projects")
 	}

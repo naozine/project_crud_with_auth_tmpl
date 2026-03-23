@@ -102,16 +102,9 @@ func main() {
 	mlConfig.CookieName = generateCookieName(version.ProjectName)
 
 	// AllowLogin callback to check against users table
-	mlConfig.AllowLogin = func(c echo.Context, email string) error {
-		// We need to access the database here. Since we can't easily pass the queries object directly
-		// into this config function definition before it's created, we'll create a new queries instance
-		// or rely on a closure if we restructure.
-		// However, `queries` is created *after* this config.
-		// To fix this dependency cycle, we can defer the actual DB check or restructure initialization.
-		// A simple way is to use the `conn` we already have.
-
+	mlConfig.AllowLogin = func(r *http.Request, email string) error {
 		q := database.New(conn)
-		user, err := q.GetUserByEmail(c.Request().Context(), email)
+		user, err := q.GetUserByEmail(r.Context(), email)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				// 未登録でもエラーを返さない（メールアドレスの存在を外部に漏らさない）
@@ -160,7 +153,7 @@ func main() {
 
 	// 3. Initialize Handlers
 	queries := database.New(conn)
-	authHandler := handlers.NewAuthHandler(ml)
+	authHandler := handlers.NewAuthHandler()
 	profileHandler := handlers.NewProfileHandler(queries, ml)
 	setupHandler := handlers.NewSetupHandler(queries, ml)
 
@@ -190,11 +183,13 @@ func main() {
 	e.GET("/setup", setupHandler.SetupPage)
 	e.POST("/setup", setupHandler.CreateInitialAdmin)
 
-	// MagicLink internal handlers
-	ml.RegisterHandlers(e)
+	// MagicLink internal handlers (net/http ベース → Echo にラップ)
+	mlHandler := ml.Handler()
+	e.Any("/auth/*", echo.WrapHandler(mlHandler))
+	e.Any("/webauthn/*", echo.WrapHandler(mlHandler))
 
 	// Register Business Logic Routes
-	authMW := appMiddleware.RequireAuth(ml, "/auth/login")
+	authMW := appMiddleware.RequireAuth("/auth/login")
 	routes.RegisterBusinessRoutes(e, queries, authMW)
 	routes.RegisterAdminRoutes(e, queries, authMW)
 	routes.RegisterSSERoutes(e, queries, authMW)

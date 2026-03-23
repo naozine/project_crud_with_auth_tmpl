@@ -14,7 +14,7 @@ import (
 func UserContextMiddleware(ml *magiclink.MagicLink, dbConn *sql.DB) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			userEmail, isLoggedIn := ml.GetUserID(c)
+			userEmail, isLoggedIn := ml.ValidateSession(c.Request())
 
 			var hasPasskey bool
 			var role string
@@ -47,7 +47,6 @@ func UserContextMiddleware(ml *magiclink.MagicLink, dbConn *sql.DB) echo.Middlew
 }
 
 // RequireRole は指定されたロールのいずれかを持つユーザーのみアクセスを許可するミドルウェア。
-// 認証済みであることが前提のため、RequireAuth の後に適用すること。
 func RequireRole(roles ...string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -64,10 +63,11 @@ func RequireRole(roles ...string) echo.MiddlewareFunc {
 
 // RequireAuth は認証を必須とするミドルウェア。
 // 未認証の場合はログインページへリダイレクトする。
-func RequireAuth(ml *magiclink.MagicLink, loginURL string) echo.MiddlewareFunc {
+// UserContextMiddleware の後に適用すること。
+func RequireAuth(loginURL string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			_, isLoggedIn := ml.GetUserID(c)
+			_, isLoggedIn, _ := appcontext.GetUser(c.Request().Context())
 
 			if !isLoggedIn {
 				return c.Redirect(http.StatusSeeOther, loginURL)
