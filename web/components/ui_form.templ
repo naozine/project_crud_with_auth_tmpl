@@ -39,18 +39,24 @@ templ EmailInput(name string, value string, placeholder string) {
 }
 
 // DataInput は Datastar の data-bind 対応テキスト入力フィールドを描画する。
-templ DataInput(signal string, placeholder string) {
+templ DataInput(signal string, placeholder string, attrs ...templ.Attributes) {
     <input type="text" data-bind={ signal } required
         class={ inputClass }
         placeholder={ placeholder }
+        if len(attrs) > 0 {
+            { attrs[0]... }
+        }
     />
 }
 
 // DataEmailInput は Datastar の data-bind 対応メール入力フィールドを描画する。
-templ DataEmailInput(signal string, placeholder string) {
+templ DataEmailInput(signal string, placeholder string, attrs ...templ.Attributes) {
     <input type="email" data-bind={ signal } required
         class={ inputClass }
         placeholder={ placeholder }
+        if len(attrs) > 0 {
+            { attrs[0]... }
+        }
     />
 }
 
