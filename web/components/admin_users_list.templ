@@ -13,7 +13,7 @@ templ AdminUserList(users []database.User) {
 
         <!-- FAB: ユーザー追加 -->
         <button
-            popovertarget="user-add-dialog"
+            onclick="var d=document.getElementById('user-add-dialog');d.showModal();document.activeElement?.blur()"
             class="fixed bottom-16 right-4 md:bottom-6 md:right-8 z-30 w-14 h-14 bg-black text-white rounded-full shadow-lg hover:bg-gray-800 transition-colors flex items-center justify-center"
             title="ユーザーを追加"
         >
@@ -45,7 +45,7 @@ templ AdminUserEditDialog(user database.User) {
 
         <form data-on:submit__prevent={ fmt.Sprintf("@put('/api/sse/admin/users/%d')", user.ID) } class="space-y-5">
             @FormField("名前", "") {
-                @DataInput("editName", "", templ.Attributes{"autofocus": true})
+                @DataInput("editName", "", templ.Attributes{})
             }
 
             @FormField("メールアドレス（変更不可）", "") {
@@ -106,7 +106,7 @@ templ adminUserAddDialog() {
 
         <form data-on:submit__prevent="@post('/api/sse/admin/users/create')" class="space-y-5">
             @FormField("名前", "") {
-                @DataInput("newName", "例: 田中太郎", templ.Attributes{"autofocus": true})
+                @DataInput("newName", "例: 田中太郎", templ.Attributes{})
             }
 
             @FormField("メールアドレス", "") {

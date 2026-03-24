@@ -38,7 +38,7 @@ func (h *AdminSSEHandler) CreateUserDialogSSE(w http.ResponseWriter, r *http.Req
 	}
 
 	sse := newSSE(w, r)
-	sse.ExecuteScript("document.getElementById('user-add-dialog')?.hidePopover(); window.location.reload()")
+	sse.ExecuteScript("document.getElementById('user-add-dialog')?.close(); window.location.reload()")
 }
 
 func (h *AdminSSEHandler) createUser(ctx context.Context, name, email, role string) error {
@@ -77,10 +77,6 @@ func (h *AdminSSEHandler) EditUserDialogSSE(w http.ResponseWriter, r *http.Reque
 	}
 
 	sse := newSSE(w, r)
-	if err := sse.ExecuteScript("document.getElementById('dialog-container').innerHTML = ''"); err != nil {
-		logger.Error("SSE ExecuteScript failed", "error", err)
-		return
-	}
 	if err := sse.PatchElementTempl(
 		components.AdminUserEditDialog(user),
 		datastar.WithSelectorID("dialog-container"),
@@ -89,7 +85,7 @@ func (h *AdminSSEHandler) EditUserDialogSSE(w http.ResponseWriter, r *http.Reque
 		logger.Error("SSE PatchElementTempl failed", "error", err)
 		return
 	}
-	if err := sse.ExecuteScript("document.getElementById('user-edit-dialog').showPopover()"); err != nil {
+	if err := sse.ExecuteScript("document.getElementById('user-edit-dialog')?.showModal();document.activeElement?.blur()"); err != nil {
 		logger.Error("SSE ExecuteScript failed", "error", err)
 		return
 	}
@@ -126,7 +122,7 @@ func (h *AdminSSEHandler) UpdateUserSSE(w http.ResponseWriter, r *http.Request) 
 	}
 
 	sse := newSSE(w, r)
-	sse.ExecuteScript("document.getElementById('user-edit-dialog')?.hidePopover(); window.location.reload()")
+	sse.ExecuteScript("document.getElementById('user-edit-dialog')?.close(); window.location.reload()")
 }
 
 func (h *AdminSSEHandler) DeleteUserSSE(w http.ResponseWriter, r *http.Request) {
@@ -149,5 +145,5 @@ func (h *AdminSSEHandler) DeleteUserSSE(w http.ResponseWriter, r *http.Request) 
 	}
 
 	sse := newSSE(w, r)
-	sse.ExecuteScript("document.getElementById('user-edit-dialog')?.hidePopover(); window.location.reload()")
+	sse.ExecuteScript("document.getElementById('user-edit-dialog')?.close(); window.location.reload()")
 }
