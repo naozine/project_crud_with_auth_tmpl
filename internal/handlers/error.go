@@ -5,7 +5,6 @@ import (
 
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
-	"github.com/naozine/project_crud_with_auth_tmpl/web/layouts"
 )
 
 // httpError はHTMLエラーページを返す。
@@ -29,9 +28,6 @@ func httpError(w http.ResponseWriter, r *http.Request, code int, message string)
 		)
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(code)
-	errorPage := components.ErrorPage(code, message)
-	page := layouts.Base("エラー", errorPage)
-	page.Render(r.Context(), w)
+	renderGuest(w, r, "エラー", components.ErrorPage(code, message))
 }

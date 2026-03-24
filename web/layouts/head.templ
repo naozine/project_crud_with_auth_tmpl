@@ -1,0 +1,22 @@
+package layouts
+
+import (
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/appconfig"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/version"
+)
+
+// Head は共通の <head> を描画する。追加の要素は children で渡す。
+templ Head(title string) {
+	<head>
+		<meta charset="UTF-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<meta name="color-scheme" content="light"/>
+		<meta name="mobile-web-app-capable" content="yes"/>
+		<title>{ title } - { appconfig.AppName }</title>
+		<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
+		<link rel="icon" href="/static/favicon.ico" sizes="any"/>
+		<link rel="apple-touch-icon" href="/static/favicon.svg"/>
+		<link href={ "/static/css/style.css?v=" + version.Commit } rel="stylesheet"/>
+		{ children... }
+	</head>
+}
