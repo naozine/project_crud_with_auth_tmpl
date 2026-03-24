@@ -7,7 +7,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.15.1
-	github.com/naozine/nz-magic-link v0.4.2
+	github.com/naozine/nz-magic-link v0.4.3
 	github.com/pressly/goose/v3 v3.27.0
 	github.com/starfederation/datastar-go v1.1.0
 	github.com/xuri/excelize/v2 v2.10.1
