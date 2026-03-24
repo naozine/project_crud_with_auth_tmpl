@@ -25,7 +25,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const email = document.getElementById('email').value;
 
         try {
-            const res = await fetch('/auth/login', {
+            // redirect パラメータがあれば POST URL に引き継ぐ
+            var loginURL = '/auth/login';
+            var redirect = new URLSearchParams(window.location.search).get('redirect');
+            if (redirect) loginURL += '?redirect=' + encodeURIComponent(redirect);
+
+            const res = await fetch(loginURL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })

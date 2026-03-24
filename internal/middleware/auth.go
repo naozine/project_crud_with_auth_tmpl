@@ -3,6 +3,7 @@ package middleware
 import (
 	"database/sql"
 	"net/http"
+	"net/url"
 
 	"github.com/naozine/nz-magic-link/magiclink"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
@@ -55,14 +56,15 @@ func RequireRole(roles ...string) func(http.Handler) http.Handler {
 }
 
 // RequireAuth は認証を必須とするミドルウェア。
-// 未認証の場合はログインページへリダイレクトする。
+// 未認証の場合はログインページへリダイレクトし、元の URL を redirect パラメータで引き継ぐ。
 func RequireAuth(loginURL string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_, isLoggedIn, _ := appcontext.GetUser(r.Context())
 
 			if !isLoggedIn {
-				http.Redirect(w, r, loginURL, http.StatusSeeOther)
+				target := loginURL + "?redirect=" + url.QueryEscape(r.URL.RequestURI())
+				http.Redirect(w, r, target, http.StatusSeeOther)
 				return
 			}
 

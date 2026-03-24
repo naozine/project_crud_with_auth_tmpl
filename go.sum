@@ -52,8 +52,8 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mfridman/interpolate v0.0.2 h1:pnuTK7MQIxxFz1Gr+rjSIx9u7qVjf5VOoM/u6BbAxPY=
 github.com/mfridman/interpolate v0.0.2/go.mod h1:p+7uk6oE07mpE/Ik1b8EckO0O4ZXiGAfshKBWLUM9Xg=
-github.com/naozine/nz-magic-link v0.4.0 h1:Y/3uSGXZqDsaPHHiLoVy0H3/CgOqAdLAkXHuYe9KDcQ=
-github.com/naozine/nz-magic-link v0.4.0/go.mod h1:UfMLhn3utlGoWMJuinyxt6qQUH0d9DRYCQPuMN6iqIo=
+github.com/naozine/nz-magic-link v0.4.2 h1:VjnkFVqmNGJBURUDCMGH/QjqKvRNCIo80YAXkEd3hb0=
+github.com/naozine/nz-magic-link v0.4.2/go.mod h1:UfMLhn3utlGoWMJuinyxt6qQUH0d9DRYCQPuMN6iqIo=
 github.com/ncruces/go-strftime v1.0.0 h1:HMFp8mLCTPp341M/ZnA4qaf7ZlsbTc+miZjCLOFAw7w=
 github.com/ncruces/go-strftime v1.0.0/go.mod h1:Fwc5htZGVVkseilnfgOVb9mKy6w1naJmn9CehxcKcls=
 github.com/pierrec/lz4/v4 v4.1.18/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
