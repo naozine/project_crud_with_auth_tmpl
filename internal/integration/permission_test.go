@@ -3,10 +3,18 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo/v4"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
+)
+
+// bodyContentType はリクエストボディの形式を表す
+type bodyContentType int
+
+const (
+	bodyForm bodyContentType = iota // application/x-www-form-urlencoded（既定）
+	bodyJSON                        // application/json (Datastar SSE シグナル用)
 )
 
 // routeTestCase は権限マトリクスの1行を表す
@@ -14,7 +22,8 @@ type routeTestCase struct {
 	Name         string
 	Method       string
 	Path         string // %d は seed.Project.ID で置換される
-	Body         string // POST のフォームボディ
+	Body         string // リクエストボディ
+	BodyType     bodyContentType
 	AdminStatus  int
 	EditorStatus int
 	ViewerStatus int
@@ -83,9 +92,11 @@ func TestPermissionMatrix_AdminRoutes(t *testing.T) {
 	e := SetupTestServer(t, conn)
 	seed := SeedTestData(t, conn)
 
-	// 編集・更新・削除対象として viewer ユーザーを使う
+	// 編集・更新対象として viewer ユーザーを使う
 	targetID := seed.ViewerUser.ID
 
+	// admin の CRUD は Datastar SSE モーダル化されており、成功時のステータスは 200。
+	// HTML フォームページ (/admin/users/new など) は廃止されている。
 	routes := []routeTestCase{
 		{
 			Name:   "GET /admin/users（ユーザー一覧）",
@@ -94,35 +105,31 @@ func TestPermissionMatrix_AdminRoutes(t *testing.T) {
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name:   "GET /admin/users/new（ユーザー作成フォーム）",
-			Method: http.MethodGet, Path: "/admin/users/new",
+			Name:   "POST /api/sse/admin/users/create（ユーザー作成 SSE）",
+			Method: http.MethodPost, Path: "/api/sse/admin/users/create",
+			Body:        `{"newName":"NewUser","newEmail":"new@test.com","newRole":"viewer"}`,
+			BodyType:    bodyJSON,
 			AdminStatus: http.StatusOK, EditorStatus: http.StatusForbidden,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name:   "POST /admin/users/new（ユーザー作成実行）",
-			Method: http.MethodPost, Path: "/admin/users/new",
-			Body:        "name=NewUser&email=new@test.com&role=viewer",
-			AdminStatus: http.StatusSeeOther, EditorStatus: http.StatusForbidden,
-			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
-		},
-		{
-			Name:   "GET /admin/users/:id/edit（ユーザー編集フォーム）",
-			Method: http.MethodGet, Path: fmt.Sprintf("/admin/users/%d/edit", targetID),
+			Name:   "GET /api/sse/admin/users/:id/edit（編集ダイアログ SSE）",
+			Method: http.MethodGet, Path: fmt.Sprintf("/api/sse/admin/users/%d/edit", targetID),
 			AdminStatus: http.StatusOK, EditorStatus: http.StatusForbidden,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name:   "POST /admin/users/:id/update（ユーザー更新実行）",
-			Method: http.MethodPost, Path: fmt.Sprintf("/admin/users/%d/update", targetID),
-			Body:        "name=UpdatedViewer&role=viewer&status=active",
-			AdminStatus: http.StatusSeeOther, EditorStatus: http.StatusForbidden,
+			Name:   "PUT /api/sse/admin/users/:id（ユーザー更新 SSE）",
+			Method: http.MethodPut, Path: fmt.Sprintf("/api/sse/admin/users/%d", targetID),
+			Body:        `{"editName":"UpdatedViewer","editRole":"viewer","editStatus":"active"}`,
+			BodyType:    bodyJSON,
+			AdminStatus: http.StatusOK, EditorStatus: http.StatusForbidden,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name:   "POST /admin/users/:id/delete（ユーザー削除実行）",
-			Method: http.MethodPost, Path: fmt.Sprintf("/admin/users/%d/delete", seed.DeletableUser.ID),
-			AdminStatus: http.StatusSeeOther, EditorStatus: http.StatusForbidden,
+			Name:   "DELETE /api/sse/admin/users/:id（ユーザー削除 SSE）",
+			Method: http.MethodDelete, Path: fmt.Sprintf("/api/sse/admin/users/%d", seed.DeletableUser.ID),
+			AdminStatus: http.StatusOK, EditorStatus: http.StatusForbidden,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 	}
@@ -130,10 +137,16 @@ func TestPermissionMatrix_AdminRoutes(t *testing.T) {
 	runPermissionMatrix(t, e, seed, routes)
 }
 
+// dispatchRequest は routeTestCase の BodyType に応じて Form/JSON のリクエストを使い分ける
+func dispatchRequest(h http.Handler, rt routeTestCase, user *database.User) *httptest.ResponseRecorder {
+	if rt.BodyType == bodyJSON {
+		return DoSSERequest(h, rt.Method, rt.Path, user, rt.Body)
+	}
+	return DoRequest(h, rt.Method, rt.Path, user, rt.Body)
+}
+
 // runPermissionMatrix は各ルートに対して全ロール + 未認証のテストを実行する
-func runPermissionMatrix(t *testing.T, e interface {
-	ServeHTTP(http.ResponseWriter, *http.Request)
-}, seed SeedData, routes []routeTestCase) {
+func runPermissionMatrix(t *testing.T, h http.Handler, seed SeedData, routes []routeTestCase) {
 	t.Helper()
 
 	type roleCase struct {
@@ -155,7 +168,7 @@ func runPermissionMatrix(t *testing.T, e interface {
 
 			for _, tc := range cases {
 				t.Run(tc.role.name, func(t *testing.T) {
-					rec := DoRequest(e.(*echo.Echo), rt.Method, rt.Path, tc.role.user, rt.Body)
+					var rec = dispatchRequest(h, rt, tc.role.user)
 					if rec.Code != tc.wantStatus {
 						t.Errorf("ステータスコード = %d, want %d", rec.Code, tc.wantStatus)
 					}

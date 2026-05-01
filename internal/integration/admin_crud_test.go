@@ -5,23 +5,22 @@ import (
 	"testing"
 )
 
+// admin の CRUD は Datastar SSE モーダル化されており、
+// /api/sse/admin/users/* の JSON シグナルを叩く形でテストする。
+
 func TestAdminCRUD_CreateUser(t *testing.T) {
 	conn := SetupTestDB(t)
 	e := SetupTestServer(t, conn)
 	seed := SeedTestData(t, conn)
 
-	// ユーザー作成
-	rec := DoRequest(e, http.MethodPost, "/admin/users/new",
-		&seed.AdminUser, "name=NewUser&email=newuser@test.com&role=editor")
+	rec := DoSSERequest(e, http.MethodPost, "/api/sse/admin/users/create",
+		&seed.AdminUser,
+		`{"newName":"NewUser","newEmail":"newuser@test.com","newRole":"editor"}`)
 
-	if rec.Code != http.StatusSeeOther {
-		t.Fatalf("ステータスコード = %d, want %d", rec.Code, http.StatusSeeOther)
-	}
-	if loc := rec.Header().Get("Location"); loc != "/admin/users" {
-		t.Fatalf("リダイレクト先 = %q, want /admin/users", loc)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("ステータスコード = %d, want %d, body: %s", rec.Code, http.StatusOK, rec.Body.String())
 	}
 
-	// DB に作成されたか確認
 	q := queryFromConn(conn)
 	user, err := q.GetUserByEmail(t.Context(), "newuser@test.com")
 	if err != nil {
@@ -43,12 +42,13 @@ func TestAdminCRUD_CreateUser_ValidationError(t *testing.T) {
 	e := SetupTestServer(t, conn)
 	seed := SeedTestData(t, conn)
 
-	// 必須フィールドが空
-	rec := DoRequest(e, http.MethodPost, "/admin/users/new",
-		&seed.AdminUser, "name=&email=&role=")
+	// 必須フィールドが空 → ハンドラが http.ErrAbortHandler を返し、500 となる
+	rec := DoSSERequest(e, http.MethodPost, "/api/sse/admin/users/create",
+		&seed.AdminUser,
+		`{"newName":"","newEmail":"","newRole":""}`)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("ステータスコード = %d, want %d", rec.Code, http.StatusBadRequest)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("ステータスコード = %d, want %d", rec.Code, http.StatusInternalServerError)
 	}
 }
 
@@ -59,15 +59,14 @@ func TestAdminCRUD_UpdateUser(t *testing.T) {
 
 	targetID := seed.ViewerUser.ID
 
-	// ロールと名前を変更
-	rec := DoRequest(e, http.MethodPost, sprintf("/admin/users/%d/update", targetID),
-		&seed.AdminUser, "name=UpdatedName&role=editor&status=active")
+	rec := DoSSERequest(e, http.MethodPut, sprintf("/api/sse/admin/users/%d", targetID),
+		&seed.AdminUser,
+		`{"editName":"UpdatedName","editRole":"editor","editStatus":"active"}`)
 
-	if rec.Code != http.StatusSeeOther {
-		t.Fatalf("ステータスコード = %d, want %d", rec.Code, http.StatusSeeOther)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("ステータスコード = %d, want %d, body: %s", rec.Code, http.StatusOK, rec.Body.String())
 	}
 
-	// DB で更新されたか確認
 	q := queryFromConn(conn)
 	user, err := q.GetUserByID(t.Context(), targetID)
 	if err != nil {
@@ -88,12 +87,12 @@ func TestAdminCRUD_UpdateUser_Deactivate(t *testing.T) {
 
 	targetID := seed.ViewerUser.ID
 
-	// ステータスを無効にする
-	rec := DoRequest(e, http.MethodPost, sprintf("/admin/users/%d/update", targetID),
-		&seed.AdminUser, "name=Viewer&role=viewer&status=inactive")
+	rec := DoSSERequest(e, http.MethodPut, sprintf("/api/sse/admin/users/%d", targetID),
+		&seed.AdminUser,
+		`{"editName":"Viewer","editRole":"viewer","editStatus":"inactive"}`)
 
-	if rec.Code != http.StatusSeeOther {
-		t.Fatalf("ステータスコード = %d, want %d", rec.Code, http.StatusSeeOther)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("ステータスコード = %d, want %d", rec.Code, http.StatusOK)
 	}
 
 	q := queryFromConn(conn)
@@ -113,14 +112,13 @@ func TestAdminCRUD_DeleteUser(t *testing.T) {
 
 	targetID := seed.DeletableUser.ID
 
-	rec := DoRequest(e, http.MethodPost, sprintf("/admin/users/%d/delete", targetID),
+	rec := DoSSERequest(e, http.MethodDelete, sprintf("/api/sse/admin/users/%d", targetID),
 		&seed.AdminUser, "")
 
-	if rec.Code != http.StatusSeeOther {
-		t.Fatalf("ステータスコード = %d, want %d", rec.Code, http.StatusSeeOther)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("ステータスコード = %d, want %d", rec.Code, http.StatusOK)
 	}
 
-	// DB から削除されたか確認
 	q := queryFromConn(conn)
 	_, err := q.GetUserByID(t.Context(), targetID)
 	if err == nil {
@@ -133,15 +131,13 @@ func TestAdminCRUD_DeleteUser_PreventSelfDeletion(t *testing.T) {
 	e := SetupTestServer(t, conn)
 	seed := SeedTestData(t, conn)
 
-	// 自分自身を削除しようとする
-	rec := DoRequest(e, http.MethodPost, sprintf("/admin/users/%d/delete", seed.AdminUser.ID),
+	rec := DoSSERequest(e, http.MethodDelete, sprintf("/api/sse/admin/users/%d", seed.AdminUser.ID),
 		&seed.AdminUser, "")
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("ステータスコード = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
 
-	// 削除されていないことを確認
 	q := queryFromConn(conn)
 	_, err := q.GetUserByID(t.Context(), seed.AdminUser.ID)
 	if err != nil {

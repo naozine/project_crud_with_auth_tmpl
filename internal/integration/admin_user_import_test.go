@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo/v4"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/xuri/excelize/v2"
 )
@@ -51,13 +50,13 @@ func createExcelBytes(t *testing.T, rows []excelRow) []byte {
 }
 
 // doFileUpload は multipart/form-data でファイルをアップロードする。
-func doFileUpload(e *echo.Echo, path string, user *database.User, fieldName, fileName string, fileData []byte) *httptest.ResponseRecorder {
+func doFileUpload(h http.Handler, path string, user *database.User, fieldName, fileName string, fileData []byte) *httptest.ResponseRecorder {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
 	part, _ := writer.CreateFormFile(fieldName, fileName)
-	io.Copy(part, bytes.NewReader(fileData))
-	writer.Close()
+	_, _ = io.Copy(part, bytes.NewReader(fileData))
+	_ = writer.Close()
 
 	req := httptest.NewRequest(http.MethodPost, path, body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -66,7 +65,7 @@ func doFileUpload(e *echo.Echo, path string, user *database.User, fieldName, fil
 	}
 
 	rec := httptest.NewRecorder()
-	e.ServeHTTP(rec, req)
+	h.ServeHTTP(rec, req)
 	return rec
 }
 
@@ -165,7 +164,7 @@ func TestUserImport_Success(t *testing.T) {
 
 	// レスポンスに成功メッセージが含まれるか
 	body := rec.Body.String()
-	if !bytes.Contains([]byte(body), []byte("3件")) {
+	if !bytes.Contains([]byte(body), []byte("3 件")) {
 		t.Errorf("レスポンスに成功件数が含まれていない")
 	}
 }
@@ -274,9 +273,9 @@ func TestUserImport_SkipEmptyRows(t *testing.T) {
 		t.Fatalf("got %d, want %d", rec.Code, http.StatusOK)
 	}
 
-	// 2件のみ登録
+	// 2件のみ登録（テンプレートは "2 件" のように半角スペース込みの表記）
 	body := rec.Body.String()
-	if !bytes.Contains([]byte(body), []byte("2件")) {
+	if !bytes.Contains([]byte(body), []byte("2 件")) {
 		t.Errorf("成功件数が2件でない: %s", body)
 	}
 }

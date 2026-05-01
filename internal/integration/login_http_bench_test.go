@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/go-chi/chi/v5"
 	"github.com/naozine/nz-magic-link/magiclink"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	_ "modernc.org/sqlite"
@@ -24,9 +24,9 @@ import (
 // HTTP ベンチ用セットアップ
 // ---------------------------------------------------------------------------
 
-// setupHTTPBench は magiclink ハンドラ付きの Echo サーバーを構築する。
+// setupHTTPBench は magiclink ハンドラ付きの chi サーバーを構築する。
 // DevBypassEmails を使い、メール送信をスキップしてレスポンスからマジックリンクを取得する。
-func setupHTTPBench(b *testing.B, numUsers int) (*echo.Echo, *magiclink.MagicLink, *database.Queries) {
+func setupHTTPBench(b *testing.B, numUsers int) (http.Handler, *magiclink.MagicLink, *database.Queries) {
 	b.Helper()
 
 	dir := b.TempDir()
@@ -36,7 +36,7 @@ func setupHTTPBench(b *testing.B, numUsers int) (*echo.Echo, *magiclink.MagicLin
 	if err != nil {
 		b.Fatalf("DB接続に失敗: %v", err)
 	}
-	b.Cleanup(func() { conn.Close() })
+	b.Cleanup(func() { _ = conn.Close() })
 
 	// users テーブル作成
 	_, err = conn.Exec(`
@@ -80,8 +80,8 @@ func setupHTTPBench(b *testing.B, numUsers int) (*echo.Echo, *magiclink.MagicLin
 	mlConfig.ErrorRedirectURL = "/auth/login"
 	mlConfig.ServerAddr = "http://localhost:8080"
 	mlConfig.DisableRateLimiting = true // ベンチマーク用にレート制限を無効化
-	mlConfig.AllowLogin = func(c echo.Context, email string) error {
-		_, err := q.GetUserByEmail(c.Request().Context(), email)
+	mlConfig.AllowLogin = func(r *http.Request, email string) error {
+		_, err := q.GetUserByEmail(r.Context(), email)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil
@@ -98,11 +98,13 @@ func setupHTTPBench(b *testing.B, numUsers int) (*echo.Echo, *magiclink.MagicLin
 	// DevBypassEmails を直接設定
 	ml.DevBypassEmails = bypassEmails
 
-	// Echo セットアップ
-	e := echo.New()
-	ml.RegisterHandlers(e)
+	// chi セットアップ
+	r := chi.NewRouter()
+	mlHandler := ml.Handler()
+	r.Handle("/auth/*", mlHandler)
+	r.Handle("/webauthn/*", mlHandler)
 
-	return e, ml, q
+	return r, ml, q
 }
 
 // ---------------------------------------------------------------------------
@@ -116,13 +118,13 @@ type loginResponse struct {
 }
 
 // doHTTPLogin は POST /auth/login → マジックリンク取得を実行する
-func doHTTPLogin(e *echo.Echo, email, remoteAddr string) (string, error) {
+func doHTTPLogin(h http.Handler, email, remoteAddr string) (string, error) {
 	body := fmt.Sprintf(`{"email":"%s"}`, email)
 	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(body))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	req.Header.Set("Content-Type", "application/json")
 	req.RemoteAddr = remoteAddr
 	rec := httptest.NewRecorder()
-	e.ServeHTTP(rec, req)
+	h.ServeHTTP(rec, req)
 
 	if rec.Code == http.StatusTooManyRequests {
 		return "", fmt.Errorf("rate limited (429)")
@@ -148,10 +150,10 @@ func doHTTPLogin(e *echo.Echo, email, remoteAddr string) (string, error) {
 }
 
 // doHTTPVerify は GET /auth/verify?token=xxx を実行し、セッション Cookie を返す
-func doHTTPVerify(e *echo.Echo, token string) ([]*http.Cookie, error) {
+func doHTTPVerify(h http.Handler, token string) ([]*http.Cookie, error) {
 	req := httptest.NewRequest(http.MethodGet, "/auth/verify?token="+token, nil)
 	rec := httptest.NewRecorder()
-	e.ServeHTTP(rec, req)
+	h.ServeHTTP(rec, req)
 
 	// Verify はリダイレクト (302) を返す
 	if rec.Code != http.StatusFound {
