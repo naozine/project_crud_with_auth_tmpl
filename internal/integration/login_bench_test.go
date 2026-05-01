@@ -151,8 +151,8 @@ func generateToken() (string, string) {
 type storageMode int
 
 const (
-	modeAllDB         storageMode = iota // 従来: 全操作 DB
-	modeMemoryToken                      // 想定: トークンはメモリ、セッションは DB
+	modeAllDB       storageMode = iota // 従来: 全操作 DB
+	modeMemoryToken                    // 想定: トークンはメモリ、セッションは DB
 )
 
 func (m storageMode) String() string {
@@ -168,10 +168,10 @@ func (m storageMode) String() string {
 
 // loginOps はログインフロー（フェーズ1）の操作をまとめた構造体
 type loginOps struct {
-	mode  storageMode
-	q     *database.Queries
-	ml    *magiclink.MagicLink
-	mem   *memoryTokenStore
+	mode storageMode
+	q    *database.Queries
+	ml   *magiclink.MagicLink
+	mem  *memoryTokenStore
 }
 
 func (ops *loginOps) doLogin(ctx context.Context, email string, expires time.Time) error {

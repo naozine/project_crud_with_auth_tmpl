@@ -25,11 +25,11 @@ import (
 
 // SeedData はテスト用の初期データを保持する
 type SeedData struct {
-	AdminUser      database.User
-	EditorUser     database.User
-	ViewerUser     database.User
-	DeletableUser  database.User // 削除テスト用の使い捨てユーザー
-	Project        database.Project
+	AdminUser     database.User
+	EditorUser    database.User
+	ViewerUser    database.User
+	DeletableUser database.User // 削除テスト用の使い捨てユーザー
+	Project       database.Project
 }
 
 // SetupTestDB はインメモリ SQLite を作成し、マイグレーションを適用する

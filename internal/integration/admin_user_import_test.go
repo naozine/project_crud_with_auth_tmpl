@@ -181,10 +181,10 @@ func TestUserImport_ValidationErrors(t *testing.T) {
 
 	rows := []excelRow{
 		{Name: "", Email: "noname@test.com", Role: "viewer"},        // 名前なし
-		{Name: "NoEmail", Email: "", Role: "viewer"},                 // メールなし
-		{Name: "BadEmail", Email: "not-an-email", Role: "viewer"},    // 不正メール
-		{Name: "BadRole", Email: "badrole@test.com", Role: "owner"},  // 不正ロール
-		{Name: "Valid", Email: "valid@test.com", Role: "viewer"},     // 正常行
+		{Name: "NoEmail", Email: "", Role: "viewer"},                // メールなし
+		{Name: "BadEmail", Email: "not-an-email", Role: "viewer"},   // 不正メール
+		{Name: "BadRole", Email: "badrole@test.com", Role: "owner"}, // 不正ロール
+		{Name: "Valid", Email: "valid@test.com", Role: "viewer"},    // 正常行
 	}
 	data := createExcelBytes(t, rows)
 
@@ -264,7 +264,7 @@ func TestUserImport_SkipEmptyRows(t *testing.T) {
 
 	rows := []excelRow{
 		{Name: "UserA", Email: "usera@test.com", Role: "viewer"},
-		{Name: "", Email: "", Role: ""},  // 空行
+		{Name: "", Email: "", Role: ""}, // 空行
 		{Name: "UserB", Email: "userb@test.com", Role: "editor"},
 	}
 	data := createExcelBytes(t, rows)

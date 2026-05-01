@@ -30,45 +30,45 @@ func TestPermissionMatrix_ProjectRoutes(t *testing.T) {
 
 	routes := []routeTestCase{
 		{
-			Name: "GET /projects（一覧）",
+			Name:   "GET /projects（一覧）",
 			Method: http.MethodGet, Path: "/projects",
 			AdminStatus: http.StatusOK, EditorStatus: http.StatusOK,
 			ViewerStatus: http.StatusOK, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name: "GET /projects/:id（詳細）",
+			Name:   "GET /projects/:id（詳細）",
 			Method: http.MethodGet, Path: fmt.Sprintf("/projects/%d", projectID),
 			AdminStatus: http.StatusOK, EditorStatus: http.StatusOK,
 			ViewerStatus: http.StatusOK, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name: "GET /projects/new（新規作成フォーム）",
+			Name:   "GET /projects/new（新規作成フォーム）",
 			Method: http.MethodGet, Path: "/projects/new",
 			AdminStatus: http.StatusOK, EditorStatus: http.StatusOK,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name: "POST /projects/new（作成実行）",
+			Name:   "POST /projects/new（作成実行）",
 			Method: http.MethodPost, Path: "/projects/new",
-			Body: "name=新規プロジェクト",
+			Body:        "name=新規プロジェクト",
 			AdminStatus: http.StatusSeeOther, EditorStatus: http.StatusSeeOther,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name: "GET /projects/:id/edit（編集フォーム）",
+			Name:   "GET /projects/:id/edit（編集フォーム）",
 			Method: http.MethodGet, Path: fmt.Sprintf("/projects/%d/edit", projectID),
 			AdminStatus: http.StatusOK, EditorStatus: http.StatusOK,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name: "POST /projects/:id/update（更新実行）",
+			Name:   "POST /projects/:id/update（更新実行）",
 			Method: http.MethodPost, Path: fmt.Sprintf("/projects/%d/update", projectID),
-			Body: "name=更新済み",
+			Body:        "name=更新済み",
 			AdminStatus: http.StatusSeeOther, EditorStatus: http.StatusSeeOther,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name: "POST /projects/:id/delete（削除実行）",
+			Name:   "POST /projects/:id/delete（削除実行）",
 			Method: http.MethodPost, Path: fmt.Sprintf("/projects/%d/delete", projectID),
 			AdminStatus: http.StatusSeeOther, EditorStatus: http.StatusSeeOther,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
@@ -88,39 +88,39 @@ func TestPermissionMatrix_AdminRoutes(t *testing.T) {
 
 	routes := []routeTestCase{
 		{
-			Name: "GET /admin/users（ユーザー一覧）",
+			Name:   "GET /admin/users（ユーザー一覧）",
 			Method: http.MethodGet, Path: "/admin/users",
 			AdminStatus: http.StatusOK, EditorStatus: http.StatusForbidden,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name: "GET /admin/users/new（ユーザー作成フォーム）",
+			Name:   "GET /admin/users/new（ユーザー作成フォーム）",
 			Method: http.MethodGet, Path: "/admin/users/new",
 			AdminStatus: http.StatusOK, EditorStatus: http.StatusForbidden,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name: "POST /admin/users/new（ユーザー作成実行）",
+			Name:   "POST /admin/users/new（ユーザー作成実行）",
 			Method: http.MethodPost, Path: "/admin/users/new",
-			Body: "name=NewUser&email=new@test.com&role=viewer",
+			Body:        "name=NewUser&email=new@test.com&role=viewer",
 			AdminStatus: http.StatusSeeOther, EditorStatus: http.StatusForbidden,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name: "GET /admin/users/:id/edit（ユーザー編集フォーム）",
+			Name:   "GET /admin/users/:id/edit（ユーザー編集フォーム）",
 			Method: http.MethodGet, Path: fmt.Sprintf("/admin/users/%d/edit", targetID),
 			AdminStatus: http.StatusOK, EditorStatus: http.StatusForbidden,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name: "POST /admin/users/:id/update（ユーザー更新実行）",
+			Name:   "POST /admin/users/:id/update（ユーザー更新実行）",
 			Method: http.MethodPost, Path: fmt.Sprintf("/admin/users/%d/update", targetID),
-			Body: "name=UpdatedViewer&role=viewer&status=active",
+			Body:        "name=UpdatedViewer&role=viewer&status=active",
 			AdminStatus: http.StatusSeeOther, EditorStatus: http.StatusForbidden,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
 		},
 		{
-			Name: "POST /admin/users/:id/delete（ユーザー削除実行）",
+			Name:   "POST /admin/users/:id/delete（ユーザー削除実行）",
 			Method: http.MethodPost, Path: fmt.Sprintf("/admin/users/%d/delete", seed.DeletableUser.ID),
 			AdminStatus: http.StatusSeeOther, EditorStatus: http.StatusForbidden,
 			ViewerStatus: http.StatusForbidden, UnauthStatus: http.StatusSeeOther,
@@ -131,7 +131,9 @@ func TestPermissionMatrix_AdminRoutes(t *testing.T) {
 }
 
 // runPermissionMatrix は各ルートに対して全ロール + 未認証のテストを実行する
-func runPermissionMatrix(t *testing.T, e interface{ ServeHTTP(http.ResponseWriter, *http.Request) }, seed SeedData, routes []routeTestCase) {
+func runPermissionMatrix(t *testing.T, e interface {
+	ServeHTTP(http.ResponseWriter, *http.Request)
+}, seed SeedData, routes []routeTestCase) {
 	t.Helper()
 
 	type roleCase struct {
