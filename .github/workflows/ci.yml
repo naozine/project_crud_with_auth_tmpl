@@ -16,6 +16,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          check-latest: true # 同一マイナー (1.25) の最新パッチを取得し、stdlib の脆弱性修正を自動反映
           cache: true
 
       - name: Install code generators
