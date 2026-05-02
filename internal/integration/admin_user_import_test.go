@@ -28,18 +28,18 @@ type excelRow struct {
 func createExcelBytes(t *testing.T, rows []excelRow) []byte {
 	t.Helper()
 	f := excelize.NewFile()
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	sheet := "Sheet1"
-	f.SetCellValue(sheet, "A1", "名前")
-	f.SetCellValue(sheet, "B1", "メールアドレス")
-	f.SetCellValue(sheet, "C1", "ロール")
+	_ = f.SetCellValue(sheet, "A1", "名前")
+	_ = f.SetCellValue(sheet, "B1", "メールアドレス")
+	_ = f.SetCellValue(sheet, "C1", "ロール")
 
 	for i, row := range rows {
 		r := i + 2
-		f.SetCellValue(sheet, fmt.Sprintf("A%d", r), row.Name)
-		f.SetCellValue(sheet, fmt.Sprintf("B%d", r), row.Email)
-		f.SetCellValue(sheet, fmt.Sprintf("C%d", r), row.Role)
+		_ = f.SetCellValue(sheet, fmt.Sprintf("A%d", r), row.Name)
+		_ = f.SetCellValue(sheet, fmt.Sprintf("B%d", r), row.Email)
+		_ = f.SetCellValue(sheet, fmt.Sprintf("C%d", r), row.Role)
 	}
 
 	buf, err := f.WriteToBuffer()

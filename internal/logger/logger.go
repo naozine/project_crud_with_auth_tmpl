@@ -56,7 +56,7 @@ func DefaultConfig() Config {
 func Init(cfg Config) error {
 	if cfg.LogDir != "" {
 		// ディレクトリが存在しなければ作成
-		if err := os.MkdirAll(cfg.LogDir, 0755); err != nil {
+		if err := os.MkdirAll(cfg.LogDir, 0750); err != nil {
 			return err
 		}
 
@@ -104,10 +104,10 @@ func AccessWriter() io.Writer {
 // Close はログファイルをクローズする
 func Close() {
 	if accessLogger != nil {
-		accessLogger.Close()
+		_ = accessLogger.Close()
 	}
 	if appLogger != nil {
-		appLogger.Close()
+		_ = appLogger.Close()
 	}
 }
 

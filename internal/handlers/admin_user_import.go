@@ -28,41 +28,41 @@ func (h *UserImportHandler) ImportPage(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserImportHandler) TemplateDownload(w http.ResponseWriter, r *http.Request) {
 	f := excelize.NewFile()
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	sheet := "Sheet1"
-	f.SetCellValue(sheet, "A1", "名前")
-	f.SetCellValue(sheet, "B1", "メールアドレス")
-	f.SetCellValue(sheet, "C1", "ロール")
+	_ = f.SetCellValue(sheet, "A1", "名前")
+	_ = f.SetCellValue(sheet, "B1", "メールアドレス")
+	_ = f.SetCellValue(sheet, "C1", "ロール")
 
 	style, _ := f.NewStyle(&excelize.Style{
 		Font: &excelize.Font{Bold: true},
 		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E5E7EB"}, Pattern: 1},
 	})
-	f.SetCellStyle(sheet, "A1", "C1", style)
+	_ = f.SetCellStyle(sheet, "A1", "C1", style)
 
-	f.SetCellValue(sheet, "A2", "田中太郎")
-	f.SetCellValue(sheet, "B2", "tanaka@example.com")
-	f.SetCellValue(sheet, "C2", "viewer")
+	_ = f.SetCellValue(sheet, "A2", "田中太郎")
+	_ = f.SetCellValue(sheet, "B2", "tanaka@example.com")
+	_ = f.SetCellValue(sheet, "C2", "viewer")
 
-	f.SetColWidth(sheet, "A", "A", 20)
-	f.SetColWidth(sheet, "B", "B", 30)
-	f.SetColWidth(sheet, "C", "C", 15)
+	_ = f.SetColWidth(sheet, "A", "A", 20)
+	_ = f.SetColWidth(sheet, "B", "B", 30)
+	_ = f.SetColWidth(sheet, "C", "C", 15)
 
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	w.Header().Set("Content-Disposition", "attachment; filename=users_import_template.xlsx")
-	f.Write(w)
+	_ = f.Write(w)
 }
 
 func (h *UserImportHandler) ExecuteImport(w http.ResponseWriter, r *http.Request) {
-	r.ParseMultipartForm(10 << 20) // 10MB max
+	_ = r.ParseMultipartForm(10 << 20) // 10MB max
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		httpError(w, r, http.StatusBadRequest, "ファイルを選択してください")
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	if header.Size > 5*1024*1024 {
 		httpError(w, r, http.StatusBadRequest, "ファイルサイズは5MB以下にしてください")
@@ -74,7 +74,7 @@ func (h *UserImportHandler) ExecuteImport(w http.ResponseWriter, r *http.Request
 		httpError(w, r, http.StatusBadRequest, "Excel ファイルの読み取りに失敗しました。.xlsx 形式のファイルを使用してください")
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	sheet := f.GetSheetName(0)
 	rows, err := f.GetRows(sheet)

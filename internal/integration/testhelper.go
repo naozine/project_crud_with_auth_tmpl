@@ -20,7 +20,7 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/routes"
 	"github.com/pressly/goose/v3"
 
-	db "github.com/naozine/project_crud_with_auth_tmpl/db"
+	"github.com/naozine/project_crud_with_auth_tmpl/db"
 	_ "modernc.org/sqlite"
 )
 

@@ -52,7 +52,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to connect to app.db:", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Run Migrations
 	goose.SetBaseFS(db.MigrationsFS)

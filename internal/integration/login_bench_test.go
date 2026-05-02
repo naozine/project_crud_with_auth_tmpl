@@ -94,7 +94,7 @@ func setupBenchDB(b *testing.B) (*sql.DB, *database.Queries, *magiclink.MagicLin
 	if err != nil {
 		b.Fatalf("DB接続に失敗: %v", err)
 	}
-	b.Cleanup(func() { conn.Close() })
+	b.Cleanup(func() { _ = conn.Close() })
 
 	// アプリのマイグレーション（直接テーブルを作成）
 	_, err = conn.Exec(`
