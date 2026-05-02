@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/mail"
@@ -55,7 +56,17 @@ func (h *UserImportHandler) TemplateDownload(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *UserImportHandler) ExecuteImport(w http.ResponseWriter, r *http.Request) {
-	_ = r.ParseMultipartForm(10 << 20) // 10MB max
+	// MaxBodySize ミドルウェアで body 全体は 6 MB に制限済み。
+	// maxMemory も 6 MB にしておけば一時ファイルへの書き出しは発生しない。
+	if err := r.ParseMultipartForm(6 << 20); err != nil { //nolint:gosec // body 上限は MaxBodySize ミドルウェアで設定済み
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			httpError(w, r, http.StatusRequestEntityTooLarge, "ファイルサイズが大きすぎます")
+			return
+		}
+		httpError(w, r, http.StatusBadRequest, "リクエストの解析に失敗しました")
+		return
+	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {

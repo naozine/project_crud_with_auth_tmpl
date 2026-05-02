@@ -66,7 +66,10 @@ func (h *ProjectHandler) EditProjectPage(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
-	name := r.FormValue("name")
+	if parseFormOr413(w, r) {
+		return
+	}
+	name := r.FormValue("name") //nolint:gosec // body 上限は MaxBodySize ミドルウェアで設定済み
 	if _, err := h.Queries.CreateProject(r.Context(), name); err != nil {
 		logger.Error("プロジェクト作成に失敗", "error", err)
 		httpError(w, r, http.StatusInternalServerError, "プロジェクトの作成に失敗しました")
@@ -82,7 +85,10 @@ func (h *ProjectHandler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := r.FormValue("name")
+	if parseFormOr413(w, r) {
+		return
+	}
+	name := r.FormValue("name") //nolint:gosec // body 上限は MaxBodySize ミドルウェアで設定済み
 	if _, err := h.Queries.UpdateProject(r.Context(), database.UpdateProjectParams{
 		Name: name,
 		ID:   int64(id),

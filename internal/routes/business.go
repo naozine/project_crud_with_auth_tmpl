@@ -24,6 +24,7 @@ func RegisterBusinessRoutes(r chi.Router, queries *database.Queries, authMW func
 
 		r.Group(func(r chi.Router) {
 			r.Use(requireWrite)
+			r.Use(appMiddleware.MaxBodySize(1 << 20)) // 1 MB
 			r.Get("/new", projectHandler.NewProjectPage)
 			r.Post("/new", projectHandler.CreateProject)
 			r.Get("/{id}/edit", projectHandler.EditProjectPage)
@@ -37,7 +38,7 @@ func RegisterBusinessRoutes(r chi.Router, queries *database.Queries, authMW func
 		r.Use(authMW)
 		r.Use(requireAdmin)
 		r.Get("/admin/users/import", importHandler.ImportPage)
-		r.Post("/admin/users/import", importHandler.ExecuteImport)
+		r.With(appMiddleware.MaxBodySize(6<<20)).Post("/admin/users/import", importHandler.ExecuteImport) // 6 MB
 		r.Get("/admin/users/import/template", importHandler.TemplateDownload)
 	})
 }
