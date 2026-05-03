@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/limits"
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
 )
 
@@ -24,7 +25,7 @@ func RegisterBusinessRoutes(r chi.Router, queries *database.Queries, authMW func
 
 		r.Group(func(r chi.Router) {
 			r.Use(requireWrite)
-			r.Use(appMiddleware.MaxBodySize(1 << 20)) // 1 MB
+			r.Use(appMiddleware.MaxBodySize(limits.ProjectFormBody))
 			r.Get("/new", projectHandler.NewProjectPage)
 			r.Post("/new", projectHandler.CreateProject)
 			r.Get("/{id}/edit", projectHandler.EditProjectPage)
@@ -38,7 +39,7 @@ func RegisterBusinessRoutes(r chi.Router, queries *database.Queries, authMW func
 		r.Use(authMW)
 		r.Use(requireAdmin)
 		r.Get("/admin/users/import", importHandler.ImportPage)
-		r.With(appMiddleware.MaxBodySize(6<<20)).Post("/admin/users/import", importHandler.ExecuteImport) // 6 MB
+		r.With(appMiddleware.MaxBodySize(limits.UserImportBody)).Post("/admin/users/import", importHandler.ExecuteImport)
 		r.Get("/admin/users/import/template", importHandler.TemplateDownload)
 	})
 }

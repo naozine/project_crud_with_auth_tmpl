@@ -11,13 +11,12 @@ import (
 	"testing"
 
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/limits"
 )
 
 // G120 (DoS / メモリ・ディスク枯渇) 対策のテスト。
 // 各ハンドラの直前で http.MaxBytesReader を仕掛け、上限超過時に 413 を返すこと。
-// 上限値:
-//   - /projects/* : 1 MB
-//   - /admin/users/import : 6 MB （5 MB の Excel + multipart オーバーヘッド余裕）
+// 上限値は internal/limits パッケージで定義（ProjectFormBody, UserImportBody）。
 
 // ---------------------------------------------------------------------------
 // Project: POST /projects/new
@@ -28,8 +27,8 @@ func TestProjectsCreate_OverLimit(t *testing.T) {
 	e := SetupTestServer(t, conn)
 	seed := SeedTestData(t, conn)
 
-	// 上限を確実に超えるサイズ（2 MB）
-	body := "name=" + strings.Repeat("x", 2<<20)
+	// 上限を確実に超えるサイズ（上限の 2 倍）
+	body := "name=" + strings.Repeat("x", 2*limits.ProjectFormBody)
 	rec := DoRequest(e, http.MethodPost, "/projects/new", &seed.AdminUser, body)
 
 	if rec.Code != http.StatusRequestEntityTooLarge {
@@ -80,7 +79,7 @@ func TestProjectsUpdate_OverLimit(t *testing.T) {
 
 	originalName := seed.Project.Name
 
-	body := "name=" + strings.Repeat("y", 2<<20)
+	body := "name=" + strings.Repeat("y", 2*limits.ProjectFormBody)
 	rec := DoRequest(e, http.MethodPost,
 		fmt.Sprintf("/projects/%d/update", seed.Project.ID),
 		&seed.AdminUser, body)
@@ -109,9 +108,9 @@ func TestUserImport_OverLimit(t *testing.T) {
 	e := SetupTestServer(t, conn)
 	seed := SeedTestData(t, conn)
 
-	// 上限 6 MB を確実に超える 7 MB の multipart body を送る。
+	// 上限を確実に超える multipart body を送る。
 	// 中身は不正な Excel だが、上限超過は MaxBytesReader の段階で検知されるため到達しない。
-	rec := doOversizedFileUpload(t, e, "/admin/users/import", &seed.AdminUser, 7<<20)
+	rec := doOversizedFileUpload(t, e, "/admin/users/import", &seed.AdminUser, limits.UserImportBody+(1<<20))
 
 	if rec.Code != http.StatusRequestEntityTooLarge {
 		t.Errorf("ステータスコード = %d, want %d", rec.Code, http.StatusRequestEntityTooLarge)

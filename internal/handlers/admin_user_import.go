@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/limits"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/models"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
@@ -56,9 +57,9 @@ func (h *UserImportHandler) TemplateDownload(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *UserImportHandler) ExecuteImport(w http.ResponseWriter, r *http.Request) {
-	// MaxBodySize ミドルウェアで body 全体は 6 MB に制限済み。
-	// maxMemory も 6 MB にしておけば一時ファイルへの書き出しは発生しない。
-	if err := r.ParseMultipartForm(6 << 20); err != nil { //nolint:gosec // body 上限は MaxBodySize ミドルウェアで設定済み
+	// MaxBodySize ミドルウェアで body 全体は limits.UserImportBody に制限済み。
+	// maxMemory も同じ値にしておけば一時ファイルへの書き出しは発生しない。
+	if err := r.ParseMultipartForm(limits.UserImportBody); err != nil { //nolint:gosec // body 上限は MaxBodySize ミドルウェアで設定済み
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
 			httpError(w, r, http.StatusRequestEntityTooLarge, "ファイルサイズが大きすぎます")
