@@ -84,7 +84,8 @@ func main() {
 		}
 	}
 
-	mlConfig.RedirectURL = "/projects"
+	// RedirectURL / WebAuthnRedirectURL は ConfigureBusinessSettings で
+	// appconfig.LandingPath を参照して設定するため、ここでは ErrorRedirectURL のみ。
 	mlConfig.ErrorRedirectURL = "/auth/login"
 	mlConfig.LoginSuccessMessage = "ログイン用のメールを送信しました"
 	mlConfig.CookieName = generateCookieName(version.ProjectName)
@@ -122,7 +123,6 @@ func main() {
 	if mlConfig.WebAuthnRPName == "" {
 		mlConfig.WebAuthnRPName = "Project CRUD"
 	}
-	mlConfig.WebAuthnRedirectURL = "/projects"
 	mlConfig.WebAuthnAllowedOrigins = []string{mlConfig.ServerAddr}
 
 	ConfigureBusinessSettings(&mlConfig)
