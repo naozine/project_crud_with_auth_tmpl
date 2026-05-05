@@ -1,6 +1,6 @@
 module github.com/naozine/project_crud_with_auth_tmpl
 
-go 1.25.7
+go 1.26.0
 
 require (
 	github.com/a-h/templ v0.3.1001
