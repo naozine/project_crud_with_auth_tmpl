@@ -38,7 +38,8 @@ jobs:
         run: go build ./...
 
       - name: Test (with coverage)
-        run: go test -coverprofile=coverage.out ./...
+        # -coverpkg=./... で integration テスト等が他パッケージを呼んだ行もカバレッジに含める
+        run: go test -coverpkg=./... -coverprofile=coverage.out ./...
 
       - name: Coverage summary
         if: always()

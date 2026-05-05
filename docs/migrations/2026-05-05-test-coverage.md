@@ -29,10 +29,11 @@
 .PHONY: ... cover cover-html
 
 # Run tests with coverage and show overall total
+# -coverpkg=./... で integration テスト等が他パッケージを呼んだ行もカバレッジに含める
 # 関数単位の詳細は cover-html で確認する
 cover:
 	@echo ">> Running tests with coverage..."
-	go test -coverprofile=coverage.out ./...
+	go test -coverpkg=./... -coverprofile=coverage.out ./...
 	@go tool cover -func=coverage.out | tail -1
 
 # Open HTML coverage report in browser (depends on cover)
@@ -40,6 +41,8 @@ cover-html: cover
 	@echo ">> Opening HTML coverage report..."
 	go tool cover -html=coverage.out
 ```
+
+**重要**: `-coverpkg=./...` は必須。これがないと **integration テスト本体のみ計測** され、handlers/middleware を呼んだ行はカバレッジに反映されない（テンプレリポでは 2.6% → 48.5% と大幅に異なる）。
 
 意図:
 - `make cover`: 数字を 1 行だけ出す（CI/手動どちらでも軽い）
@@ -49,7 +52,7 @@ cover-html: cover
 
 ```yaml
 - name: Test (with coverage)
-  run: go test -coverprofile=coverage.out ./...
+  run: go test -coverpkg=./... -coverprofile=coverage.out ./...
 
 - name: Coverage summary
   if: always()
@@ -82,7 +85,7 @@ coverage.out
 
 ## 数字の現実
 
-導入時点 (テンプレリポ) のカバレッジは **2.6%**。低いように見えるが:
+導入時点 (テンプレリポ) のカバレッジは **48.5%** (`-coverpkg=./...` 適用後の正しい値)。`-coverpkg` 指定なしだと 2.6% に見えるが、これは計測漏れによる誤った数字。
 
 - `web/components/*_templ.go`, `web/layouts/*_templ.go` のような **生成ファイル** は実装側でカバーする意味が薄い
 - `internal/database/*.go` (sqlc 自動生成) も同様

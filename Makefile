@@ -158,10 +158,11 @@ vuln:
 	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
 # Run tests with coverage and show overall total
-# 関数単位の詳細は cover-html で確認する
+# -coverpkg=./... で integration テスト等が他パッケージを呼んだ行もカバレッジに含める。
+# 関数単位の詳細は cover-html で確認する。
 cover:
 	@echo ">> Running tests with coverage..."
-	go test -coverprofile=coverage.out ./...
+	go test -coverpkg=./... -coverprofile=coverage.out ./...
 	@go tool cover -func=coverage.out | tail -1
 
 # Open HTML coverage report in browser (depends on cover)
