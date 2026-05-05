@@ -129,7 +129,7 @@ docker-dev-down:
 # -----------------------------------------------------------------------------
 # Code Quality Targets
 # -----------------------------------------------------------------------------
-.PHONY: fmt vet lint test vuln check
+.PHONY: fmt vet lint test vuln check cover cover-html
 
 # Format code
 fmt:
@@ -156,6 +156,18 @@ test:
 vuln:
 	@echo ">> Running govulncheck..."
 	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+# Run tests with coverage and show overall total
+# 関数単位の詳細は cover-html で確認する
+cover:
+	@echo ">> Running tests with coverage..."
+	go test -coverprofile=coverage.out ./...
+	@go tool cover -func=coverage.out | tail -1
+
+# Open HTML coverage report in browser (depends on cover)
+cover-html: cover
+	@echo ">> Opening HTML coverage report..."
+	go tool cover -html=coverage.out
 
 # Run all quality checks (lint は要 golangci-lint インストール)
 check: fmt vet lint test

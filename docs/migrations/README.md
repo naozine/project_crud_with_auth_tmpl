@@ -32,6 +32,7 @@ Claude が:
 | 2026-05-05 | [2026-05-05-limits-package.md](./2026-05-05-limits-package.md) | body サイズ上限を `internal/limits` パッケージに集約 |
 | 2026-05-05 | [2026-05-05-go-126-upgrade.md](./2026-05-05-go-126-upgrade.md) | Go 1.26 化 (sqlc 最新版の要求への追従) |
 | 2026-05-05 | [2026-05-05-datastar-js-sync.md](./2026-05-05-datastar-js-sync.md) | Datastar JS のセルフホスト版を Go SDK と同期更新 |
+| 2026-05-05 | [2026-05-05-test-coverage.md](./2026-05-05-test-coverage.md) | テストカバレッジ計測を Makefile と CI に導入（しきい値強制なし） |
 
 ## 書き方の方針
 

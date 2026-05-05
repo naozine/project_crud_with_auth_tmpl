@@ -19,6 +19,9 @@ internal/database/*.go
 web/components/*_templ.go
 web/layouts/*_templ.go
 
+# Coverage output
+coverage.out
+
 # SQLite database files
 *.db
 *.db-shm
