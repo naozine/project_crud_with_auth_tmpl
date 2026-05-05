@@ -150,6 +150,11 @@ func SetupTestServer(t *testing.T, conn *sql.DB) http.Handler {
 	routes.RegisterAdminRoutes(r, queries, authMW)
 	registerTestSSERoutes(r, queries, authMW)
 
+	// 初期セットアップ用エンドポイント（認証不要）
+	setupHandler := handlers.NewSetupHandler(queries)
+	r.Get("/setup", setupHandler.SetupPage)
+	r.Post("/setup", setupHandler.CreateInitialAdmin)
+
 	return r
 }
 
