@@ -11,7 +11,7 @@ require (
 	github.com/starfederation/datastar-go v1.1.0
 	github.com/xuri/excelize/v2 v2.10.1
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	modernc.org/sqlite v1.49.1
+	modernc.org/sqlite v1.50.0
 )
 
 require (
