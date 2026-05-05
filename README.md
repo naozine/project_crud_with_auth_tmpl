@@ -1,6 +1,6 @@
-# GOTH Stack Base Template
+# GOTD Stack Base Template
 
-**Go + Echo + templ + Tailwind CSS + sqlc + SQLite**
+**Go + templ + Tailwind + Datastar** (chi / sqlc / SQLite)
 
 Web アプリケーション開発のベーステンプレートです。
 

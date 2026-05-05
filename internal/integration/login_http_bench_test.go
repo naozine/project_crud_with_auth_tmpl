@@ -16,6 +16,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/naozine/nz-magic-link/magiclink"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/appconfig"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	_ "modernc.org/sqlite"
 )
@@ -76,7 +77,7 @@ func setupHTTPBench(b *testing.B, numUsers int) (http.Handler, *magiclink.MagicL
 	mlConfig.DatabaseType = "sqlite"
 	mlConfig.TokenExpiry = 30 * time.Minute
 	mlConfig.SessionExpiry = 24 * time.Hour
-	mlConfig.RedirectURL = "/projects"
+	mlConfig.RedirectURL = appconfig.LandingPath
 	mlConfig.ErrorRedirectURL = "/auth/login"
 	mlConfig.ServerAddr = "http://localhost:8080"
 	mlConfig.DisableRateLimiting = true // ベンチマーク用にレート制限を無効化
