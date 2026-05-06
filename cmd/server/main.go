@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/url"
@@ -27,6 +28,7 @@ import (
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/routes"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/version"
+	"github.com/naozine/project_crud_with_auth_tmpl/web"
 )
 
 func main() {
@@ -145,8 +147,12 @@ func main() {
 	r.Use(appMiddleware.UserContextMiddleware(ml, conn))
 
 	// Static files
-	fs := http.FileServer(http.Dir("web/static"))
-	r.Handle("/static/*", http.StripPrefix("/static", fs))
+	staticSubFS, err := fs.Sub(web.StaticFS, "static")
+	if err != nil {
+		log.Fatal("Failed to create sub FS for static:", err)
+	}
+	fileServer := http.FileServer(http.FS(staticSubFS))
+	r.Handle("/static/*", http.StripPrefix("/static", fileServer))
 
 	// 5. Routes
 	r.Get("/health", handlers.HealthCheck)
