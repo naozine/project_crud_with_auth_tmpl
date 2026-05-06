@@ -23,6 +23,12 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         const email = document.getElementById('email').value;
+        const submitBtn = form.querySelector('button[type="submit"]');
+
+        if (submitBtn.disabled) return;
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = '送信中...';
 
         try {
             // redirect パラメータがあれば POST URL に引き継ぐ
@@ -56,6 +62,9 @@ document.addEventListener('DOMContentLoaded', function() {
             msgDiv.classList.remove('hidden');
         } catch (e) {
             showAuthMessage("エラーが発生しました。", true);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
         }
     });
 });
