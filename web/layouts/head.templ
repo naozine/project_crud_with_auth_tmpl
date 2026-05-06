@@ -13,9 +13,8 @@ templ Head(title string) {
 		<meta name="color-scheme" content="light"/>
 		<meta name="mobile-web-app-capable" content="yes"/>
 		<title>{ title } - { appconfig.AppName }</title>
-		<link rel="icon" href="/static/favicon.svg" type="image/svg+xml"/>
-		<link rel="icon" href="/static/favicon.ico" sizes="any"/>
-		<link rel="apple-touch-icon" href="/static/favicon.svg"/>
+		<link rel="icon" href="/static/app-icon.svg" type="image/svg+xml"/>
+		<link rel="apple-touch-icon" href="/static/app-icon.svg"/>
 		<link href={ "/static/css/style.css?v=" + version.Commit } rel="stylesheet"/>
 		{ children... }
 	</head>
