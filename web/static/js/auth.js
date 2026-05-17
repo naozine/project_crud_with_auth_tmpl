@@ -31,10 +31,15 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.textContent = '送信中...';
 
         try {
-            // redirect パラメータがあれば POST URL に引き継ぐ
+            // redirect / honeypot を URL クエリに乗せる
             var loginURL = '/auth/login';
+            var params = new URLSearchParams();
             var redirect = new URLSearchParams(window.location.search).get('redirect');
-            if (redirect) loginURL += '?redirect=' + encodeURIComponent(redirect);
+            if (redirect) params.set('redirect', redirect);
+            var honeypot = (form.querySelector('input[name="website"]') || {}).value || '';
+            if (honeypot) params.set('hp', honeypot);
+            var qs = params.toString();
+            if (qs) loginURL += '?' + qs;
 
             const res = await fetch(loginURL, {
                 method: 'POST',

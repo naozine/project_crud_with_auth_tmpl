@@ -3,7 +3,7 @@ module github.com/naozine/project_crud_with_auth_tmpl
 go 1.26.0
 
 require (
-	github.com/a-h/templ v0.3.1001
+	github.com/a-h/templ v0.3.1020
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/joho/godotenv v1.5.1
 	github.com/naozine/nz-magic-link v0.5.0

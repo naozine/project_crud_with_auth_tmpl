@@ -25,6 +25,7 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/loginpolicy"
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/routes"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/version"
@@ -93,21 +94,7 @@ func main() {
 	mlConfig.CookieName = generateCookieName(version.ProjectName)
 
 	mlConfig.AllowLogin = func(r *http.Request, email string) error {
-		q := database.New(conn)
-		user, err := q.GetUserByEmail(r.Context(), email)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				logger.Warn("Login attempt with unregistered email", "email", email)
-				return nil
-			}
-			logger.Error("Database error in AllowLogin", "error", err, "email", email)
-			return fmt.Errorf("システムエラーが発生しました。")
-		}
-		if !user.IsActive {
-			logger.Warn("Login attempt with inactive account", "email", email)
-			return nil
-		}
-		return nil
+		return loginpolicy.AllowLogin(r.Context(), database.New(conn), email, r.URL.Query().Get("hp"))
 	}
 
 	// SMTP
