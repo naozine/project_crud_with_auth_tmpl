@@ -27,17 +27,20 @@ import (
 
 // setupHTTPBench は magiclink ハンドラ付きの chi サーバーを構築する。
 // DevBypassEmails を使い、メール送信をスキップしてレスポンスからマジックリンクを取得する。
-func setupHTTPBench(b *testing.B, numUsers int) (http.Handler, *magiclink.MagicLink, *database.Queries) {
-	b.Helper()
+//
+// testing.TB 受けにしてあるので *testing.B / *testing.T どちらからでも呼べる
+// （ベンチと rate_limit_test の両方で共有する）。
+func setupHTTPBench(tb testing.TB, numUsers int) (http.Handler, *magiclink.MagicLink, *database.Queries) {
+	tb.Helper()
 
-	dir := b.TempDir()
+	dir := tb.TempDir()
 	dbPath := dir + "/http_bench.db"
 
 	conn, err := sql.Open("sqlite", "file:"+dbPath+"?_pragma=busy_timeout(30000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(on)")
 	if err != nil {
-		b.Fatalf("DB接続に失敗: %v", err)
+		tb.Fatalf("DB接続に失敗: %v", err)
 	}
-	b.Cleanup(func() { _ = conn.Close() })
+	tb.Cleanup(func() { _ = conn.Close() })
 
 	// users テーブル作成
 	_, err = conn.Exec(`
@@ -53,7 +56,7 @@ func setupHTTPBench(b *testing.B, numUsers int) (http.Handler, *magiclink.MagicL
 		CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);
 	`)
 	if err != nil {
-		b.Fatalf("users テーブル作成に失敗: %v", err)
+		tb.Fatalf("users テーブル作成に失敗: %v", err)
 	}
 
 	q := database.New(conn)
@@ -67,7 +70,7 @@ func setupHTTPBench(b *testing.B, numUsers int) (http.Handler, *magiclink.MagicL
 			Email: email, Name: fmt.Sprintf("User%d", i), Role: "viewer", IsActive: true,
 		})
 		if err != nil {
-			b.Fatalf("ユーザー作成に失敗: %v", err)
+			tb.Fatalf("ユーザー作成に失敗: %v", err)
 		}
 		bypassEmails[email] = true
 	}
@@ -94,7 +97,7 @@ func setupHTTPBench(b *testing.B, numUsers int) (http.Handler, *magiclink.MagicL
 
 	ml, err := magiclink.NewWithDB(mlConfig, conn)
 	if err != nil {
-		b.Fatalf("magiclink 初期化に失敗: %v", err)
+		tb.Fatalf("magiclink 初期化に失敗: %v", err)
 	}
 	// DevBypassEmails を直接設定
 	ml.DevBypassEmails = bypassEmails
