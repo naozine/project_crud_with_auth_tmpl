@@ -51,7 +51,7 @@ migrate-new:
 # -----------------------------------------------------------------------------
 # Code Quality Targets
 # -----------------------------------------------------------------------------
-.PHONY: fmt vet lint test vuln check cover cover-html
+.PHONY: fmt vet lint check-roles test vuln check cover cover-html
 
 # Format code
 fmt:
@@ -68,6 +68,18 @@ vet:
 lint:
 	@echo ">> Running golangci-lint..."
 	golangci-lint run ./...
+
+# Check that role strings are not hardcoded outside internal/roles
+# ロール文字列 ("admin"/"editor"/"viewer") のベタ書きを検出する。
+# プロダクションコードのみ対象（テスト・生成物・定義元は除外）。
+check-roles:
+	@echo ">> Checking for hardcoded role strings..."
+	@if grep -rn '"admin"\|"editor"\|"viewer"' internal/ web/ cmd/ --include="*.go" --include="*.templ" \
+		| grep -v '_templ.go' | grep -v '_test.go' \
+		| grep -v 'internal/roles/' | grep -v 'internal/integration/'; then \
+		echo "ERROR: ロール文字列はベタ書きせず internal/roles の定数を使ってください（テストは対象外）"; \
+		exit 1; \
+	fi
 
 # Run tests
 test:
@@ -93,4 +105,4 @@ cover-html: cover
 	go tool cover -html=coverage.out
 
 # Run all quality checks (lint は要 golangci-lint インストール)
-check: fmt vet lint test
+check: fmt vet lint check-roles test

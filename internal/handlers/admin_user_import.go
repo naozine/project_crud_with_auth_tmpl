@@ -12,6 +12,7 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/limits"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/models"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
 	"github.com/xuri/excelize/v2"
 )
@@ -45,7 +46,7 @@ func (h *UserImportHandler) TemplateDownload(w http.ResponseWriter, r *http.Requ
 
 	_ = f.SetCellValue(sheet, "A2", "田中太郎")
 	_ = f.SetCellValue(sheet, "B2", "tanaka@example.com")
-	_ = f.SetCellValue(sheet, "C2", "viewer")
+	_ = f.SetCellValue(sheet, "C2", roles.Viewer)
 
 	_ = f.SetColWidth(sheet, "A", "A", 20)
 	_ = f.SetColWidth(sheet, "B", "B", 30)
@@ -132,7 +133,7 @@ func (h *UserImportHandler) ExecuteImport(w http.ResponseWriter, r *http.Request
 			result.Errors = append(result.Errors, models.ImportRowError{Row: rowNum, Message: "メールアドレスの形式が不正です"})
 			continue
 		}
-		if role != "viewer" && role != "editor" && role != "admin" {
+		if !roles.IsValid(role) {
 			result.Errors = append(result.Errors, models.ImportRowError{Row: rowNum, Message: "ロールは viewer, editor, admin のいずれかを指定してください"})
 			continue
 		}

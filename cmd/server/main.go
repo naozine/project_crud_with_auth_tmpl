@@ -27,6 +27,7 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/loginpolicy"
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/routes"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/version"
 	"github.com/naozine/project_crud_with_auth_tmpl/web"
@@ -236,7 +237,7 @@ func ensureAdminUser(conn *sql.DB) error {
 	_, err = q.CreateUser(context.Background(), database.CreateUserParams{
 		Email:    adminEmail,
 		Name:     adminName,
-		Role:     "admin",
+		Role:     roles.Admin,
 		IsActive: true,
 	})
 	if err != nil {

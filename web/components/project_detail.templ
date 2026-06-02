@@ -4,6 +4,7 @@ import (
     "fmt"
     "github.com/naozine/project_crud_with_auth_tmpl/internal/database"
     "github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
+    "github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 )
 
 templ ProjectDetail(project database.Project) {
@@ -16,7 +17,7 @@ templ ProjectDetail(project database.Project) {
                 <h2 class="text-2xl font-bold tracking-tight text-gray-900">{ project.Name }</h2>
                 <p class="mt-1 text-sm text-gray-500">ID: { fmt.Sprintf("%d", project.ID) } • 作成日: { project.CreatedAt.Time.Format("2006/01/02 15:04") }</p>
             </div>
-            if userRole == "admin" || userRole == "editor" {
+            if userRole == roles.Admin || userRole == roles.Editor {
                 <div class="flex space-x-3">
                     @SecondaryLink("編集", templ.URL(fmt.Sprintf("/projects/%d/edit", project.ID)))
                     <button

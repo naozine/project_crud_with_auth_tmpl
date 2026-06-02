@@ -11,6 +11,12 @@
 - `*_business.*` のサフィックスは「派生で最初に書き換える場所」のヒントであり、Core / Business の境界を強制するものではない。改善のためならどのファイルも編集してよい
 - テンプレ側の改善を取り込みたい場合、テンプレリポの `docs/migrations/` を参照して機能単位で移植する
 
+## コード規約
+
+- ロール（admin / editor / viewer）は `internal/roles` の定数（`roles.Admin` / `roles.Editor` / `roles.Viewer`）を使う。文字列リテラルでベタ書きしない。
+  - 検証は `roles.IsValid()` を使う。ロールを増減するときは `internal/roles` だけを変更する
+  - 違反は `make check-roles`（`make check` に含む）で検出される。テストコードは対象外
+
 ## コード調査
 
 - 関数の呼び出し元・呼び出し先・インターフェースの実装などを調べるときは、LSP (gopls) を優先して使う

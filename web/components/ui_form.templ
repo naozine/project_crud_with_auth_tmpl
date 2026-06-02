@@ -1,5 +1,7 @@
 package components
 
+import "github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
+
 // inputClass は入力フィールド共通のクラス文字列。
 var inputClass = "block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"
 
@@ -75,9 +77,9 @@ templ ReadOnlyField(value string) {
 // ReadOnlyRoleField はロールを日本語で表示する読み取り専用フィールドを描画する。
 templ ReadOnlyRoleField(role string) {
     <div class={ readOnlyClass }>
-        if role == "admin" {
+        if role == roles.Admin {
             <span>管理者 (Admin)</span>
-        } else if role == "editor" {
+        } else if role == roles.Editor {
             <span>編集者 (Editor)</span>
         } else {
             <span>閲覧者 (Viewer)</span>
@@ -87,9 +89,9 @@ templ ReadOnlyRoleField(role string) {
 
 // RoleOptions はロール選択のオプション一覧を描画する。
 templ RoleOptions() {
-    <option value="viewer">Viewer（閲覧のみ）</option>
-    <option value="editor">Editor（編集可能）</option>
-    <option value="admin">Admin（管理者）</option>
+    <option value={ roles.Viewer }>Viewer（閲覧のみ）</option>
+    <option value={ roles.Editor }>Editor（編集可能）</option>
+    <option value={ roles.Admin }>Admin（管理者）</option>
 }
 
 // StatusOptions はステータス選択のオプション一覧を描画する。
@@ -101,9 +103,9 @@ templ StatusOptions() {
 // RoleSelect はロール選択のセレクトボックスを描画する。
 templ RoleSelect(name string, selected string) {
     <select id={ name } name={ name } class={ selectClass }>
-        <option value="viewer" selected?={ selected == "viewer" }>Viewer（閲覧のみ）</option>
-        <option value="editor" selected?={ selected == "editor" }>Editor（編集可能）</option>
-        <option value="admin" selected?={ selected == "admin" }>Admin（管理者）</option>
+        <option value={ roles.Viewer } selected?={ selected == roles.Viewer }>Viewer（閲覧のみ）</option>
+        <option value={ roles.Editor } selected?={ selected == roles.Editor }>Editor（編集可能）</option>
+        <option value={ roles.Admin } selected?={ selected == roles.Admin }>Admin（管理者）</option>
     </select>
 }
 

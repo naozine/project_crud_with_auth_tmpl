@@ -36,6 +36,7 @@ Claude が:
 | 2026-06-02 | [2026-06-02-accesslog-order-fix.md](./2026-06-02-accesslog-order-fix.md) | AccessLog を UserContext の内側に移し user_id 欠落を修正（バグ修正） |
 | 2026-06-02 | [2026-06-02-maintenance-mode.md](./2026-06-02-maintenance-mode.md) | メンテナンスモード + `app_settings` 汎用設定テーブル |
 | 2026-06-02 | [2026-06-02-noindex-robots.md](./2026-06-02-noindex-robots.md) | NoIndex ミドルウェア + robots.txt + meta robots（限定公開向け） |
+| 2026-06-02 | [2026-06-02-role-constants.md](./2026-06-02-role-constants.md) | ロール定数を internal/roles に一元管理 + ベタ書き検出ガードレール |
 
 ## 書き方の方針
 

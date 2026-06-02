@@ -8,6 +8,7 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/limits"
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 )
 
 // RegisterBusinessRoutes はビジネスロジックのルートを登録する。
@@ -15,8 +16,8 @@ func RegisterBusinessRoutes(r chi.Router, queries *database.Queries, authMW func
 	projectHandler := handlers.NewProjectHandler(queries)
 	importHandler := handlers.NewUserImportHandler(queries)
 
-	requireWrite := appMiddleware.RequireRole("admin", "editor")
-	requireAdmin := appMiddleware.RequireRole("admin")
+	requireWrite := appMiddleware.RequireRole(roles.Admin, roles.Editor)
+	requireAdmin := appMiddleware.RequireRole(roles.Admin)
 
 	r.Route("/projects", func(r chi.Router) {
 		r.Use(authMW)

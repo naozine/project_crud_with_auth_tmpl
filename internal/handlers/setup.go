@@ -6,6 +6,7 @@ import (
 
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
 )
 
@@ -75,7 +76,7 @@ func (h *SetupHandler) CreateInitialAdmin(w http.ResponseWriter, r *http.Request
 	_, err = h.Queries.CreateUser(r.Context(), database.CreateUserParams{
 		Email:    req.Email,
 		Name:     req.Name,
-		Role:     "admin",
+		Role:     roles.Admin,
 		IsActive: true,
 	})
 	if err != nil {

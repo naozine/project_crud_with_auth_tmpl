@@ -8,6 +8,7 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 )
 
 // RegisterSSERoutes は Datastar SSE 用のルートを登録する。
@@ -17,8 +18,8 @@ func RegisterSSERoutes(r chi.Router, queries *database.Queries, ml *magiclink.Ma
 	maintenanceHandler := handlers.NewMaintenanceHandler(queries)
 	profileSSE := handlers.NewProfileSSEHandler(queries, ml)
 
-	requireWrite := appMiddleware.RequireRole("admin", "editor")
-	requireAdmin := appMiddleware.RequireRole("admin")
+	requireWrite := appMiddleware.RequireRole(roles.Admin, roles.Editor)
+	requireAdmin := appMiddleware.RequireRole(roles.Admin)
 
 	r.Route("/api/sse", func(r chi.Router) {
 		r.Use(authMW)

@@ -9,6 +9,7 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
 	"github.com/starfederation/datastar-go/datastar"
 )
@@ -46,7 +47,7 @@ func (h *AdminSSEHandler) createUser(ctx context.Context, name, email, role stri
 		return http.ErrAbortHandler
 	}
 
-	if role != "admin" && role != "editor" && role != "viewer" {
+	if !roles.IsValid(role) {
 		return http.ErrAbortHandler
 	}
 

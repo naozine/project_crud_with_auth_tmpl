@@ -3,6 +3,7 @@ package components
 import (
     "github.com/naozine/project_crud_with_auth_tmpl/internal/database"
     "github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
+    "github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
     "fmt"
 )
 
@@ -11,7 +12,7 @@ templ ProjectList(projects []database.Project) {
         userRole := appcontext.GetUserRole(ctx)
     }}
     <div class="max-w-5xl mx-auto space-y-6">
-        if userRole == "admin" || userRole == "editor" {
+        if userRole == roles.Admin || userRole == roles.Editor {
             <div class="flex justify-end">
                 @PrimaryLink("新規作成", "/projects/new")
             </div>

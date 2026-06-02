@@ -5,6 +5,7 @@ import (
 
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appconfig"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/version"
 )
 
@@ -20,7 +21,7 @@ templ Shell(title string, currentPath string, content templ.Component) {
 	{{
 		userEmail, _, _ := appcontext.GetUser(ctx)
 		userRole := appcontext.GetUserRole(ctx)
-		isAdmin := userRole == "admin"
+		isAdmin := userRole == roles.Admin
 		_ = isAdmin
 	}}
 	<!DOCTYPE html>
@@ -41,9 +42,9 @@ templ Shell(title string, currentPath string, content templ.Component) {
 					</div>
 					<div class="text-sm text-gray-600 truncate">{ userEmail }</div>
 					<div class="text-xs text-gray-400">
-						if userRole == "admin" {
+						if userRole == roles.Admin {
 							Admin
-						} else if userRole == "editor" {
+						} else if userRole == roles.Editor {
 							Editor
 						} else {
 							Viewer
@@ -119,9 +120,9 @@ templ Shell(title string, currentPath string, content templ.Component) {
 					{ userEmail }
 					<span class="text-gray-400">
 						/
-						if userRole == "admin" {
+						if userRole == roles.Admin {
 							Admin
-						} else if userRole == "editor" {
+						} else if userRole == roles.Editor {
 							Editor
 						} else {
 							Viewer

@@ -1,5 +1,7 @@
 package components
 
+import "github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
+
 // PageHeader はページタイトルと説明文を描画する。
 templ PageHeader(title string, description string) {
     <div class="mb-6">
@@ -89,9 +91,9 @@ templ AlertError(message string) {
 
 // RoleBadge はロールに応じた色のバッジを描画する。
 templ RoleBadge(role string) {
-    if role == "admin" {
+    if role == roles.Admin {
         <span class="inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-700/10">Admin</span>
-    } else if role == "editor" {
+    } else if role == roles.Editor {
         <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Editor</span>
     } else {
         <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">Viewer</span>
