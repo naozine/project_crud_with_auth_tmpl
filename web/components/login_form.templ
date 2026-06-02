@@ -1,6 +1,20 @@
 package components
 
-import "github.com/naozine/project_crud_with_auth_tmpl/internal/version"
+import (
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/appconfig"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/version"
+)
+
+templ LoginMaintenance() {
+    <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold tracking-tight text-gray-900">{ appconfig.AppName }</h2>
+        <p class="mt-1 text-base font-semibold text-gray-700">メンテナンス中です</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <p class="text-sm text-gray-700">現在ログイン受付を一時停止しています。</p>
+        <p class="mt-2 text-sm text-gray-600">しばらく経ってから再度お試しください。</p>
+    </div>
+}
 
 templ LoginForm(errorMessage string) {
     <script src="/webauthn/static/webauthn.js"></script>

@@ -14,6 +14,7 @@ import (
 func RegisterSSERoutes(r chi.Router, queries *database.Queries, ml *magiclink.MagicLink, authMW func(http.Handler) http.Handler) {
 	projectSSE := handlers.NewProjectSSEHandler(queries)
 	adminSSE := handlers.NewAdminSSEHandler(queries)
+	maintenanceHandler := handlers.NewMaintenanceHandler(queries)
 	profileSSE := handlers.NewProfileSSEHandler(queries, ml)
 
 	requireWrite := appMiddleware.RequireRole("admin", "editor")
@@ -37,6 +38,8 @@ func RegisterSSERoutes(r chi.Router, queries *database.Queries, ml *magiclink.Ma
 			r.Get("/admin/users/{id}/edit", adminSSE.EditUserDialogSSE)
 			r.Put("/admin/users/{id}", adminSSE.UpdateUserSSE)
 			r.Delete("/admin/users/{id}", adminSSE.DeleteUserSSE)
+
+			r.Post("/admin/maintenance/toggle", maintenanceHandler.ToggleSSE)
 		})
 
 		// Profile

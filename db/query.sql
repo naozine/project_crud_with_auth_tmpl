@@ -25,3 +25,10 @@ DELETE FROM users WHERE id = ?;
 
 -- name: CountUsers :one
 SELECT COUNT(*) FROM users;
+
+-- name: GetAppSetting :one
+SELECT * FROM app_settings WHERE key = ? LIMIT 1;
+
+-- name: UpsertAppSetting :exec
+INSERT INTO app_settings (key, value) VALUES (?, ?)
+ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP;

@@ -155,6 +155,11 @@ func SetupTestServer(t *testing.T, conn *sql.DB) http.Handler {
 	r.Get("/setup", setupHandler.SetupPage)
 	r.Post("/setup", setupHandler.CreateInitialAdmin)
 
+	// ログイン画面（magiclink に依存しない GET のみ）。
+	// メンテナンスモード時の表示分岐を検証するために登録する。
+	authHandler := handlers.NewAuthHandler(queries)
+	r.Get("/auth/login", authHandler.LoginPage)
+
 	return r
 }
 
@@ -163,6 +168,7 @@ func SetupTestServer(t *testing.T, conn *sql.DB) http.Handler {
 func registerTestSSERoutes(r chi.Router, queries *database.Queries, authMW func(http.Handler) http.Handler) {
 	projectSSE := handlers.NewProjectSSEHandler(queries)
 	adminSSE := handlers.NewAdminSSEHandler(queries)
+	maintenanceHandler := handlers.NewMaintenanceHandler(queries)
 
 	requireWrite := appMiddleware.RequireRole("admin", "editor")
 	requireAdmin := appMiddleware.RequireRole("admin")
@@ -183,6 +189,8 @@ func registerTestSSERoutes(r chi.Router, queries *database.Queries, authMW func(
 			r.Get("/admin/users/{id}/edit", adminSSE.EditUserDialogSSE)
 			r.Put("/admin/users/{id}", adminSSE.UpdateUserSSE)
 			r.Delete("/admin/users/{id}", adminSSE.DeleteUserSSE)
+
+			r.Post("/admin/maintenance/toggle", maintenanceHandler.ToggleSSE)
 		})
 	})
 }

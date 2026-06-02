@@ -4,17 +4,33 @@ import (
 	"net/http"
 
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/maintenance"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
 )
 
-type AuthHandler struct{}
+type AuthHandler struct {
+	Queries *database.Queries
+}
 
-func NewAuthHandler() *AuthHandler {
-	return &AuthHandler{}
+func NewAuthHandler(queries *database.Queries) *AuthHandler {
+	return &AuthHandler{Queries: queries}
 }
 
 func (h *AuthHandler) LoginPage(w http.ResponseWriter, r *http.Request) {
 	_, isLoggedIn, _ := appcontext.GetUser(r.Context())
+
+	// メンテナンス中は一般ログインのフォームを描画せず、案内のみ表示する。
+	// 既にログイン中のユーザーはセッションが維持されるのでそのままホームへ通す。
+	if maintenance.IsEnabled(r.Context(), h.Queries) {
+		if isLoggedIn {
+			http.Redirect(w, r, "/projects", http.StatusSeeOther)
+			return
+		}
+		renderGuest(w, r, "メンテナンス中", components.LoginMaintenance())
+		return
+	}
+
 	if isLoggedIn {
 		http.Redirect(w, r, "/projects", http.StatusSeeOther)
 		return

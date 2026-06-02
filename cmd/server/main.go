@@ -123,7 +123,7 @@ func main() {
 
 	// 3. Initialize Handlers
 	queries := database.New(conn)
-	authHandler := handlers.NewAuthHandler()
+	authHandler := handlers.NewAuthHandler(queries)
 	profileHandler := handlers.NewProfileHandler(queries)
 	setupHandler := handlers.NewSetupHandler(queries)
 
