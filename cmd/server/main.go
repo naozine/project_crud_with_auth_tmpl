@@ -129,9 +129,13 @@ func main() {
 
 	// 4. Chi Router Setup
 	r := chi.NewRouter()
-	r.Use(appMiddleware.AccessLogMiddleware(logger.AccessWriter()))
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(appMiddleware.UserContextMiddleware(ml, conn))
+	// AccessLogMiddleware は UserContextMiddleware より内側に置く必要がある。
+	// http.Request は immutable で r.WithContext(...) は新しい Request を返すため、
+	// UserContextMiddleware より外側に置くと AccessLog 側が見る r.Context() に
+	// userEmail が反映されず、user_id が空のままログ出力されてしまう。
+	r.Use(appMiddleware.AccessLogMiddleware(logger.AccessWriter()))
 
 	// Static files
 	staticSubFS, err := fs.Sub(web.StaticFS, "static")
