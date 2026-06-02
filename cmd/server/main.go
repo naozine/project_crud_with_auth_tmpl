@@ -130,6 +130,7 @@ func main() {
 	// 4. Chi Router Setup
 	r := chi.NewRouter()
 	r.Use(chiMiddleware.Recoverer)
+	r.Use(appMiddleware.NoIndex)
 	r.Use(appMiddleware.UserContextMiddleware(ml, conn))
 	// AccessLogMiddleware は UserContextMiddleware より内側に置く必要がある。
 	// http.Request は immutable で r.WithContext(...) は新しい Request を返すため、
@@ -147,6 +148,13 @@ func main() {
 
 	// 5. Routes
 	r.Get("/health", handlers.HealthCheck)
+
+	// robots.txt: 全クローラに全パスのクロールを禁止する。検索結果に
+	// 出したくない限定公開サービス向け。公開サイトにする場合は外す。
+	r.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = w.Write([]byte("User-agent: *\nDisallow: /\n"))
+	})
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
 	})
