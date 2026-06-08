@@ -1,0 +1,113 @@
+package components
+
+// recipe_data.go はレシピ集（/datastar/recipes）で使う型と、画面に表示する
+// 「お手本コード」の文字列を持つ。文字列はデモの実 markup / 実ハンドラと一致させ、
+// 学習者・LLM がそのままコピーできるようにしている。
+
+// RecipeTodo はインメモリ TODO デモの1項目。
+type RecipeTodo struct {
+	ID   int
+	Text string
+}
+
+// 1. 双方向バインド（フロントのみ）
+const RecipeBindFront = `<div data-signals:name="''">
+  <input data-bind:name placeholder="your name"/>
+  <p>Hello, <span data-text="$name"></span></p>
+</div>`
+
+// 2. サーバ往復カウンタ（@post → サーバが signal を patch）
+const RecipeCounterFront = `<div data-signals:count="0">
+  <button data-on:click="@post('/datastar/recipes/api/counter')">+1</button>
+  count: <span data-text="$count"></span>
+</div>`
+
+const RecipeCounterBack = `func RecipeCounterInc(w http.ResponseWriter, r *http.Request) {
+    count := store.incr() // インメモリ。mutex 保護
+    sse := datastar.NewSSE(w, r)
+    sse.MarshalAndPatchSignals(map[string]any{"count": count})
+}`
+
+// 3. インメモリ TODO（追加=ReadSignals→再描画 / 削除=@delete→再描画）
+const RecipeTodoFront = `<div data-signals:text="''">
+  <form data-on:submit__prevent="@post('/datastar/recipes/api/todos')">
+    <input data-bind:text placeholder="new todo"/>
+    <button>add</button>
+  </form>
+  <ul id="recipe-todos"><!-- サーバが PatchElementTempl(inner) で再描画 --></ul>
+</div>`
+
+const RecipeTodoBack = `func RecipeTodoAdd(w http.ResponseWriter, r *http.Request) {
+    var sig struct{ Text string ` + "`json:\"text\"`" + ` }
+    datastar.ReadSignals(r, &sig)
+    store.addTodo(strings.TrimSpace(sig.Text))
+    sse := datastar.NewSSE(w, r)
+    sse.PatchElementTempl(RecipeTodoList(store.snapshotTodos()),
+        datastar.WithSelectorID("recipe-todos"), datastar.WithModeInner())
+    sse.MarshalAndPatchSignals(map[string]any{"text": ""}) // 入力クリア
+}`
+
+// 4. ライブ検索（input を debounce して @get、サーバが結果を patch）
+const RecipeSearchFront = `<div data-signals:query="''">
+  <input data-bind:query
+    data-on:input__debounce.300ms="@get('/datastar/recipes/api/search')"
+    placeholder="search fruit"/>
+  <ul id="recipe-search-results"><!-- サーバが inner で再描画 --></ul>
+</div>`
+
+const RecipeSearchBack = `func RecipeSearch(w http.ResponseWriter, r *http.Request) {
+    var sig struct{ Query string ` + "`json:\"query\"`" + ` }
+    datastar.ReadSignals(r, &sig)
+    hits := filter(fruits, strings.ToLower(sig.Query))
+    sse := datastar.NewSSE(w, r)
+    sse.PatchElementTempl(RecipeSearchResults(hits),
+        datastar.WithSelectorID("recipe-search-results"), datastar.WithModeInner())
+}`
+
+// 5. indicator / ローディング（data-indicator が fetch 中だけ true）
+const RecipeIndicatorFront = `<div data-indicator:loading>
+  <button data-on:click="@get('/datastar/recipes/api/slow')">slow request</button>
+  <span data-show="$loading">loading…</span>
+  <p id="recipe-slow-result"></p>
+</div>`
+
+const RecipeIndicatorBack = `func RecipeSlow(w http.ResponseWriter, r *http.Request) {
+    time.Sleep(1200 * time.Millisecond)
+    sse := datastar.NewSSE(w, r)
+    sse.PatchElements(` + "`<p id=\"recipe-slow-result\">done</p>`" + `,
+        datastar.WithModeOuter())
+}`
+
+// 6. ポーリング（data-on-interval で定期 @get、サーバ時刻を patch）
+const RecipePollFront = `<div>
+  <div data-on-interval__duration.1s="@get('/datastar/recipes/api/tick')"></div>
+  server time: <span id="recipe-tick" class="font-mono">--:--:--</span>
+</div>`
+
+const RecipePollBack = `func RecipeTick(w http.ResponseWriter, r *http.Request) {
+    now := time.Now().Format("15:04:05")
+    sse := datastar.NewSSE(w, r)
+    sse.PatchElements(fmt.Sprintf(` + "`<span id=\"recipe-tick\">%s</span>`" + `, now),
+        datastar.WithModeOuter())
+}`
+
+// 7. ダイアログ（サーバが <dialog> を patch して showModal）
+const RecipeDialogFront = `<div id="recipe-dialog-container"></div>
+<button data-on:click="@get('/datastar/recipes/api/dialog')">open dialog</button>`
+
+const RecipeDialogBack = `func RecipeDialog(w http.ResponseWriter, r *http.Request) {
+    sse := datastar.NewSSE(w, r)
+    sse.PatchElementTempl(RecipeDialog(),
+        datastar.WithSelectorID("recipe-dialog-container"), datastar.WithModeInner())
+    sse.ExecuteScript("document.getElementById('recipe-dialog')?.showModal()")
+}`
+
+// 8. ドロップダウン（クリックでトグル、外側クリックで閉じる。フロントのみ）
+// __outside はトグルボタンを含む外側コンテナに付ける。内側に付けると
+// ボタン自身のクリックが「外側」と判定され、開いた瞬間に閉じてしまう。
+const RecipeDropdownFront = `<div data-signals:open="false" data-on:click__outside="$open = false" class="relative">
+  <button data-on:click="$open = !$open">menu</button>
+  <div data-show="$open">
+    <a href="#">item 1</a> <a href="#">item 2</a>
+  </div>
+</div>`
