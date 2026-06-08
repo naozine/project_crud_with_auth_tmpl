@@ -163,6 +163,12 @@ func main() {
 	r.Get("/setup", setupHandler.SetupPage)
 	r.Post("/setup", setupHandler.CreateInitialAdmin)
 
+	// Datastar リファレンス/回帰確認ページ（dev 限定。本番では登録しない）。
+	// docs/datastar/datastar-llm-guide.md の各機能を実機で確認できる。
+	if os.Getenv("APP_ENV") == "dev" {
+		r.Get("/datastar-test", handlers.DatastarReferencePage)
+	}
+
 	// MagicLink handlers (net/http ベース)
 	// Handler() は /auth/login, /auth/verify, /auth/logout, /webauthn/* をフルパスで登録
 	mlHandler := ml.Handler()

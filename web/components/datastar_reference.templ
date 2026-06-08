@@ -1,0 +1,118 @@
+package components
+
+import (
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/version"
+	"github.com/naozine/project_crud_with_auth_tmpl/web/layouts"
+)
+
+// DatastarReference は Datastar v1.0.2 の主要なフロントエンド機能を一覧する
+// リファレンス兼回帰確認ページ。APP_ENV=dev のときだけ /datastar-test で配信される
+// （cmd/server/main.go 参照）。docs/datastar/datastar-llm-guide.md の各項目に対応し、
+// Datastar を更新したらこのページを開いて主要機能の生存を目視確認できる。
+//
+// 注意: signal 名は小文字に統一している。data-signals:foo のような属性キーは
+// HTML パーサが小文字化するため、キャメルケース（data-signals:fooBar）は式中の
+// $fooBar と一致しない。キャメルが必要なら kebab + __case.camel を使う。
+templ DatastarReference() {
+	<!DOCTYPE html>
+	<html lang="ja">
+		@layouts.Head("Datastar Reference") {
+			<script type="module" src={ "/static/js/datastar.js?v=" + version.Commit }></script>
+		}
+		<body class="bg-gray-50 text-gray-900 p-6 font-sans antialiased">
+			<div class="max-w-3xl mx-auto space-y-6">
+				<header>
+					<h1 class="text-2xl font-bold">Datastar Reference / 回帰確認</h1>
+					<p class="text-sm text-gray-500">
+						v1.0.2 — APP_ENV=dev 限定。docs/datastar/datastar-llm-guide.md 準拠。
+					</p>
+				</header>
+				<!-- live signals dump（全 signal の状態が常時見える）-->
+				<section class="rounded border bg-white p-4">
+					<h2 class="font-semibold mb-2">All signals (data-json-signals)</h2>
+					<pre class="text-xs bg-gray-100 p-2 rounded overflow-auto" data-json-signals></pre>
+				</section>
+				<!-- 1. signals / bind / text -->
+				<section class="rounded border bg-white p-4 space-y-2">
+					<h2 class="font-semibold">1. signals / bind / text [core]</h2>
+					<div data-signals:msg="'hello'">
+						<input class="border px-2 py-1 rounded" data-bind:msg/>
+						<p>echo: <span data-text="$msg"></span></p>
+					</div>
+				</section>
+				<!-- 2. data-on:click -->
+				<section class="rounded border bg-white p-4 space-y-2">
+					<h2 class="font-semibold">2. data-on:click [core]</h2>
+					<div data-signals:n="0">
+						<button class="bg-blue-600 text-white px-3 py-1 rounded" data-on:click="$n++">+1</button>
+						<span data-text="$n"></span>
+					</div>
+				</section>
+				<!-- 3. data-on-interval: default 1s vs .leading -->
+				<section class="rounded border bg-white p-4 space-y-2">
+					<h2 class="font-semibold">3. data-on-interval __duration (default 1s vs .leading) [core]</h2>
+					<div data-signals:ticka="0" data-signals:tickb="0">
+						<p>duration.1s: <span data-text="$ticka"></span></p>
+						<div data-on-interval__duration.1s="$ticka++"></div>
+						<p>duration.1s.leading: <span data-text="$tickb"></span></p>
+						<div data-on-interval__duration.1s.leading="$tickb++"></div>
+						<p class="text-xs text-gray-500">期待: leading は読み込み直後に即 +1 されてから刻む（tickb が常に +1）</p>
+					</div>
+				</section>
+				<!-- 4. __self on data-on (should NOT exist) vs alternative -->
+				<section class="rounded border bg-white p-4 space-y-2">
+					<h2 class="font-semibold">4. data-on:click__self（data-on に __self は無いはず）</h2>
+					<div data-signals:selfmod="0" data-signals:selfalt="0">
+						<div class="border p-3 rounded cursor-pointer" data-on:click__self="$selfmod++">
+							親(__self付き) — <button class="underline">子ボタン</button> — count: <span data-text="$selfmod"></span>
+						</div>
+						<div class="border p-3 rounded cursor-pointer mt-2" data-on:click="evt.target === evt.currentTarget && $selfalt++">
+							親(代替式) — <button class="underline">子ボタン</button> — count: <span data-text="$selfalt"></span>
+						</div>
+						<p class="text-xs text-gray-500">
+							子ボタンを押すと: __self版は増える(=self限定が効かない=修飾子が無視)、代替版は増えない(=self限定が効く)
+						</p>
+					</div>
+				</section>
+				<!-- 5. data-init (works) vs data-on-load (gone in v1.0.2) -->
+				<section class="rounded border bg-white p-4 space-y-2">
+					<h2 class="font-semibold">5. data-init（動く）vs data-on-load（v1.0.2 に無いはず）</h2>
+					<div data-signals:initstate="'not-run'" data-signals:loadstate="'not-run'">
+						<div data-init="$initstate = 'ran'"></div>
+						<div data-on-load="$loadstate = 'ran'"></div>
+						<p>data-init: <span data-text="$initstate"></span> / data-on-load: <span data-text="$loadstate"></span></p>
+						<p class="text-xs text-gray-500">期待: init は ran、on-load は not-run のまま</p>
+					</div>
+				</section>
+				<!-- 6. data-on-intersect dash vs colon -->
+				<section class="rounded border bg-white p-4 space-y-2">
+					<h2 class="font-semibold">6. data-on-intersect(dash, 動く) vs data-on:intersect(colon, 無いはず)</h2>
+					<div data-signals:dashhit="'no'" data-signals:colonhit="'no'">
+						<div data-on-intersect="$dashhit = 'fired'">dash: <span data-text="$dashhit"></span></div>
+						<div data-on:intersect="$colonhit = 'fired'">colon: <span data-text="$colonhit"></span></div>
+						<p class="text-xs text-gray-500">期待: 表示時点で dash は fired、colon は no のまま</p>
+					</div>
+				</section>
+				<!-- 7. checkbox data-bind (v1.0.2 default event = input) -->
+				<section class="rounded border bg-white p-4 space-y-2">
+					<h2 class="font-semibold">7. checkbox data-bind（v1.0.2: 既定イベント input で即時反映）[core]</h2>
+					<div data-signals:agree="false">
+						<label><input type="checkbox" data-bind:agree/> agree</label>
+						<p>value: <span data-text="$agree"></span></p>
+					</div>
+				</section>
+				<!-- 8. computed / show / class -->
+				<section class="rounded border bg-white p-4 space-y-2">
+					<h2 class="font-semibold">8. data-computed / data-show / data-class [core]</h2>
+					<div data-signals:x="2" data-signals:y="3">
+						<div data-computed:sum="$x + $y"></div>
+						<button class="bg-gray-200 px-3 py-1 rounded" data-on:click="$x++">x++</button>
+						<p>x=<span data-text="$x"></span> y=<span data-text="$y"></span> sum=<span data-text="$sum"></span></p>
+						<p data-show="$sum &gt; 6" class="text-green-700">sum is greater than 6</p>
+						<p data-class:font-bold="$sum &gt; 6">bold when sum is greater than 6</p>
+					</div>
+				</section>
+			</div>
+		</body>
+	</html>
+}
