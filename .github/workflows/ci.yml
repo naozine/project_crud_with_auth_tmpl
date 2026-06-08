@@ -23,11 +23,19 @@ jobs:
         run: |
           go install github.com/a-h/templ/cmd/templ@latest
           go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+          # tailwindcss はバージョン固定（minify 出力がバージョンで変わるため、ローカルの make generate と揃える）
+          TAILWIND_VERSION=v4.2.1
+          mkdir -p "$HOME/bin"
+          curl -fsSL -o "$HOME/bin/tailwindcss" \
+            "https://github.com/tailwindlabs/tailwindcss/releases/download/${TAILWIND_VERSION}/tailwindcss-linux-x64"
+          chmod +x "$HOME/bin/tailwindcss"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
 
-      - name: Generate code (sqlc + templ)
+      - name: Generate code (sqlc + templ + tailwind)
         run: |
           sqlc generate
           templ generate
+          tailwindcss -i web/static/css/input.css -o web/static/css/style.css --minify
 
       - name: Verify go.mod is tidy
         run: |

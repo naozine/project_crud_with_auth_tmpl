@@ -19,6 +19,10 @@ internal/database/*.go
 web/components/*_templ.go
 web/layouts/*_templ.go
 
+# Tailwind Generated CSS
+# input.css から生成される。CI / make build で生成するため追跡しない（_templ.go と統一）
+web/static/css/style.css
+
 # Coverage output
 coverage.out
 
