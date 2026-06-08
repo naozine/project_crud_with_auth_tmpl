@@ -128,7 +128,11 @@ const (
 
 const RecipeVScrollFront = `<div style="height:300px;overflow-y:auto;position:relative"
      data-signals:vstart="0"
-     data-on:scroll__throttle.100ms="$vstart = Math.floor(evt.target.scrollTop / 30); @get('/datastar/recipes/api/vrows')">
+     data-on:scroll__throttle.100ms.trailing="
+       Math.floor(evt.target.scrollTop / 30) !== $vstart &&
+       ($vstart = Math.floor(evt.target.scrollTop / 30), @get('/datastar/recipes/api/vrows'))">
+  <!-- 窓(vstart)が変わった時だけ @get（無駄な再取得を避ける）。
+       .trailing でスクロール停止時の最終窓も確実に取得する。 -->
   <!-- スペーサー: 全行ぶんの高さでスクロールバーを全件分に見せる -->
   <div style="height:30000px;position:relative">
     <!-- サーバが可視窓だけを translateY 付きで差し替える -->

@@ -556,12 +556,21 @@ live search, indicator, polling, dialog, dropdown, and a **JS-free virtual scrol
 > of rows by re-fetching the visible window on scroll (`data-on:scroll__throttle`
 > sets a start-index signal → `@get` → server patches only that window with a
 > `translateY` offset; a spacer holds the full height). It avoids infinite-scroll's
-> DOM bloat, but because it re-fetches the window on scroll, its smoothness
-> **depends on round-trip latency**: on localhost / low-latency it is essentially
-> smooth, but it can stutter on a slow or remote connection. Pro's *Rocket Virtual
-> Scroll* keeps windowing client-side (rAF / overscan / DOM recycling, no per-scroll
-> round-trip), so it stays smooth regardless of latency. Use core for
-> simple/occasional lists or low-latency setups; reach for Pro when you need large,
-> latency-independent, buttery-smooth virtualized lists.
+> DOM bloat. It re-fetches the window on scroll, so smoothness depends on round-trip
+> latency — but in practice it holds up well: smooth on localhost, and **verified
+> comfortably usable on a typical VPS** (`__throttle` caps round-trips and overscan
+> hides the gaps). Noticeable stutter only shows on high-latency links (distant
+> servers, flaky mobile). Pro's *Rocket Virtual Scroll* keeps windowing client-side
+> (rAF / overscan / DOM recycling, no per-scroll round-trip), so it stays smooth even
+> under high latency. Use core for most cases; reach for Pro for very large lists that
+> must stay buttery-smooth on slow links.
+>
+> **Fixed row height is required.** The core recipe assumes every row is the same
+> height (`scrollTop / rowH` → index, spacer = `rows * rowH`, `translateY(start * rowH)`).
+> Variable heights break all of this: you'd need cumulative offsets (prefix sums) +
+> binary search to map scrollTop→index, and measure-then-correct after render — not
+> feasible with `data-*` alone (needs real JS, and gets complex fast). Use this for
+> uniform rows (tables, fixed-size cards); for variable-height content (chat, wrapping
+> text, mixed media) use pagination/infinite-scroll or Pro.
 > (Note: *infinite scroll* is core via `data-on-intersect`; *virtual scroll* and
 > Rocket Virtual Scroll are different things — see the discussion that produced this.)
