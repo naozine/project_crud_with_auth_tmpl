@@ -484,8 +484,69 @@ Official reference: <https://data-star.dev/reference/attributes>
   `__once`/`__window`/`__debounce`/… → `data-on`.
 - **`data-on-intersect`/`-interval`/`-signal-patch`/`data-init`** are distinct
   attribute names (dash form), not `data-on:<event>`.
+- **`__outside` placement:** put `data-on:click__outside` on the **outer container
+  that includes the toggle button**, not on the inner panel. If it's on the inner
+  panel, the toggle's own click counts as "outside" and closes the panel the instant
+  it opens. (Found via real runtime in recipe §8 at `/datastar/recipes`.)
 - **`data-show`**: pair with `style="display: none"` to avoid a flash before hydration.
 - **Pro vs core:** `data-persist`, `data-query-string`, `data-replace-url`,
   `data-animate`, `data-view-transition`, `data-custom-validity`, `data-match-media`,
   `data-on-raf`, `data-on-resize`, `data-scroll-into-view`, `@clipboard`, `@fit`,
   `@intl` are **Pro**. Everything else above is **core**.
+- **Attribute key case** (repeat, because it bites): `data-signals:fooBar` →
+  `foobar`. Keep signal names lowercase.
+
+---
+
+## 12. Backend SSE implementation (datastar-go)
+
+Datastar is backend-driven: the `@get`/`@post`/… actions hit your server and the
+server replies with SSE events that patch elements or signals (the wire format in §7).
+In Go, use `github.com/starfederation/datastar-go/datastar` (verified against
+`datastar-go v1.2.1`):
+
+```go
+import "github.com/starfederation/datastar-go/datastar"
+
+func handler(w http.ResponseWriter, r *http.Request) {
+    // 1. read signals the client sent (from data-bind / data-signals)
+    var sig struct {
+        Query string `json:"query"`
+    }
+    datastar.ReadSignals(r, &sig)
+
+    // 2. open the SSE stream
+    sse := datastar.NewSSE(w, r)
+
+    // 3a. patch DOM — by raw HTML string, by templ component, or by fmt
+    sse.PatchElements(`<div id="x">hi</div>`, datastar.WithSelectorID("x"), datastar.WithModeInner())
+    sse.PatchElementTempl(MyList(items), datastar.WithSelectorID("list"), datastar.WithModeInner())
+
+    // 3b. patch signals — marshal a Go value into client signals
+    sse.MarshalAndPatchSignals(map[string]any{"count": 1})
+
+    // 3c. misc
+    sse.RemoveElementByID("toast")
+    sse.ExecuteScript("document.getElementById('d').showModal()")
+    sse.Redirect("/done")
+}
+```
+
+**Key API**
+- `datastar.NewSSE(w, r) *ServerSentEventGenerator`
+- `datastar.ReadSignals(r, &v)` — unmarshal client signals into a struct pointer
+- `sse.PatchElements(html, opts…)` / `PatchElementTempl(c, opts…)` / `PatchElementf(fmt, …)`
+- `sse.MarshalAndPatchSignals(v)` / `PatchSignals([]byte)` / `…IfMissing` variants
+- `sse.RemoveElementByID(id)` / `RemoveElement(selector)`
+- `sse.ExecuteScript(js)` / `sse.Redirect(url)` / `sse.ConsoleLog(msg)`
+- **Patch options:** `WithSelector(sel)` / `WithSelectorID(id)` / `WithSelectorf(...)` /
+  `WithMode{Outer,Inner,Replace,Append,Prepend,Before,After,Remove}()` /
+  `WithUseViewTransitions(true)` / `WithViewTransitions()`
+
+These options map 1:1 to the SSE `selector` / `mode` / `useViewTransition` data keys in §7.
+
+### Live recipes
+A runnable, source-annotated recipe set is served at **`/datastar/recipes`** (public,
+DB-free in-memory demos): two-way bind, server round-trip counter, in-memory TODO CRUD,
+live search, indicator, polling, dialog, dropdown. Source to copy from:
+`web/components/datastar_recipes.templ` + `internal/handlers/datastar_recipes.go`.

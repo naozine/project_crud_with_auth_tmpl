@@ -169,6 +169,18 @@ func main() {
 		r.Get("/datastar-test", handlers.DatastarReferencePage)
 	}
 
+	// Datastar レシピ集（認証不要・本番でも公開。DB 非依存のインメモリデモ）。
+	// docs/datastar/datastar-llm-guide.md のお手本。バックエンドは handlers/datastar_recipes.go。
+	r.Get("/datastar/recipes", handlers.DatastarRecipesPage)
+	r.Post("/datastar/recipes/api/counter", handlers.RecipeCounterInc)
+	r.Post("/datastar/recipes/api/todos", handlers.RecipeTodoAdd)
+	r.Delete("/datastar/recipes/api/todos/{id}", handlers.RecipeTodoRemove)
+	r.Get("/datastar/recipes/api/search", handlers.RecipeSearch)
+	r.Get("/datastar/recipes/api/slow", handlers.RecipeSlow)
+	r.Get("/datastar/recipes/api/tick", handlers.RecipeTick)
+	r.Get("/datastar/recipes/api/dialog", handlers.RecipeDialog)
+	r.Post("/datastar/recipes/api/reset", handlers.RecipeReset)
+
 	// MagicLink handlers (net/http ベース)
 	// Handler() は /auth/login, /auth/verify, /auth/logout, /webauthn/* をフルパスで登録
 	mlHandler := ml.Handler()
