@@ -548,5 +548,20 @@ These options map 1:1 to the SSE `selector` / `mode` / `useViewTransition` data 
 ### Live recipes
 A runnable, source-annotated recipe set is served at **`/datastar/recipes`** (public,
 DB-free in-memory demos): two-way bind, server round-trip counter, in-memory TODO CRUD,
-live search, indicator, polling, dialog, dropdown. Source to copy from:
+live search, indicator, polling, dialog, dropdown, and a **JS-free virtual scroll**
+(server round-trip windowing). Source to copy from:
 `web/components/datastar_recipes.templ` + `internal/handlers/datastar_recipes.go`.
+
+> **Virtual scroll — core vs Pro.** The core recipe keeps the DOM to a fixed number
+> of rows by re-fetching the visible window on scroll (`data-on:scroll__throttle`
+> sets a start-index signal → `@get` → server patches only that window with a
+> `translateY` offset; a spacer holds the full height). It avoids infinite-scroll's
+> DOM bloat, but because it re-fetches the window on scroll, its smoothness
+> **depends on round-trip latency**: on localhost / low-latency it is essentially
+> smooth, but it can stutter on a slow or remote connection. Pro's *Rocket Virtual
+> Scroll* keeps windowing client-side (rAF / overscan / DOM recycling, no per-scroll
+> round-trip), so it stays smooth regardless of latency. Use core for
+> simple/occasional lists or low-latency setups; reach for Pro when you need large,
+> latency-independent, buttery-smooth virtualized lists.
+> (Note: *infinite scroll* is core via `data-on-intersect`; *virtual scroll* and
+> Rocket Virtual Scroll are different things — see the discussion that produced this.)

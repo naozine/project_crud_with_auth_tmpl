@@ -101,6 +101,17 @@ templ DatastarRecipes(todos []RecipeTodo) {
 						<p class="mt-2 text-sm">selected: <span data-text="$choice"></span></p>
 					</div>
 				}
+				<!-- 9. 仮想スクロール（JS 不要・サーバ往復型）-->
+				@recipeCard("9. 仮想スクロール（JS 不要・サーバ往復）", "可視範囲＋overscan だけ描画し、スペーサーで全体高さを保つ。スクロールで開始 index を signal にし @get で窓を差し替える。DOM 上の行数は常に一定。", RecipeVScrollFront, RecipeVScrollBack) {
+					<div style="height:300px;overflow-y:auto;position:relative" class="border rounded bg-white"
+						data-signals:vstart="0"
+						data-on:scroll__throttle.100ms={ fmt.Sprintf("$vstart = Math.floor(evt.target.scrollTop / %d); @get('/datastar/recipes/api/vrows')", RecipeVRowH) }>
+						<div style={ fmt.Sprintf("height:%dpx;position:relative", RecipeVTotal*RecipeVRowH) }>
+							@RecipeVRows(0, RecipeVVisible+RecipeVOverscan)
+						</div>
+					</div>
+					<p class="text-xs text-gray-500 mt-1">全 { fmt.Sprint(RecipeVTotal) } 行。DevTools で #vrows 内の行数が一定のままスクロールできるのを確認できる。</p>
+				}
 			</div>
 		</body>
 	</html>
@@ -162,4 +173,14 @@ templ RecipeDialog() {
 		<p class="mb-4">これは SSE（PatchElementTempl）で挿入されたダイアログです。</p>
 		<button class="bg-gray-200 px-3 py-1 rounded" data-on:click="document.getElementById('recipe-dialog').close()">close</button>
 	</dialog>
+}
+
+// RecipeVRows は仮想スクロールの可視窓（start〜end）を translateY 付きで描画する。
+// サーバが #vrows を outer 置換することで、DOM 上の行は常に一定数に保たれる。
+templ RecipeVRows(start int, end int) {
+	<div id="vrows" style={ fmt.Sprintf("position:absolute;left:0;right:0;transform:translateY(%dpx)", start*RecipeVRowH) }>
+		for i := start; i < end; i++ {
+			<div style={ fmt.Sprintf("height:%dpx", RecipeVRowH) } class="px-3 border-b text-sm leading-[30px]">Row { fmt.Sprint(i + 1) }</div>
+		}
+	</div>
 }

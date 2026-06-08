@@ -116,3 +116,33 @@ const RecipeDropdownFront = `<div data-signals:open="false" data-signals:choice=
   </div>
   <p>selected: <span data-text="$choice"></span></p>
 </div>`
+
+// 9. 仮想スクロール（JS 不要・サーバ往復型）。
+// 全行のうち可視範囲＋overscan だけを描画し、スペーサーで全体高さを保つ。
+const (
+	RecipeVTotal    = 1000 // 総行数
+	RecipeVRowH     = 30   // 行高(px)
+	RecipeVVisible  = 10   // 可視行数（コンテナ高さ 300px / 30px）
+	RecipeVOverscan = 5    // 可視範囲の上下に余分に描く行数
+)
+
+const RecipeVScrollFront = `<div style="height:300px;overflow-y:auto;position:relative"
+     data-signals:vstart="0"
+     data-on:scroll__throttle.100ms="$vstart = Math.floor(evt.target.scrollTop / 30); @get('/datastar/recipes/api/vrows')">
+  <!-- スペーサー: 全行ぶんの高さでスクロールバーを全件分に見せる -->
+  <div style="height:30000px;position:relative">
+    <!-- サーバが可視窓だけを translateY 付きで差し替える -->
+    <div id="vrows">...初期窓...</div>
+  </div>
+</div>`
+
+const RecipeVScrollBack = `func RecipeVRows(w http.ResponseWriter, r *http.Request) {
+    var sig struct{ Vstart int ` + "`json:\"vstart\"`" + ` }
+    datastar.ReadSignals(r, &sig)
+    start := max(sig.Vstart-overscan, 0)
+    end := min(sig.Vstart+visible+overscan, total)
+    sse := datastar.NewSSE(w, r)
+    // #vrows を outer 置換。窓は translateY(start*rowH) で正しい位置に。
+    sse.PatchElementTempl(RecipeVRows(start, end),
+        datastar.WithSelectorID("vrows"), datastar.WithModeOuter())
+}`

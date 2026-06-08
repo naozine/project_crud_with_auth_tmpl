@@ -194,6 +194,30 @@ func RecipeDialog(w http.ResponseWriter, r *http.Request) {
 	_ = sse.ExecuteScript("document.getElementById('recipe-dialog')?.showModal()")
 }
 
+// --- レシピ 9: 仮想スクロール（JS 不要・サーバ往復型）---
+// 可視範囲＋overscan の行だけを translateY 付きで差し替える。DOM 上の行は常に一定。
+
+func RecipeVRows(w http.ResponseWriter, r *http.Request) {
+	var sig struct {
+		Vstart int `json:"vstart"`
+	}
+	_ = datastar.ReadSignals(r, &sig)
+	start := sig.Vstart - components.RecipeVOverscan
+	if start < 0 {
+		start = 0
+	}
+	end := sig.Vstart + components.RecipeVVisible + components.RecipeVOverscan
+	if end > components.RecipeVTotal {
+		end = components.RecipeVTotal
+	}
+	sse := datastar.NewSSE(w, r)
+	_ = sse.PatchElementTempl(
+		components.RecipeVRows(start, end),
+		datastar.WithSelectorID("vrows"),
+		datastar.WithModeOuter(),
+	)
+}
+
 // --- リセット（インメモリ状態を初期化してリロード）---
 
 func RecipeReset(w http.ResponseWriter, r *http.Request) {
