@@ -179,6 +179,7 @@ func main() {
 	r.Get("/datastar/recipes/api/slow", handlers.RecipeSlow)
 	r.Get("/datastar/recipes/api/tick", handlers.RecipeTick)
 	r.Get("/datastar/recipes/api/dialog", handlers.RecipeDialog)
+	r.Get("/datastar/recipes/api/vrows", handlers.RecipeVRows)
 	r.Post("/datastar/recipes/api/reset", handlers.RecipeReset)
 
 	// MagicLink handlers (net/http ベース)
