@@ -90,12 +90,15 @@ templ DatastarRecipes(todos []RecipeTodo) {
 				}
 				<!-- 8. ドロップダウン -->
 				@recipeCard("8. ドロップダウン（__outside で閉じる, front only）", "クリックでトグル、data-on:click__outside で外側クリック時に閉じる。", RecipeDropdownFront, "") {
-					<div data-signals:open="false" data-on:click__outside="$open = false" class="relative inline-block">
-						<button class="bg-gray-200 px-3 py-1 rounded" data-on:click="$open = !$open">menu ▾</button>
-						<div data-show="$open" class="absolute mt-1 bg-white border rounded shadow p-2 space-x-2">
-							<a href="#" class="text-blue-600">item 1</a>
-							<a href="#" class="text-blue-600">item 2</a>
+					<div data-signals:open="false" data-signals:choice="'(none)'">
+						<div data-on:click__outside="$open = false" class="relative inline-block">
+							<button class="bg-gray-200 px-3 py-1 rounded" data-on:click="$open = !$open">menu ▾</button>
+							<div data-show="$open" class="absolute mt-1 bg-white border rounded shadow p-1 flex flex-col min-w-32">
+								<button class="text-left px-2 py-1 rounded hover:bg-gray-100" data-on:click="$choice = 'item 1'; $open = false">item 1</button>
+								<button class="text-left px-2 py-1 rounded hover:bg-gray-100" data-on:click="$choice = 'item 2'; $open = false">item 2</button>
+							</div>
 						</div>
+						<p class="mt-2 text-sm">selected: <span data-text="$choice"></span></p>
 					</div>
 				}
 			</div>
@@ -153,7 +156,9 @@ templ RecipeSearchResults(hits []string) {
 
 // RecipeDialog は SSE で挿入されるダイアログ本体。
 templ RecipeDialog() {
-	<dialog id="recipe-dialog" class="rounded-lg p-6 backdrop:bg-black/30">
+	<!-- m-auto: Tailwind preflight が margin:0 を当てて <dialog> の既定の中央配置を
+	     消すため、明示的に margin:auto で中央に戻す -->
+	<dialog id="recipe-dialog" class="m-auto rounded-lg p-6 backdrop:bg-black/30">
 		<p class="mb-4">これは SSE（PatchElementTempl）で挿入されたダイアログです。</p>
 		<button class="bg-gray-200 px-3 py-1 rounded" data-on:click="document.getElementById('recipe-dialog').close()">close</button>
 	</dialog>

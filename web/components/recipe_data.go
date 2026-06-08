@@ -105,9 +105,14 @@ const RecipeDialogBack = `func RecipeDialog(w http.ResponseWriter, r *http.Reque
 // 8. ドロップダウン（クリックでトグル、外側クリックで閉じる。フロントのみ）
 // __outside はトグルボタンを含む外側コンテナに付ける。内側に付けると
 // ボタン自身のクリックが「外側」と判定され、開いた瞬間に閉じてしまう。
-const RecipeDropdownFront = `<div data-signals:open="false" data-on:click__outside="$open = false" class="relative">
-  <button data-on:click="$open = !$open">menu</button>
-  <div data-show="$open">
-    <a href="#">item 1</a> <a href="#">item 2</a>
+// 項目は <a href="#"> ではなく button にする（href="#" はページ先頭へ飛ぶ）。
+const RecipeDropdownFront = `<div data-signals:open="false" data-signals:choice="'(none)'">
+  <div data-on:click__outside="$open = false" class="relative">
+    <button data-on:click="$open = !$open">menu</button>
+    <div data-show="$open">
+      <button data-on:click="$choice = 'item 1'; $open = false">item 1</button>
+      <button data-on:click="$choice = 'item 2'; $open = false">item 2</button>
+    </div>
   </div>
+  <p>selected: <span data-text="$choice"></span></p>
 </div>`
