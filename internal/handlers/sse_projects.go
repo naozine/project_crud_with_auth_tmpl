@@ -59,6 +59,7 @@ func (h *ProjectSSEHandler) CreateProjectSSE(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	sse.ExecuteScript("document.getElementById('project-add-dialog')?.close()")
+	sendToast(sse, "プロジェクトを作成しました")
 }
 
 // EditProjectDialogSSE は編集ダイアログを挿入して開く（@get）。
@@ -126,6 +127,7 @@ func (h *ProjectSSEHandler) UpdateProjectSSE(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	sse.ExecuteScript("document.getElementById('project-edit-dialog')?.close()")
+	sendToast(sse, "プロジェクトを更新しました")
 }
 
 func (h *ProjectSSEHandler) DeleteProjectSSE(w http.ResponseWriter, r *http.Request) {
@@ -146,4 +148,5 @@ func (h *ProjectSSEHandler) DeleteProjectSSE(w http.ResponseWriter, r *http.Requ
 	if err := h.patchGrid(sse, r); err != nil {
 		logger.Error("SSE patchGrid failed", "error", err)
 	}
+	sendToast(sse, "プロジェクトを削除しました")
 }

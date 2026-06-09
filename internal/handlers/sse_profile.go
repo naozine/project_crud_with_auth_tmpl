@@ -57,6 +57,7 @@ func (h *ProfileSSEHandler) UpdateProfileSSE(w http.ResponseWriter, r *http.Requ
 	// シェルは email 表示で名前を出さないため、保存後は originalName を更新して
 	// 保存ボタンを disabled に戻すだけでよい（reload しない）。
 	_ = sse.MarshalAndPatchSignals(map[string]any{"originalName": signals.ProfileName})
+	sendToast(sse, "プロフィールを保存しました")
 }
 
 func (h *ProfileSSEHandler) DeletePasskeysSSE(w http.ResponseWriter, r *http.Request) {
@@ -84,4 +85,5 @@ func (h *ProfileSSEHandler) DeletePasskeysSSE(w http.ResponseWriter, r *http.Req
 	); err != nil {
 		logger.Error("SSE PatchElementTempl failed", "error", err)
 	}
+	sendToast(sse, "パスキーを削除しました")
 }
