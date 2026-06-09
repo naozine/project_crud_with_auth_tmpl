@@ -1,41 +1,96 @@
 package components
 
 import (
-    "github.com/naozine/project_crud_with_auth_tmpl/internal/database"
-    "github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
-    "github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
     "fmt"
+
+    "github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
+    "github.com/naozine/project_crud_with_auth_tmpl/internal/database"
+    "github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 )
 
 templ ProjectList(projects []database.Project) {
     {{
         userRole := appcontext.GetUserRole(ctx)
+        canWrite := userRole == roles.Admin || userRole == roles.Editor
     }}
     <div class="max-w-5xl mx-auto space-y-6">
-        if userRole == roles.Admin || userRole == roles.Editor {
+        if canWrite {
             <div class="flex justify-end">
-                @PrimaryLink("新規作成", "/projects/new")
+                <button
+                    type="button"
+                    onclick="document.getElementById('project-add-dialog').showModal();document.activeElement?.blur()"
+                    class="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800"
+                >新規作成</button>
             </div>
         }
 
-        if len(projects) == 0 {
-            @EmptyState("プロジェクトが見つかりません。最初のプロジェクトを作成してください。")
-        } else {
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                for _, p := range projects {
-                    <a href={ templ.URL(fmt.Sprintf("/projects/%d", p.ID)) } class="group block rounded-lg border border-gray-200 bg-white p-6 hover:border-gray-300 hover:shadow-md transition-all duration-200">
-                        <div class="flex flex-col h-full justify-between space-y-4">
-                            <div>
-                                <h3 class="text-base font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{ p.Name }</h3>
-                                <p class="mt-1 text-xs text-gray-400">ID: { fmt.Sprintf("%d", p.ID) }</p>
-                            </div>
-                            <div class="flex items-center justify-between pt-4 border-t border-gray-50">
-                                <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">稼働中</span>
-                            </div>
-                        </div>
-                    </a>
+        <!-- 作成・削除時はこのグリッドの中身を inner 置換する（0件↔あり の表示切替のため）-->
+        <div id="projects-grid">
+            @ProjectCards(projects, canWrite)
+        </div>
+
+        if canWrite {
+            @projectAddDialog()
+        }
+        <div id="project-dialog-container"></div>
+    </div>
+}
+
+// ProjectCards は一覧の中身（カード群 or 空表示）。SSE で #projects-grid に inner 置換される。
+templ ProjectCards(projects []database.Project, canWrite bool) {
+    if len(projects) == 0 {
+        @EmptyState("プロジェクトが見つかりません。最初のプロジェクトを作成してください。")
+    } else {
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            for _, p := range projects {
+                @ProjectCard(p, canWrite)
+            }
+        </div>
+    }
+}
+
+// ProjectCard は1プロジェクトのカード。編集保存時にサーバがこの要素だけを
+// id (project-N) で outer 置換する。
+templ ProjectCard(p database.Project, canWrite bool) {
+    <div id={ fmt.Sprintf("project-%d", p.ID) } class="rounded-lg border border-gray-200 bg-white p-6 hover:border-gray-300 hover:shadow-md transition-all duration-200">
+        <div class="flex flex-col h-full justify-between space-y-4">
+            <div class="flex items-start justify-between gap-2">
+                <a href={ templ.URL(fmt.Sprintf("/projects/%d", p.ID)) } class="group min-w-0 flex-1">
+                    <h3 class="text-base font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">{ p.Name }</h3>
+                    <p class="mt-1 text-xs text-gray-400">ID: { fmt.Sprintf("%d", p.ID) }</p>
+                </a>
+                if canWrite {
+                    <div class="flex flex-shrink-0 gap-3">
+                        <button
+                            class="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                            data-on:click={ fmt.Sprintf("@get('/api/sse/projects/%d/edit')", p.ID) }
+                        >編集</button>
+                        <button
+                            class="text-red-600 hover:text-red-800 text-sm font-medium"
+                            data-on:click={ fmt.Sprintf("confirm('本当に削除しますか？') && @delete('/api/sse/projects/%d')", p.ID) }
+                        >削除</button>
+                    </div>
                 }
             </div>
-        }
+            <div class="flex items-center justify-between pt-4 border-t border-gray-50">
+                <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">稼働中</span>
+            </div>
+        </div>
     </div>
+}
+
+templ projectAddDialog() {
+    @Dialog("project-add-dialog", templ.Attributes{"data-signals": "{name: ''}"}) {
+        @DialogHeader("新規プロジェクト", "project-add-dialog")
+
+        <form data-on:submit__prevent="@post('/api/sse/projects/new')" class="space-y-5">
+            @FormField("プロジェクト名", "") {
+                @DataInput("name", "例: Webサイトリニューアル")
+            }
+
+            @DialogFooter("project-add-dialog") {
+                @PrimaryButton("作成")
+            }
+        </form>
+    }
 }

@@ -18,86 +18,9 @@ import (
 // 各ハンドラの直前で http.MaxBytesReader を仕掛け、上限超過時に 413 を返すこと。
 // 上限値は internal/limits パッケージで定義（ProjectFormBody, UserImportBody）。
 
-// ---------------------------------------------------------------------------
-// Project: POST /projects/new
-// ---------------------------------------------------------------------------
-
-func TestProjectsCreate_OverLimit(t *testing.T) {
-	conn := SetupTestDB(t)
-	e := SetupTestServer(t, conn)
-	seed := SeedTestData(t, conn)
-
-	// 上限を確実に超えるサイズ（上限の 2 倍）
-	body := "name=" + strings.Repeat("x", 2*limits.ProjectFormBody)
-	rec := DoRequest(e, http.MethodPost, "/projects/new", &seed.AdminUser, body)
-
-	if rec.Code != http.StatusRequestEntityTooLarge {
-		t.Errorf("ステータスコード = %d, want %d", rec.Code, http.StatusRequestEntityTooLarge)
-	}
-
-	// 上限超過時はレコードが作成されないこと（seed の 1 件のまま）
-	q := queryFromConn(conn)
-	projects, err := q.ListProjects(t.Context())
-	if err != nil {
-		t.Fatalf("ListProjects: %v", err)
-	}
-	if len(projects) != 1 {
-		t.Errorf("Project 件数 = %d, want 1（上限超過後にレコードが追加されている）", len(projects))
-	}
-}
-
-func TestProjectsCreate_UnderLimit(t *testing.T) {
-	conn := SetupTestDB(t)
-	e := SetupTestServer(t, conn)
-	seed := SeedTestData(t, conn)
-
-	body := "name=Normal"
-	rec := DoRequest(e, http.MethodPost, "/projects/new", &seed.AdminUser, body)
-
-	if rec.Code != http.StatusSeeOther {
-		t.Errorf("ステータスコード = %d, want %d", rec.Code, http.StatusSeeOther)
-	}
-
-	q := queryFromConn(conn)
-	projects, err := q.ListProjects(t.Context())
-	if err != nil {
-		t.Fatalf("ListProjects: %v", err)
-	}
-	if len(projects) != 2 {
-		t.Errorf("Project 件数 = %d, want 2（seed の 1 件 + 新規 1 件）", len(projects))
-	}
-}
-
-// ---------------------------------------------------------------------------
-// Project: POST /projects/{id}/update
-// ---------------------------------------------------------------------------
-
-func TestProjectsUpdate_OverLimit(t *testing.T) {
-	conn := SetupTestDB(t)
-	e := SetupTestServer(t, conn)
-	seed := SeedTestData(t, conn)
-
-	originalName := seed.Project.Name
-
-	body := "name=" + strings.Repeat("y", 2*limits.ProjectFormBody)
-	rec := DoRequest(e, http.MethodPost,
-		fmt.Sprintf("/projects/%d/update", seed.Project.ID),
-		&seed.AdminUser, body)
-
-	if rec.Code != http.StatusRequestEntityTooLarge {
-		t.Errorf("ステータスコード = %d, want %d", rec.Code, http.StatusRequestEntityTooLarge)
-	}
-
-	// 名前が変更されていないこと
-	q := queryFromConn(conn)
-	p, err := q.GetProject(t.Context(), seed.Project.ID)
-	if err != nil {
-		t.Fatalf("GetProject: %v", err)
-	}
-	if p.Name != originalName {
-		t.Errorf("Name = %q, want %q（上限超過後に名前が変更されている）", p.Name, originalName)
-	}
-}
+// 注: projects の作成・更新は Datastar SSE（/api/sse/projects/*）に一本化され、
+// 旧 PRG ルート（/projects/new 等）の MaxBodySize テストは廃止した。SSE 版への
+// body 上限付与は別途の課題（現状は付いていない）。
 
 // ---------------------------------------------------------------------------
 // Excel インポート: POST /admin/users/import

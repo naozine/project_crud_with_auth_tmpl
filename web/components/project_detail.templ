@@ -2,30 +2,16 @@ package components
 
 import (
     "fmt"
+
     "github.com/naozine/project_crud_with_auth_tmpl/internal/database"
-    "github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
-    "github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 )
 
+// ProjectDetail は表示専用。編集・削除は一覧（ProjectCard）から行う。
 templ ProjectDetail(project database.Project) {
-    {{
-        userRole := appcontext.GetUserRole(ctx)
-    }}
     <div class="max-w-3xl mx-auto">
-        <div class="mb-8 flex items-center justify-between">
-            <div>
-                <h2 class="text-2xl font-bold tracking-tight text-gray-900">{ project.Name }</h2>
-                <p class="mt-1 text-sm text-gray-500">ID: { fmt.Sprintf("%d", project.ID) } • 作成日: { project.CreatedAt.Time.Format("2006/01/02 15:04") }</p>
-            </div>
-            if userRole == roles.Admin || userRole == roles.Editor {
-                <div class="flex space-x-3">
-                    @SecondaryLink("編集", templ.URL(fmt.Sprintf("/projects/%d/edit", project.ID)))
-                    <button
-                        class="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500"
-                        data-on:click={ fmt.Sprintf("confirm('本当に削除しますか？') && @delete('/api/sse/projects/%d')", project.ID) }
-                    >削除</button>
-                </div>
-            }
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold tracking-tight text-gray-900">{ project.Name }</h2>
+            <p class="mt-1 text-sm text-gray-500">ID: { fmt.Sprintf("%d", project.ID) } • 作成日: { project.CreatedAt.Time.Format("2006/01/02 15:04") }</p>
         </div>
 
         @Card() {
