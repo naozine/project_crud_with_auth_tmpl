@@ -65,7 +65,7 @@ templ AdminUserEditDialog(user database.User) {
             }
 
             @DialogFooter("user-edit-dialog") {
-                @PrimaryButton("更新")
+                @PrimarySubmitButton("更新", "$editName.trim() === ''")
             }
         </form>
     }
@@ -128,7 +128,7 @@ templ adminUserAddDialog() {
             }
 
             @DialogFooter("user-add-dialog") {
-                @PrimaryButton("登録")
+                @PrimarySubmitButton("登録", "$newName.trim() === '' || $newEmail.trim() === ''")
             }
         </form>
     }
