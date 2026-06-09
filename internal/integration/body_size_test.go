@@ -16,11 +16,35 @@ import (
 
 // G120 (DoS / メモリ・ディスク枯渇) 対策のテスト。
 // 各ハンドラの直前で http.MaxBytesReader を仕掛け、上限超過時に 413 を返すこと。
-// 上限値は internal/limits パッケージで定義（ProjectFormBody, UserImportBody）。
+// 上限値は internal/limits パッケージで定義（SSESignalBody, UserImportBody）。
 
-// 注: projects の作成・更新は Datastar SSE（/api/sse/projects/*）に一本化され、
-// 旧 PRG ルート（/projects/new 等）の MaxBodySize テストは廃止した。SSE 版への
-// body 上限付与は別途の課題（現状は付いていない）。
+// ---------------------------------------------------------------------------
+// Project SSE: POST /api/sse/projects/new（signals JSON の body 上限）
+// ---------------------------------------------------------------------------
+
+func TestProjectsSSE_CreateOverLimit(t *testing.T) {
+	conn := SetupTestDB(t)
+	e := SetupTestServer(t, conn)
+	seed := SeedTestData(t, conn)
+
+	// 上限を確実に超える signals JSON（上限の 2 倍の name）
+	body := `{"name":"` + strings.Repeat("x", 2*limits.SSESignalBody) + `"}`
+	rec := DoSSERequest(e, http.MethodPost, "/api/sse/projects/new", &seed.AdminUser, body)
+
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("ステータスコード = %d, want %d", rec.Code, http.StatusRequestEntityTooLarge)
+	}
+
+	// 上限超過時はレコードが作成されないこと（seed の 1 件のまま）
+	q := queryFromConn(conn)
+	projects, err := q.ListProjects(t.Context())
+	if err != nil {
+		t.Fatalf("ListProjects: %v", err)
+	}
+	if len(projects) != 1 {
+		t.Errorf("Project 件数 = %d, want 1（上限超過後にレコードが追加されている）", len(projects))
+	}
+}
 
 // ---------------------------------------------------------------------------
 // Excel インポート: POST /admin/users/import

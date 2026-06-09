@@ -16,6 +16,7 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/limits"
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/routes"
 	"github.com/pressly/goose/v3"
@@ -178,6 +179,7 @@ func registerTestSSERoutes(r chi.Router, queries *database.Queries, authMW func(
 
 	r.Route("/api/sse", func(r chi.Router) {
 		r.Use(authMW)
+		r.Use(appMiddleware.MaxBodySize(limits.SSESignalBody))
 
 		r.Group(func(r chi.Router) {
 			r.Use(requireWrite)

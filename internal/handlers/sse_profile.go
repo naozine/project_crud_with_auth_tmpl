@@ -32,8 +32,7 @@ func (h *ProfileSSEHandler) UpdateProfileSSE(w http.ResponseWriter, r *http.Requ
 	var signals struct {
 		ProfileName string `json:"profileName"`
 	}
-	if err := datastar.ReadSignals(r, &signals); err != nil {
-		http.Error(w, "無効なリクエストです", http.StatusBadRequest)
+	if !readSignalsOr413(w, r, &signals) {
 		return
 	}
 
