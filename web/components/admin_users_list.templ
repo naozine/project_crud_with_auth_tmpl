@@ -100,7 +100,7 @@ templ AdminUserCard(user database.User) {
                     >編集</button>
                     <button
                         class="text-red-600 hover:text-red-800 text-sm font-medium"
-                        data-on:click={ fmt.Sprintf("confirm('本当にこのユーザーを削除しますか？') && @delete('/api/sse/admin/users/%d')", user.ID) }
+                        data-on:click={ fmt.Sprintf("$confirmMsg = '本当にこのユーザーを削除しますか？'; $confirmUrl = '/api/sse/admin/users/%d'; $confirmMethod = 'delete'; document.getElementById('confirm-dialog').showModal()", user.ID) }
                     >削除</button>
                 </div>
             </div>

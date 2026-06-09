@@ -64,7 +64,7 @@ templ ProfileSecurityCard(email string, hasPasskey bool) {
                     @SecondaryButton("別のパスキーを追加", templ.Attributes{"data-email": email, "onclick": "registerPasskey(this.dataset.email)"})
                     <button
                         class="inline-flex items-center rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-100"
-                        data-on:click="confirm('本当に全てのパスキーを削除しますか？次回からパスキーでログインできなくなります。') && @delete('/api/sse/profile/passkeys')"
+                        data-on:click="$confirmMsg = '本当に全てのパスキーを削除しますか？次回からパスキーでログインできなくなります。'; $confirmUrl = '/api/sse/profile/passkeys'; $confirmMethod = 'delete'; document.getElementById('confirm-dialog').showModal()"
                     >全削除</button>
                 </div>
             } else {
