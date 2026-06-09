@@ -7,6 +7,7 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
+	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
 	"github.com/starfederation/datastar-go/datastar"
 )
 
@@ -53,7 +54,9 @@ func (h *ProfileSSEHandler) UpdateProfileSSE(w http.ResponseWriter, r *http.Requ
 	}
 
 	sse := newSSE(w, r)
-	sse.ExecuteScript("window.location.reload()")
+	// シェルは email 表示で名前を出さないため、保存後は originalName を更新して
+	// 保存ボタンを disabled に戻すだけでよい（reload しない）。
+	_ = sse.MarshalAndPatchSignals(map[string]any{"originalName": signals.ProfileName})
 }
 
 func (h *ProfileSSEHandler) DeletePasskeysSSE(w http.ResponseWriter, r *http.Request) {
@@ -73,5 +76,12 @@ func (h *ProfileSSEHandler) DeletePasskeysSSE(w http.ResponseWriter, r *http.Req
 	}
 
 	sse := newSSE(w, r)
-	sse.ExecuteScript("window.location.reload()")
+	// セキュリティカードだけを未登録状態に差し替える（reload しない）。
+	if err := sse.PatchElementTempl(
+		components.ProfileSecurityCard(email, false),
+		datastar.WithSelectorID("profile-security"),
+		datastar.WithModeOuter(),
+	); err != nil {
+		logger.Error("SSE PatchElementTempl failed", "error", err)
+	}
 }
