@@ -51,6 +51,7 @@ func (h *AdminSSEHandler) CreateUserDialogSSE(w http.ResponseWriter, r *http.Req
 		return
 	}
 	sse.ExecuteScript("document.getElementById('user-add-dialog')?.close()")
+	sendToast(sse, "ユーザーを追加しました")
 }
 
 func (h *AdminSSEHandler) createUser(ctx context.Context, name, email, role string) (database.User, error) {
@@ -151,6 +152,7 @@ func (h *AdminSSEHandler) UpdateUserSSE(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	sse.ExecuteScript("document.getElementById('user-edit-dialog')?.close()")
+	sendToast(sse, "ユーザーを更新しました")
 }
 
 func (h *AdminSSEHandler) DeleteUserSSE(w http.ResponseWriter, r *http.Request) {
@@ -177,4 +179,5 @@ func (h *AdminSSEHandler) DeleteUserSSE(w http.ResponseWriter, r *http.Request) 
 	if err := sse.RemoveElementByID(fmt.Sprintf("user-%d", id)); err != nil {
 		logger.Error("SSE RemoveElementByID failed", "error", err)
 	}
+	sendToast(sse, "ユーザーを削除しました")
 }

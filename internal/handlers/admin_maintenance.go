@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
@@ -43,4 +44,9 @@ func (h *MaintenanceHandler) ToggleSSE(w http.ResponseWriter, r *http.Request) {
 	); err != nil {
 		logger.Error("SSE PatchElementTempl failed", "error", err)
 	}
+	state := "OFF"
+	if !cur {
+		state = "ON"
+	}
+	sendToast(sse, fmt.Sprintf("メンテナンスモードを%sにしました", state))
 }

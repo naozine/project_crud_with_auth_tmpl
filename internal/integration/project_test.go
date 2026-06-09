@@ -33,6 +33,10 @@ func TestProjects_CreateSSE_PatchesGridNoReload(t *testing.T) {
 	if !strings.Contains(body, "PatchedProject") {
 		t.Errorf("新プロジェクトが patch に含まれない。body: %s", body)
 	}
+	// 成功トースト（patch 化で reload しなくなった操作のフィードバック）
+	if !strings.Contains(body, "toast-container") || !strings.Contains(body, "プロジェクトを作成しました") {
+		t.Errorf("成功トーストが含まれていない。body: %s", body)
+	}
 }
 
 func TestProjects_UpdateSSE_PatchesCardNoReload(t *testing.T) {
