@@ -28,6 +28,7 @@ func RegisterSSERoutes(r chi.Router, queries *database.Queries, ml *magiclink.Ma
 		r.Group(func(r chi.Router) {
 			r.Use(requireWrite)
 			r.Post("/projects/new", projectSSE.CreateProjectSSE)
+			r.Get("/projects/{id}/edit", projectSSE.EditProjectDialogSSE)
 			r.Put("/projects/{id}", projectSSE.UpdateProjectSSE)
 			r.Delete("/projects/{id}", projectSSE.DeleteProjectSSE)
 		})

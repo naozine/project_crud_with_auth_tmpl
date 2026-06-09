@@ -16,23 +16,14 @@ func RegisterBusinessRoutes(r chi.Router, queries *database.Queries, authMW func
 	projectHandler := handlers.NewProjectHandler(queries)
 	importHandler := handlers.NewUserImportHandler(queries)
 
-	requireWrite := appMiddleware.RequireRole(roles.Admin, roles.Editor)
 	requireAdmin := appMiddleware.RequireRole(roles.Admin)
 
+	// プロジェクトの作成・編集・削除は Datastar SSE（/api/sse/projects/*）で行う。
+	// 通常ルートは一覧・詳細の表示のみ。
 	r.Route("/projects", func(r chi.Router) {
 		r.Use(authMW)
 		r.Get("/", projectHandler.ListProjects)
 		r.Get("/{id}", projectHandler.ShowProject)
-
-		r.Group(func(r chi.Router) {
-			r.Use(requireWrite)
-			r.Use(appMiddleware.MaxBodySize(limits.ProjectFormBody))
-			r.Get("/new", projectHandler.NewProjectPage)
-			r.Post("/new", projectHandler.CreateProject)
-			r.Get("/{id}/edit", projectHandler.EditProjectPage)
-			r.Post("/{id}/update", projectHandler.UpdateProject)
-			r.Post("/{id}/delete", projectHandler.DeleteProject)
-		})
 	})
 
 	// ユーザー一括インポート（admin のみ）
