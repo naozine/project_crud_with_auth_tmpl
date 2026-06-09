@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -33,35 +34,46 @@ func (h *AdminSSEHandler) CreateUserDialogSSE(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if err := h.createUser(r.Context(), signals.NewName, signals.NewEmail, signals.NewRole); err != nil {
+	user, err := h.createUser(r.Context(), signals.NewName, signals.NewEmail, signals.NewRole)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	sse := newSSE(w, r)
-	sse.ExecuteScript("document.getElementById('user-add-dialog')?.close(); window.location.reload()")
+	// 新しいカードを一覧末尾に追加する（reload しない）。
+	if err := sse.PatchElementTempl(
+		components.AdminUserCard(user),
+		datastar.WithSelectorID("users-table"),
+		datastar.WithModeAppend(),
+	); err != nil {
+		logger.Error("SSE PatchElementTempl failed", "error", err)
+		return
+	}
+	sse.ExecuteScript("document.getElementById('user-add-dialog')?.close()")
 }
 
-func (h *AdminSSEHandler) createUser(ctx context.Context, name, email, role string) error {
+func (h *AdminSSEHandler) createUser(ctx context.Context, name, email, role string) (database.User, error) {
 	if name == "" || email == "" || role == "" {
-		return http.ErrAbortHandler
+		return database.User{}, http.ErrAbortHandler
 	}
 
 	if !roles.IsValid(role) {
-		return http.ErrAbortHandler
+		return database.User{}, http.ErrAbortHandler
 	}
 
-	if _, err := h.Queries.CreateUser(ctx, database.CreateUserParams{
+	user, err := h.Queries.CreateUser(ctx, database.CreateUserParams{
 		Email:    email,
 		Name:     name,
 		Role:     role,
 		IsActive: true,
-	}); err != nil {
+	})
+	if err != nil {
 		logger.Error("ユーザー作成に失敗", "error", err, "email", email)
-		return err
+		return database.User{}, err
 	}
 
-	return nil
+	return user, nil
 }
 
 func (h *AdminSSEHandler) EditUserDialogSSE(w http.ResponseWriter, r *http.Request) {
@@ -122,8 +134,23 @@ func (h *AdminSSEHandler) UpdateUserSSE(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// 更新後のユーザーを取得し、該当カードだけを patch する（reload しない）。
+	user, err := h.Queries.GetUserByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "ユーザーが見つかりません", http.StatusNotFound)
+		return
+	}
+
 	sse := newSSE(w, r)
-	sse.ExecuteScript("document.getElementById('user-edit-dialog')?.close(); window.location.reload()")
+	if err := sse.PatchElementTempl(
+		components.AdminUserCard(user),
+		datastar.WithSelectorID(fmt.Sprintf("user-%d", id)),
+		datastar.WithModeOuter(),
+	); err != nil {
+		logger.Error("SSE PatchElementTempl failed", "error", err)
+		return
+	}
+	sse.ExecuteScript("document.getElementById('user-edit-dialog')?.close()")
 }
 
 func (h *AdminSSEHandler) DeleteUserSSE(w http.ResponseWriter, r *http.Request) {
@@ -146,5 +173,8 @@ func (h *AdminSSEHandler) DeleteUserSSE(w http.ResponseWriter, r *http.Request) 
 	}
 
 	sse := newSSE(w, r)
-	sse.ExecuteScript("document.getElementById('user-edit-dialog')?.close(); window.location.reload()")
+	// 該当カードを除去する（reload しない）。
+	if err := sse.RemoveElementByID(fmt.Sprintf("user-%d", id)); err != nil {
+		logger.Error("SSE RemoveElementByID failed", "error", err)
+	}
 }

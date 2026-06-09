@@ -2,6 +2,7 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -105,6 +106,38 @@ func TestAdminCRUD_UpdateUser_Deactivate(t *testing.T) {
 	}
 }
 
+// TestAdminCRUD_UpdateUser_PatchesCardNoReload は、編集保存が reload ではなく
+// 該当カードだけの patch になっていることを担保する（UI 更新方針の回帰防止）。
+func TestAdminCRUD_UpdateUser_PatchesCardNoReload(t *testing.T) {
+	conn := SetupTestDB(t)
+	e := SetupTestServer(t, conn)
+	seed := SeedTestData(t, conn)
+
+	targetID := seed.ViewerUser.ID
+
+	rec := DoSSERequest(e, http.MethodPut, sprintf("/api/sse/admin/users/%d", targetID),
+		&seed.AdminUser,
+		`{"editName":"PatchedName","editRole":"editor","editStatus":"active"}`)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("ステータスコード = %d, want %d, body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	body := rec.Body.String()
+	if strings.Contains(body, "location.reload") {
+		t.Errorf("reload してはいけない（patch 化されていない）。body: %s", body)
+	}
+	if !strings.Contains(body, "datastar-patch-elements") {
+		t.Errorf("datastar-patch-elements イベントが無い。body: %s", body)
+	}
+	if !strings.Contains(body, sprintf("user-%d", targetID)) {
+		t.Errorf("該当カード id (user-%d) が patch に含まれない。body: %s", targetID, body)
+	}
+	if !strings.Contains(body, "PatchedName") {
+		t.Errorf("更新後の名前が patch に含まれない。body: %s", body)
+	}
+}
+
 func TestAdminCRUD_DeleteUser(t *testing.T) {
 	conn := SetupTestDB(t)
 	e := SetupTestServer(t, conn)
@@ -142,5 +175,57 @@ func TestAdminCRUD_DeleteUser_PreventSelfDeletion(t *testing.T) {
 	_, err := q.GetUserByID(t.Context(), seed.AdminUser.ID)
 	if err != nil {
 		t.Error("自分自身が削除されてしまった")
+	}
+}
+
+// TestAdminCRUD_CreateUser_AppendsCardNoReload は、追加が reload ではなく
+// 新カードの append になっていることを担保する。
+func TestAdminCRUD_CreateUser_AppendsCardNoReload(t *testing.T) {
+	conn := SetupTestDB(t)
+	e := SetupTestServer(t, conn)
+	seed := SeedTestData(t, conn)
+
+	rec := DoSSERequest(e, http.MethodPost, "/api/sse/admin/users/create",
+		&seed.AdminUser,
+		`{"newName":"AppendedUser","newEmail":"appended@test.com","newRole":"editor"}`)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("ステータスコード = %d, want %d, body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	body := rec.Body.String()
+	if strings.Contains(body, "location.reload") {
+		t.Errorf("reload してはいけない。body: %s", body)
+	}
+	if !strings.Contains(body, "datastar-patch-elements") {
+		t.Errorf("datastar-patch-elements が無い。body: %s", body)
+	}
+	if !strings.Contains(body, "AppendedUser") {
+		t.Errorf("新ユーザーのカードが patch に含まれない。body: %s", body)
+	}
+}
+
+// TestAdminCRUD_DeleteUser_RemovesCardNoReload は、削除が reload ではなく
+// 該当カードの除去になっていることを担保する。
+func TestAdminCRUD_DeleteUser_RemovesCardNoReload(t *testing.T) {
+	conn := SetupTestDB(t)
+	e := SetupTestServer(t, conn)
+	seed := SeedTestData(t, conn)
+
+	targetID := seed.DeletableUser.ID
+
+	rec := DoSSERequest(e, http.MethodDelete, sprintf("/api/sse/admin/users/%d", targetID),
+		&seed.AdminUser, "")
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("ステータスコード = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	body := rec.Body.String()
+	if strings.Contains(body, "location.reload") {
+		t.Errorf("reload してはいけない。body: %s", body)
+	}
+	if !strings.Contains(body, sprintf("user-%d", targetID)) {
+		t.Errorf("削除対象カード id (user-%d) が patch に含まれない。body: %s", targetID, body)
 	}
 }
