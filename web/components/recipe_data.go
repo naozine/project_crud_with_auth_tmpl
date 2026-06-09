@@ -10,6 +10,12 @@ type RecipeTodo struct {
 	Text string
 }
 
+// RecipeItem はダイアログ編集デモ（遷移なし）の1項目。
+type RecipeItem struct {
+	ID   int
+	Name string
+}
+
 // 1. 双方向バインド（フロントのみ）
 const RecipeBindFront = `<div data-signals:name="''">
   <input data-bind:name placeholder="your name"/>
@@ -149,4 +155,43 @@ const RecipeVScrollBack = `func RecipeVRows(w http.ResponseWriter, r *http.Reque
     // #vrows を outer 置換。窓は translateY(start*rowH) で正しい位置に。
     sse.PatchElementTempl(RecipeVRows(start, end),
         datastar.WithSelectorID("vrows"), datastar.WithModeOuter())
+}`
+
+// 10. ダイアログ編集（遷移なし・PRG の代替）。
+// 行の edit → @get でダイアログ表示。保存(@put)で該当行だけ patch しダイアログを閉じる。
+// ページ遷移も reload もしない。
+const RecipeItemEditFront = `<ul id="recipe-items">
+  <li id="item-1" class="flex gap-2">
+    <span>Alpha</span>
+    <button data-on:click="@get('/datastar/recipes/api/items/1/edit')">edit</button>
+  </li>
+  <!-- ...other rows... -->
+</ul>
+<div id="recipe-item-dialog-container"></div>
+
+<!-- @get で挿入される編集ダイアログ（signal は小文字 editname）: -->
+<dialog id="recipe-item-dialog" data-signals="{editname: 'Alpha'}">
+  <form data-on:submit__prevent="@put('/datastar/recipes/api/items/1')">
+    <input data-bind:editname/>
+    <button>save</button>
+  </form>
+</dialog>`
+
+const RecipeItemEditBack = `// 編集ダイアログを開く（@get）
+func RecipeItemEdit(w http.ResponseWriter, r *http.Request) {
+    item := store.item(id)
+    sse := datastar.NewSSE(w, r)
+    sse.PatchElementTempl(RecipeItemEditDialog(item),
+        datastar.WithSelectorID("recipe-item-dialog-container"), datastar.WithModeInner())
+    sse.ExecuteScript("document.getElementById('recipe-item-dialog').showModal()")
+}
+// 保存（@put）— 該当行だけ patch、reload も遷移もしない
+func RecipeItemUpdate(w http.ResponseWriter, r *http.Request) {
+    var sig struct{ Editname string ` + "`json:\"editname\"`" + ` }
+    datastar.ReadSignals(r, &sig)
+    store.updateItem(id, sig.Editname)
+    sse := datastar.NewSSE(w, r)
+    sse.PatchElementTempl(RecipeItemRow(store.item(id)),
+        datastar.WithSelectorID(fmt.Sprintf("item-%d", id)), datastar.WithModeOuter())
+    sse.ExecuteScript("document.getElementById('recipe-item-dialog').close()")
 }`
