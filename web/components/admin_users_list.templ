@@ -74,28 +74,36 @@ templ AdminUserEditDialog(user database.User) {
 templ adminUsersCards(users []database.User) {
     <div id="users-table" class="space-y-3">
         for _, user := range users {
-            @SectionCard() {
-                <div class="flex items-start justify-between">
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="text-sm font-medium text-gray-900">{ user.Name }</span>
-                            @RoleBadge(user.Role)
-                            @StatusBadge(user.IsActive)
-                        </div>
-                        <p class="mt-1 text-sm text-gray-500 truncate">{ user.Email }</p>
+            @AdminUserCard(user)
+        }
+    </div>
+}
+
+// AdminUserCard は1ユーザーのカード。編集保存時にサーバがこの要素だけを
+// id (user-N) で outer 置換する（reload しない）。
+templ AdminUserCard(user database.User) {
+    <div id={ fmt.Sprintf("user-%d", user.ID) }>
+        @SectionCard() {
+            <div class="flex items-start justify-between">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-medium text-gray-900">{ user.Name }</span>
+                        @RoleBadge(user.Role)
+                        @StatusBadge(user.IsActive)
                     </div>
-                    <div class="flex items-center gap-3 ml-4 flex-shrink-0">
-                        <button
-                            class="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                            data-on:click={ fmt.Sprintf("@get('/api/sse/admin/users/%d/edit')", user.ID) }
-                        >編集</button>
-                        <button
-                            class="text-red-600 hover:text-red-800 text-sm font-medium"
-                            data-on:click={ fmt.Sprintf("confirm('本当にこのユーザーを削除しますか？') && @delete('/api/sse/admin/users/%d')", user.ID) }
-                        >削除</button>
-                    </div>
+                    <p class="mt-1 text-sm text-gray-500 truncate">{ user.Email }</p>
                 </div>
-            }
+                <div class="flex items-center gap-3 ml-4 flex-shrink-0">
+                    <button
+                        class="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                        data-on:click={ fmt.Sprintf("@get('/api/sse/admin/users/%d/edit')", user.ID) }
+                    >編集</button>
+                    <button
+                        class="text-red-600 hover:text-red-800 text-sm font-medium"
+                        data-on:click={ fmt.Sprintf("confirm('本当にこのユーザーを削除しますか？') && @delete('/api/sse/admin/users/%d')", user.ID) }
+                    >削除</button>
+                </div>
+            </div>
         }
     </div>
 }
