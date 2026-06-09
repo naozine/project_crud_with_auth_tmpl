@@ -168,6 +168,15 @@ templ Shell(title string, currentPath string, content templ.Component) {
 
 			<!-- Modal container for Datastar -->
 			<div id="modal-container"></div>
+			<!-- 汎用確認ダイアログ（ネイティブ confirm の置き換え）。
+			     各操作ボタンが $confirmMsg/$confirmUrl/$confirmMethod を設定して開く。-->
+			<dialog id="confirm-dialog" data-signals="{confirmMsg: '', confirmUrl: '', confirmMethod: 'delete'}" class="m-auto max-w-sm rounded-lg p-6 backdrop:bg-black/30">
+				<p class="mb-5 text-sm text-gray-700" data-text="$confirmMsg"></p>
+				<div class="flex justify-end gap-2">
+					<button type="button" class="rounded bg-gray-200 px-3 py-1.5 text-sm" data-on:click="document.getElementById('confirm-dialog').close()">キャンセル</button>
+					<button type="button" class="rounded bg-red-600 px-3 py-1.5 text-sm text-white" data-on:click="document.getElementById('confirm-dialog').close(); $confirmMethod === 'delete' ? @delete($confirmUrl) : @post($confirmUrl)">OK</button>
+				</div>
+			</dialog>
 			<!-- Toast container（SSE で append される成功通知。数秒で自動消去）-->
 			<div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
 			<!-- fetch エラーの汎用ハンドリング（4xx/5xx/ネットワーク）。

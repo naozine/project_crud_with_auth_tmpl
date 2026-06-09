@@ -26,7 +26,7 @@ templ AdminMaintenancePanel(enabled bool) {
                     <button
                         type="button"
                         class="inline-flex items-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800"
-                        data-on:click="confirm('メンテナンスモードを解除しますか？') && @post('/api/sse/admin/maintenance/toggle')"
+                        data-on:click="$confirmMsg = 'メンテナンスモードを解除しますか？'; $confirmUrl = '/api/sse/admin/maintenance/toggle'; $confirmMethod = 'post'; document.getElementById('confirm-dialog').showModal()"
                     >メンテナンスモードを解除</button>
                 </div>
             } else {
@@ -43,7 +43,7 @@ templ AdminMaintenancePanel(enabled bool) {
                     <button
                         type="button"
                         class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-amber-700 shadow-sm ring-1 ring-inset ring-amber-300 hover:bg-amber-50"
-                        data-on:click="confirm('メンテナンスモードを開始しますか？\n\n一般ユーザーはログインできなくなります（既にログイン中のセッションは維持されます）。') && @post('/api/sse/admin/maintenance/toggle')"
+                        data-on:click="$confirmMsg = 'メンテナンスモードを開始しますか？ 一般ユーザーはログインできなくなります（ログイン中のセッションは維持されます）。'; $confirmUrl = '/api/sse/admin/maintenance/toggle'; $confirmMethod = 'post'; document.getElementById('confirm-dialog').showModal()"
                     >メンテナンスモードを開始</button>
                 </div>
             }
