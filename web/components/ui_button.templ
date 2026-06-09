@@ -7,6 +7,16 @@ templ PrimaryButton(text string) {
     </button>
 }
 
+// PrimarySubmitButton は data-attr:disabled の式を受け取る送信ボタン。
+// 入力ミス（空など）を送信前に防ぐためのバリデーションに使う。
+templ PrimarySubmitButton(text string, disableExpr string) {
+    <button type="submit"
+        data-attr:disabled={ disableExpr }
+        class="rounded-md bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
+        { text }
+    </button>
+}
+
 // PrimaryButtonFull は横幅いっぱいのプライマリボタンを描画する。
 templ PrimaryButtonFull(text string) {
     <button type="submit" class="w-full rounded-md bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">

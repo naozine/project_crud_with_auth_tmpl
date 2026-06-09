@@ -89,7 +89,7 @@ templ projectAddDialog() {
             }
 
             @DialogFooter("project-add-dialog") {
-                @PrimaryButton("作成")
+                @PrimarySubmitButton("作成", "$name.trim() === ''")
             }
         </form>
     }

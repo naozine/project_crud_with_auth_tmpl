@@ -17,7 +17,7 @@ templ ProjectEditDialog(project database.Project) {
             }
 
             @DialogFooter("project-edit-dialog") {
-                @PrimaryButton("保存")
+                @PrimarySubmitButton("保存", "$name.trim() === ''")
             }
         </form>
     }

@@ -170,6 +170,22 @@ templ Shell(title string, currentPath string, content templ.Component) {
 			<div id="modal-container"></div>
 			<!-- Toast container（SSE で append される成功通知。数秒で自動消去）-->
 			<div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+			<!-- fetch エラーの汎用ハンドリング（4xx/5xx/ネットワーク）。
+			     datastar-fetch の detail にエラー本文は無いため汎用メッセージを出す。
+			     入力ミスは各フォームの送信ボタン disabled で送信前に防ぐ方針。-->
+			<div data-on:datastar-fetch__window="evt.detail.type === 'error' && showErrorToast()"></div>
+			<script>
+				function showErrorToast() {
+					var c = document.getElementById('toast-container');
+					if (!c) return;
+					var el = document.createElement('div');
+					el.className = 'rounded-md bg-red-600 px-4 py-2 text-sm text-white shadow-lg';
+					el.setAttribute('role', 'alert');
+					el.textContent = 'エラーが発生しました。時間をおいて再度お試しください。';
+					c.appendChild(el);
+					setTimeout(function () { el.remove(); }, 4000);
+				}
+			</script>
 		</body>
 	</html>
 }
