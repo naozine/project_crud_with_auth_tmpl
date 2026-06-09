@@ -7,6 +7,7 @@ import (
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/maintenance"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
+	"github.com/starfederation/datastar-go/datastar"
 )
 
 type MaintenanceHandler struct {
@@ -23,8 +24,8 @@ func (h *MaintenanceHandler) Page(w http.ResponseWriter, r *http.Request) {
 	renderShell(w, r, "メンテナンスモード", components.AdminMaintenance(enabled))
 }
 
-// ToggleSSE は現在のメンテモードを反転させて、画面リロードを指示する。
-// Datastar 経由 (POST /api/sse/admin/maintenance/toggle)。
+// ToggleSSE は現在のメンテモードを反転させ、状態パネルだけを patch する。
+// Datastar 経由 (POST /api/sse/admin/maintenance/toggle)。reload しない。
 func (h *MaintenanceHandler) ToggleSSE(w http.ResponseWriter, r *http.Request) {
 	cur := maintenance.IsEnabled(r.Context(), h.Queries)
 	if err := maintenance.SetEnabled(r.Context(), h.Queries, !cur); err != nil {
@@ -34,5 +35,12 @@ func (h *MaintenanceHandler) ToggleSSE(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sse := newSSE(w, r)
-	sse.ExecuteScript("window.location.reload()")
+	// 状態パネルだけを差し替える（reload しない）。
+	if err := sse.PatchElementTempl(
+		components.AdminMaintenancePanel(!cur),
+		datastar.WithSelectorID("maintenance-panel"),
+		datastar.WithModeOuter(),
+	); err != nil {
+		logger.Error("SSE PatchElementTempl failed", "error", err)
+	}
 }

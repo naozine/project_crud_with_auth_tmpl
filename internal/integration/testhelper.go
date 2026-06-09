@@ -169,6 +169,9 @@ func registerTestSSERoutes(r chi.Router, queries *database.Queries, authMW func(
 	projectSSE := handlers.NewProjectSSEHandler(queries)
 	adminSSE := handlers.NewAdminSSEHandler(queries)
 	maintenanceHandler := handlers.NewMaintenanceHandler(queries)
+	// Profile: UpdateProfileSSE は magiclink 非依存なので ml=nil で登録できる
+	// （DeletePasskeysSSE は ml 依存のためテスト対象外）。
+	profileSSE := handlers.NewProfileSSEHandler(queries, nil)
 
 	requireWrite := appMiddleware.RequireRole("admin", "editor")
 	requireAdmin := appMiddleware.RequireRole("admin")
@@ -192,6 +195,9 @@ func registerTestSSERoutes(r chi.Router, queries *database.Queries, authMW func(
 
 			r.Post("/admin/maintenance/toggle", maintenanceHandler.ToggleSSE)
 		})
+
+		// Profile（認証のみ。UpdateProfileSSE は ml 非依存）
+		r.Put("/profile", profileSSE.UpdateProfileSSE)
 	})
 }
 

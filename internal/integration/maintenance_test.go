@@ -3,6 +3,7 @@ package integration
 import (
 	"bytes"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
@@ -75,6 +76,30 @@ func TestMaintenance_ToggleSSE(t *testing.T) {
 	rec = DoSSERequest(e, http.MethodPost, "/api/sse/admin/maintenance/toggle", nil, "")
 	if rec.Code != http.StatusSeeOther {
 		t.Errorf("unauth: got %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+}
+
+// TestMaintenance_ToggleSSE_PatchesPanelNoReload は、トグルが reload ではなく
+// 状態パネルの patch になっていることを担保する。
+func TestMaintenance_ToggleSSE_PatchesPanelNoReload(t *testing.T) {
+	conn := SetupTestDB(t)
+	e := SetupTestServer(t, conn)
+	seed := SeedTestData(t, conn)
+
+	rec := DoSSERequest(e, http.MethodPost, "/api/sse/admin/maintenance/toggle", &seed.AdminUser, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	body := rec.Body.String()
+	if strings.Contains(body, "location.reload") {
+		t.Errorf("reload してはいけない。body: %s", body)
+	}
+	if !strings.Contains(body, "datastar-patch-elements") {
+		t.Errorf("datastar-patch-elements が無い。body: %s", body)
+	}
+	if !strings.Contains(body, "maintenance-panel") {
+		t.Errorf("maintenance-panel が patch に含まれない。body: %s", body)
 	}
 }
 
