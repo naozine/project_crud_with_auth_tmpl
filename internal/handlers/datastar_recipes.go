@@ -29,6 +29,7 @@ type recipeStore struct {
 	counter int
 	todos   []components.RecipeTodo
 	nextID  int
+	items   []components.RecipeItem
 }
 
 var recipeState = &recipeStore{}
@@ -75,6 +76,53 @@ func (s *recipeStore) reset() {
 	defer s.mu.Unlock()
 	s.counter = 0
 	s.todos = nil
+	s.items = nil
+}
+
+// items はダイアログ編集デモ用。初回アクセス時に seed し、全訪問者で共有、
+// reset で初期化される。
+func (s *recipeStore) seedItemsLocked() {
+	if len(s.items) == 0 {
+		s.items = []components.RecipeItem{
+			{ID: 1, Name: "Alpha"},
+			{ID: 2, Name: "Bravo"},
+			{ID: 3, Name: "Charlie"},
+		}
+	}
+}
+
+func (s *recipeStore) snapshotItems() []components.RecipeItem {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.seedItemsLocked()
+	out := make([]components.RecipeItem, len(s.items))
+	copy(out, s.items)
+	return out
+}
+
+func (s *recipeStore) item(id int) (components.RecipeItem, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.seedItemsLocked()
+	for _, it := range s.items {
+		if it.ID == id {
+			return it, true
+		}
+	}
+	return components.RecipeItem{}, false
+}
+
+func (s *recipeStore) updateItem(id int, name string) (components.RecipeItem, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.seedItemsLocked()
+	for i := range s.items {
+		if s.items[i].ID == id {
+			s.items[i].Name = name
+			return s.items[i], true
+		}
+	}
+	return components.RecipeItem{}, false
 }
 
 // recipeFruits はライブ検索デモ用の固定リスト。
@@ -87,7 +135,7 @@ var recipeFruits = []string{
 func DatastarRecipesPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	_ = components.DatastarRecipes(recipeState.snapshotTodos()).Render(r.Context(), w)
+	_ = components.DatastarRecipes(recipeState.snapshotTodos(), recipeState.snapshotItems()).Render(r.Context(), w)
 }
 
 // --- レシピ 2: サーバ往復カウンタ（@post → MarshalAndPatchSignals）---
@@ -216,6 +264,55 @@ func RecipeVRows(w http.ResponseWriter, r *http.Request) {
 		datastar.WithSelectorID("vrows"),
 		datastar.WithModeOuter(),
 	)
+}
+
+// --- レシピ 10: ダイアログ編集（遷移なし・PRG の代替）---
+// 行の edit → @get でダイアログ表示。保存(@put)で該当行だけ patch しダイアログを閉じる。
+// ページ遷移も reload もしない。
+
+func RecipeItemEdit(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	item, ok := recipeState.item(id)
+	if !ok {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	sse := datastar.NewSSE(w, r)
+	_ = sse.PatchElementTempl(
+		components.RecipeItemEditDialog(item),
+		datastar.WithSelectorID("recipe-item-dialog-container"),
+		datastar.WithModeInner(),
+	)
+	_ = sse.ExecuteScript("document.getElementById('recipe-item-dialog')?.showModal()")
+}
+
+func RecipeItemUpdate(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	var sig struct {
+		Editname string `json:"editname"`
+	}
+	_ = datastar.ReadSignals(r, &sig)
+	item, ok := recipeState.updateItem(id, strings.TrimSpace(sig.Editname))
+	if !ok {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	sse := datastar.NewSSE(w, r)
+	// 該当行だけ outer 置換。reload も遷移もしない（Datastar 流の編集）。
+	_ = sse.PatchElementTempl(
+		components.RecipeItemRow(item),
+		datastar.WithSelectorID(fmt.Sprintf("item-%d", id)),
+		datastar.WithModeOuter(),
+	)
+	_ = sse.ExecuteScript("document.getElementById('recipe-item-dialog')?.close()")
 }
 
 // --- リセット（インメモリ状態を初期化してリロード）---

@@ -548,8 +548,10 @@ These options map 1:1 to the SSE `selector` / `mode` / `useViewTransition` data 
 ### Live recipes
 A runnable, source-annotated recipe set is served at **`/datastar/recipes`** (public,
 DB-free in-memory demos): two-way bind, server round-trip counter, in-memory TODO CRUD,
-live search, indicator, polling, dialog, dropdown, and a **JS-free virtual scroll**
-(server round-trip windowing). Source to copy from:
+live search, indicator, polling, dialog, dropdown, a **JS-free virtual scroll**
+(server round-trip windowing), and **dialog edit with no navigation/reload** (the
+SPA-style alternative to PRG: edit in a dialog → `@put` → server patches just that row
+and closes the dialog — no page transition, no reload). Source to copy from:
 `web/components/datastar_recipes.templ` + `internal/handlers/datastar_recipes.go`.
 
 > **Virtual scroll — core vs Pro.** The core recipe keeps the DOM to a fixed number

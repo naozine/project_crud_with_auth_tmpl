@@ -11,7 +11,7 @@ import (
 // 見せるお手本レシピ集（/datastar/recipes、認証不要・本番公開）。
 // バックエンドは internal/handlers/datastar_recipes.go（DB 非依存のインメモリ）。
 
-templ DatastarRecipes(todos []RecipeTodo) {
+templ DatastarRecipes(todos []RecipeTodo, items []RecipeItem) {
 	<!DOCTYPE html>
 	<html lang="ja">
 		@layouts.Head("Datastar Recipes") {
@@ -112,6 +112,15 @@ templ DatastarRecipes(todos []RecipeTodo) {
 					</div>
 					<p class="text-xs text-gray-500 mt-1">全 { fmt.Sprint(RecipeVTotal) } 行。DevTools で #vrows 内の行数が一定のままスクロールできるのを確認できる。</p>
 				}
+				<!-- 10. ダイアログ編集（遷移なし・PRG の代替）-->
+				@recipeCard("10. ダイアログ編集（遷移なし・PRG の代替）", "行の edit → @get でダイアログ表示。保存で該当行だけ patch しダイアログを閉じる。ページ遷移も reload もしない（admin の「保存後 reload」を置き換える Datastar 流の推奨形）。", RecipeItemEditFront, RecipeItemEditBack) {
+					<div>
+						<ul id="recipe-items" class="divide-y border rounded">
+							@RecipeItemList(items)
+						</ul>
+						<div id="recipe-item-dialog-container"></div>
+					</div>
+				}
 			</div>
 		</body>
 	</html>
@@ -183,4 +192,33 @@ templ RecipeVRows(start int, end int) {
 			<div style={ fmt.Sprintf("height:%dpx", RecipeVRowH) } class="px-3 border-b text-sm leading-[30px]">Row { fmt.Sprint(i + 1) }</div>
 		}
 	</div>
+}
+
+// RecipeItemList / RecipeItemRow / RecipeItemEditDialog はダイアログ編集（遷移なし）用。
+templ RecipeItemList(items []RecipeItem) {
+	for _, it := range items {
+		@RecipeItemRow(it)
+	}
+}
+
+// RecipeItemRow は1行。保存時にサーバがこの行だけを outer 置換する（id で特定）。
+templ RecipeItemRow(item RecipeItem) {
+	<li id={ fmt.Sprintf("item-%d", item.ID) } class="flex items-center gap-2 px-3 py-2">
+		<span class="flex-1">{ item.Name }</span>
+		<button class="text-blue-600 text-sm" data-on:click={ fmt.Sprintf("@get('/datastar/recipes/api/items/%d/edit')", item.ID) }>edit</button>
+	</li>
+}
+
+// RecipeItemEditDialog は @get で挿入される編集ダイアログ。signal は小文字 editname。
+templ RecipeItemEditDialog(item RecipeItem) {
+	<dialog id="recipe-item-dialog" data-signals={ fmt.Sprintf("{editname: '%s'}", item.Name) } class="m-auto rounded-lg p-6 backdrop:bg-black/30">
+		<form data-on:submit__prevent={ fmt.Sprintf("@put('/datastar/recipes/api/items/%d')", item.ID) } class="space-y-3">
+			<p class="text-sm text-gray-500">Edit item #{ fmt.Sprint(item.ID) }</p>
+			<input class="border px-2 py-1 rounded w-full" data-bind:editname/>
+			<div class="flex gap-2 justify-end">
+				<button type="button" class="bg-gray-200 px-3 py-1 rounded" data-on:click="document.getElementById('recipe-item-dialog').close()">cancel</button>
+				<button class="bg-blue-600 text-white px-3 py-1 rounded">save</button>
+			</div>
+		</form>
+	</dialog>
 }
