@@ -81,6 +81,7 @@ func (h *ProfileSSEHandler) DeletePasskeysSSE(w http.ResponseWriter, r *http.Req
 		components.ProfileSecurityCard(email, false),
 		datastar.WithSelectorID("profile-security"),
 		datastar.WithModeOuter(),
+		datastar.WithViewTransitions(),
 	); err != nil {
 		logger.Error("SSE PatchElementTempl failed", "error", err)
 	}

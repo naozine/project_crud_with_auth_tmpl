@@ -41,6 +41,7 @@ func (h *MaintenanceHandler) ToggleSSE(w http.ResponseWriter, r *http.Request) {
 		components.AdminMaintenancePanel(!cur),
 		datastar.WithSelectorID("maintenance-panel"),
 		datastar.WithModeOuter(),
+		datastar.WithViewTransitions(),
 	); err != nil {
 		logger.Error("SSE PatchElementTempl failed", "error", err)
 	}

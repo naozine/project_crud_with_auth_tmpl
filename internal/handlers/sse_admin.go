@@ -45,6 +45,7 @@ func (h *AdminSSEHandler) CreateUserDialogSSE(w http.ResponseWriter, r *http.Req
 		components.AdminUserCard(user),
 		datastar.WithSelectorID("users-table"),
 		datastar.WithModeAppend(),
+		datastar.WithViewTransitions(),
 	); err != nil {
 		logger.Error("SSE PatchElementTempl failed", "error", err)
 		return
@@ -145,6 +146,7 @@ func (h *AdminSSEHandler) UpdateUserSSE(w http.ResponseWriter, r *http.Request) 
 		components.AdminUserCard(user),
 		datastar.WithSelectorID(fmt.Sprintf("user-%d", id)),
 		datastar.WithModeOuter(),
+		datastar.WithViewTransitions(),
 	); err != nil {
 		logger.Error("SSE PatchElementTempl failed", "error", err)
 		return
@@ -174,8 +176,8 @@ func (h *AdminSSEHandler) DeleteUserSSE(w http.ResponseWriter, r *http.Request) 
 
 	sse := newSSE(w, r)
 	// 該当カードを除去する（reload しない）。
-	if err := sse.RemoveElementByID(fmt.Sprintf("user-%d", id)); err != nil {
-		logger.Error("SSE RemoveElementByID failed", "error", err)
+	if err := sse.RemoveElement(fmt.Sprintf("#user-%d", id), datastar.WithViewTransitions()); err != nil {
+		logger.Error("SSE RemoveElement failed", "error", err)
 	}
 	sendToast(sse, "ユーザーを削除しました")
 }

@@ -31,6 +31,7 @@ func (h *ProjectSSEHandler) patchGrid(sse *datastar.ServerSentEventGenerator, r 
 		components.ProjectCards(projects, true),
 		datastar.WithSelectorID("projects-grid"),
 		datastar.WithModeInner(),
+		datastar.WithViewTransitions(),
 	)
 }
 
@@ -120,6 +121,7 @@ func (h *ProjectSSEHandler) UpdateProjectSSE(w http.ResponseWriter, r *http.Requ
 		components.ProjectCard(project, true),
 		datastar.WithSelectorID(fmt.Sprintf("project-%d", id)),
 		datastar.WithModeOuter(),
+		datastar.WithViewTransitions(),
 	); err != nil {
 		logger.Error("SSE PatchElementTempl failed", "error", err)
 		return

@@ -545,13 +545,20 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 These options map 1:1 to the SSE `selector` / `mode` / `useViewTransition` data keys in §7.
 
+> **Fade/transition for free.** Adding `WithViewTransitions()` to a patch wraps the DOM
+> change in the View Transition API, whose browser default is a **crossfade** — so card
+> updates, list re-renders, and toasts fade smoothly with no extra CSS. Scope the
+> transition to one element with the SSE `viewTransitionSelector` (added v1.0.2).
+> Non-supporting browsers fall back to an instant update (progressive enhancement).
+
 ### Live recipes
 A runnable, source-annotated recipe set is served at **`/datastar/recipes`** (public,
 DB-free in-memory demos): two-way bind, server round-trip counter, in-memory TODO CRUD,
 live search, indicator, polling, dialog, dropdown, a **JS-free virtual scroll**
 (server round-trip windowing), and **dialog edit with no navigation/reload** (the
 SPA-style alternative to PRG: edit in a dialog → `@put` → server patches just that row
-and closes the dialog — no page transition, no reload). Source to copy from:
+and closes the dialog — no page transition, no reload), and a **view-transition fade**
+(`data-on:click__viewtransition`). Source to copy from:
 `web/components/datastar_recipes.templ` + `internal/handlers/datastar_recipes.go`.
 
 > **Virtual scroll — core vs Pro.** The core recipe keeps the DOM to a fixed number
