@@ -5,9 +5,9 @@
 package limits
 
 const (
-	// ProjectFormBody は /projects/* の POST/PUT 受信 body 上限。
-	// プロジェクト名等の小さなフォーム送信のみを想定。
-	ProjectFormBody = 1 << 20 // 1 MB
+	// SSESignalBody は Datastar SSE（@post/@put）の signals JSON 受信 body 上限。
+	// プロジェクト名・ユーザー名等の小さな signals のみを想定。
+	SSESignalBody = 1 << 20 // 1 MB
 
 	// UserImportBody は /admin/users/import の multipart 受信 body 上限。
 	// 5 MB の Excel ファイル + multipart オーバーヘッド分の余裕を見込む。

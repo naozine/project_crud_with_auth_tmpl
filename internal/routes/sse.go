@@ -7,6 +7,7 @@ import (
 	"github.com/naozine/nz-magic-link/magiclink"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/handlers"
+	"github.com/naozine/project_crud_with_auth_tmpl/internal/limits"
 	appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 )
@@ -23,6 +24,8 @@ func RegisterSSERoutes(r chi.Router, queries *database.Queries, ml *magiclink.Ma
 
 	r.Route("/api/sse", func(r chi.Router) {
 		r.Use(authMW)
+		// SSE 書き込み（@post/@put）の signals JSON body 上限（DoS 対策）。
+		r.Use(appMiddleware.MaxBodySize(limits.SSESignalBody))
 
 		// Projects
 		r.Group(func(r chi.Router) {

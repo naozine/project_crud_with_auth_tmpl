@@ -29,8 +29,7 @@ func (h *AdminSSEHandler) CreateUserDialogSSE(w http.ResponseWriter, r *http.Req
 		NewEmail string `json:"newEmail"`
 		NewRole  string `json:"newRole"`
 	}
-	if err := datastar.ReadSignals(r, &signals); err != nil {
-		http.Error(w, "無効なリクエストです", http.StatusBadRequest)
+	if !readSignalsOr413(w, r, &signals) {
 		return
 	}
 
@@ -117,8 +116,7 @@ func (h *AdminSSEHandler) UpdateUserSSE(w http.ResponseWriter, r *http.Request) 
 		EditRole   string `json:"editRole"`
 		EditStatus string `json:"editStatus"`
 	}
-	if err := datastar.ReadSignals(r, &signals); err != nil {
-		http.Error(w, "無効なリクエストです", http.StatusBadRequest)
+	if !readSignalsOr413(w, r, &signals) {
 		return
 	}
 
