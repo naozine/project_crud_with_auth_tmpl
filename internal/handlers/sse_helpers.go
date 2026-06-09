@@ -34,12 +34,15 @@ func readSignalsOr413(w http.ResponseWriter, r *http.Request, signals any) bool 
 
 // sendToast は #toast-container に通知を append し、数秒後に自動で取り除く。
 // patch 化により reload しなくなった操作の成功フィードバックに使う。
+// 表示は View Transition（既定クロスフェード）でフェードイン、削除も
+// startViewTransition でフェードアウトする（非対応ブラウザは即時）。
 func sendToast(sse *datastar.ServerSentEventGenerator, message string) {
 	id := fmt.Sprintf("toast-%d", time.Now().UnixNano())
 	_ = sse.PatchElementTempl(
 		components.Toast(id, message),
 		datastar.WithSelectorID("toast-container"),
 		datastar.WithModeAppend(),
+		datastar.WithViewTransitions(),
 	)
-	_ = sse.ExecuteScript(fmt.Sprintf("setTimeout(() => document.getElementById('%s')?.remove(), 3000)", id))
+	_ = sse.ExecuteScript(fmt.Sprintf("setTimeout(function(){var e=document.getElementById('%s');if(!e)return;document.startViewTransition?document.startViewTransition(function(){e.remove()}):e.remove()},3000)", id))
 }

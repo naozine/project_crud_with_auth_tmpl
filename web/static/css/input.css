@@ -20,3 +20,11 @@
 #nav-menu::backdrop {
     background: rgb(107 114 128 / 0.75);
 }
+
+/* View Transition: 既定のクロスフェードを長め(0.4s)にして視認性を上げる。
+   カード更新・リスト再描画・トーストの出入りのフェードが分かりやすくなる。
+   非対応ブラウザでは無視され、即時更新にフォールバックする。 */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 0.4s;
+}

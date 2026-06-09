@@ -121,6 +121,13 @@ templ DatastarRecipes(todos []RecipeTodo, items []RecipeItem) {
 						<div id="recipe-item-dialog-container"></div>
 					</div>
 				}
+				<!-- 11. View Transition でフェード -->
+				@recipeCard("11. View Transition でフェード（__viewtransition）", "data-on:click__viewtransition でクリックハンドラを View Transition でラップ。表示切替が既定クロスフェード（v1.0.2、CSS で 0.4s）でフェードする。サーバ patch なら WithViewTransitions()。", RecipeVTFront, "") {
+					<div data-signals:vtshow="true">
+						<button class="bg-blue-600 text-white px-3 py-1 rounded" data-on:click__viewtransition="$vtshow = !$vtshow">toggle</button>
+						<div data-show="$vtshow" class="mt-3 rounded bg-emerald-100 p-4">この要素が View Transition でフェードします</div>
+					</div>
+				}
 			</div>
 		</body>
 	</html>

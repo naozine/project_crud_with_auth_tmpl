@@ -195,3 +195,12 @@ func RecipeItemUpdate(w http.ResponseWriter, r *http.Request) {
         datastar.WithSelectorID(fmt.Sprintf("item-%d", id)), datastar.WithModeOuter())
     sse.ExecuteScript("document.getElementById('recipe-item-dialog').close()")
 }`
+
+// 11. View Transition でフェード（フロントのみ。v1.0.2 の viewTransitionSelector と
+// 同じ View Transition API を data-on の __viewtransition 修飾子で使う）
+const RecipeVTFront = `<div data-signals:vtshow="true">
+  <!-- __viewtransition でクリックハンドラを View Transition でラップ。
+       表示切替が既定クロスフェードでフェードする（CSS で 0.4s に調整済み）。 -->
+  <button data-on:click__viewtransition="$vtshow = !$vtshow">toggle</button>
+  <div data-show="$vtshow">この要素が View Transition でフェードします</div>
+</div>`
