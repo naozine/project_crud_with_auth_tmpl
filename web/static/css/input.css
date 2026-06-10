@@ -2,6 +2,12 @@
 @source "../../layouts/**/*.templ";
 @source "../../components/**/*.templ";
 
+/* ダークモードは prefers-color-scheme ではなく html.dark のクラス戦略で切り替える
+   （head.templ が付与）。トークン化しない固定カテゴリ色（RoleBadge の admin=紫 等）に
+   dark: 変種を効かせるために、dark バリアントを .dark クラス連動へ上書きする。
+   通常の色はトークン（--c-*）が自動で明暗追従するので dark: は基本不要。 */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* =============================================================================
    デザイントークン（テーマ切り替えの本体）
    -----------------------------------------------------------------------------
@@ -31,6 +37,9 @@
   --color-warning-fg: var(--c-warning-fg);
   --color-success: var(--c-success);
   --color-success-fg: var(--c-success-fg);
+  /* コードブロック専用（明暗どちらのページでも常にダークなターミナル風）。 */
+  --color-code-bg: var(--c-code-bg);
+  --color-code-fg: var(--c-code-fg);
 
   --radius-ui: var(--r-ui);
   --radius-card: var(--r-card);
@@ -58,6 +67,8 @@
   --c-warning-fg: #ffffff;
   --c-success: #30a46c;
   --c-success-fg: #ffffff;
+  --c-code-bg: #111111;
+  --c-code-fg: #ededed;
 
   --r-ui: 0.375rem;   /* 6px */
   --r-card: 0.625rem; /* 10px */
@@ -84,11 +95,62 @@
   --c-warning-fg: #ffffff;
   --c-success: #448361;
   --c-success-fg: #ffffff;
+  --c-code-bg: #1e1e1e;
+  --c-code-fg: #e8e8e6;
 
   --r-ui: 0.25rem;    /* 4px */
   --r-card: 0.375rem; /* 6px */
 
   --f-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ---- ダークモード（html.dark で各テーマの色トークンを上書き）----------------
+   モード（明/暗）はテーマ（ブランド）とは独立した軸。html.dark は
+   web/layouts/head.templ のスクリプトが付与する（mode=dark、または
+   mode=system かつ OS がダークのとき）。角丸・フォントはテーマ既定を継承するため、
+   ここでは色トークンだけを上書きする。
+   新テーマを足すときは、ライトの [data-theme="X"] とダークの
+   html.dark[data-theme="X"] の2ブロックを用意する。 */
+html.dark[data-theme="vercel"] {
+  --c-canvas: #0a0a0a;
+  --c-surface: #171717;
+  --c-border: #2e2e2e;
+  --c-ink: #ededed;
+  --c-muted: #a3a3a3;
+  --c-faint: #6e6e6e;
+  --c-accent: #ffffff;
+  --c-accent-hover: #d4d4d4;
+  --c-accent-fg: #0a0a0a;
+  --c-danger: #f1565b;
+  --c-danger-hover: #ff6a6f;
+  --c-danger-fg: #ffffff;
+  --c-warning: #e0922f;
+  --c-warning-fg: #1a1a1a;
+  --c-success: #3fb37f;
+  --c-success-fg: #0a0a0a;
+  --c-code-bg: #1c1c1c;
+  --c-code-fg: #ededed;
+}
+
+html.dark[data-theme="notion"] {
+  --c-canvas: #191919;
+  --c-surface: #252525;
+  --c-border: #373737;
+  --c-ink: #e6e6e5;
+  --c-muted: #9b9a97;
+  --c-faint: #6f6e6b;
+  --c-accent: #2383e2;
+  --c-accent-hover: #4a9eea;
+  --c-accent-fg: #ffffff;
+  --c-danger: #ff7369;
+  --c-danger-hover: #ff8a82;
+  --c-danger-fg: #1a1a1a;
+  --c-warning: #d99f57;
+  --c-warning-fg: #1a1a1a;
+  --c-success: #529e72;
+  --c-success-fg: #ffffff;
+  --c-code-bg: #2d2d2d;
+  --c-code-fg: #e6e6e5;
 }
 
 /* Nav menu (Popover API) */

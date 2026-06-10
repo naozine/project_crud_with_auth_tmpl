@@ -150,10 +150,10 @@ templ recipeSource(front string, back string) {
 	<details class="mt-1">
 		<summary class="cursor-pointer text-sm text-accent">source</summary>
 		<p class="text-xs text-muted mt-2">frontend (HTML/templ)</p>
-		<pre class="text-xs bg-ink text-canvas p-3 rounded-ui overflow-auto"><code>{ front }</code></pre>
+		<pre class="text-xs bg-code-bg text-code-fg p-3 rounded-ui overflow-auto"><code>{ front }</code></pre>
 		if back != "" {
 			<p class="text-xs text-muted mt-2">backend (Go, datastar-go)</p>
-			<pre class="text-xs bg-ink text-canvas p-3 rounded-ui overflow-auto"><code>{ back }</code></pre>
+			<pre class="text-xs bg-code-bg text-code-fg p-3 rounded-ui overflow-auto"><code>{ back }</code></pre>
 		}
 	</details>
 }

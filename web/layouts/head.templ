@@ -11,18 +11,51 @@ templ Head(title string) {
 		<meta charset="UTF-8"/>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 		<meta name="color-scheme" content="light"/>
-		<!-- テーマ適用（描画前に localStorage の選択を反映して FOUC を防ぐ）。
-		     SSR の data-theme="vercel" を上書きする。setTheme は切替 UI から呼ぶ。-->
+		<!-- テーマ（ブランド: Vercel/Notion）とモード（明/暗）を描画前に適用して FOUC を防ぐ。
+		     2軸構成: data-theme=ブランド、html.dark=ダーク表示。mode は light/dark/system を
+		     localStorage に保存し、system は OS の prefers-color-scheme に追従する。
+		     setTheme / setMode は切替 UI（サイドバー）から呼ぶ。-->
 		<script>
 			(function () {
+				var d = document.documentElement;
 				try {
 					var t = localStorage.getItem('theme');
-					if (t) document.documentElement.setAttribute('data-theme', t);
+					if (t) d.setAttribute('data-theme', t);
 				} catch (e) {}
+				// data-theme を常に確定させる（独立 HTML ページでもダーク配色が当たるように）。
+				if (!d.getAttribute('data-theme')) d.setAttribute('data-theme', 'vercel');
+
+				function systemDark() {
+					return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+				}
+				function getMode() {
+					try { return localStorage.getItem('mode') || 'system'; } catch (e) { return 'system'; }
+				}
+				function applyMode() {
+					var m = getMode();
+					var dark = m === 'dark' || (m === 'system' && systemDark());
+					d.classList.toggle('dark', dark);
+					var meta = document.querySelector('meta[name="color-scheme"]');
+					if (meta) meta.setAttribute('content', dark ? 'dark' : 'light');
+				}
+				applyMode();
+				// OS のダーク/ライト変更を即時反映（mode=system のときだけ効く）。
+				if (window.matchMedia) {
+					try {
+						window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+							if (getMode() === 'system') applyMode();
+						});
+					} catch (e) {}
+				}
+				window.__applyMode = applyMode;
 			})();
 			function setTheme(t) {
 				document.documentElement.setAttribute('data-theme', t);
 				try { localStorage.setItem('theme', t); } catch (e) {}
+			}
+			function setMode(m) {
+				try { localStorage.setItem('mode', m); } catch (e) {}
+				if (window.__applyMode) window.__applyMode();
 			}
 		</script>
 		<meta name="mobile-web-app-capable" content="yes"/>

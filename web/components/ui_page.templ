@@ -93,14 +93,15 @@ templ AlertError(message string) {
 }
 
 // RoleBadge はロールに応じた色のバッジを描画する。
-// ロールの識別色はテーマ非依存の固定色（カテゴリ色）として扱う。
+// ロールの識別色は「色相（紫/青/灰）」をテーマ非依存の固定カテゴリ色として扱う例外。
+// ただし明暗には追従させる: ライトは淡色地＋濃文字、ダークは半透明地＋淡文字（dark: 変種）。
 templ RoleBadge(role string) {
     if role == roles.Admin {
-        <span class="inline-flex items-center rounded-ui bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-700/10">Admin</span>
+        <span class="inline-flex items-center rounded-ui bg-purple-50 dark:bg-purple-400/15 px-2 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 ring-1 ring-inset ring-purple-700/10 dark:ring-purple-400/25">Admin</span>
     } else if role == roles.Editor {
-        <span class="inline-flex items-center rounded-ui bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Editor</span>
+        <span class="inline-flex items-center rounded-ui bg-blue-50 dark:bg-blue-400/15 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-inset ring-blue-700/10 dark:ring-blue-400/25">Editor</span>
     } else {
-        <span class="inline-flex items-center rounded-ui bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">Viewer</span>
+        <span class="inline-flex items-center rounded-ui bg-gray-50 dark:bg-gray-400/15 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 ring-1 ring-inset ring-gray-500/10 dark:ring-gray-400/25">Viewer</span>
     }
 }
 
