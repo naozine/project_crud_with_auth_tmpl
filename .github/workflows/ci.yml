@@ -21,7 +21,10 @@ jobs:
 
       - name: Install code generators
         run: |
-          go install github.com/a-h/templ/cmd/templ@latest
+          # templ CLI は go.mod のランタイムと同じバージョンに揃える。
+          # @latest だと新版 CLI が古いランタイムに無い API を呼ぶ生成コードを吐いて
+          # ビルドが壊れることがある（2026-05-30 の ResolveAttributeValue 事故）。
+          go install github.com/a-h/templ/cmd/templ@$(go list -m -f '{{.Version}}' github.com/a-h/templ)
           go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
           # tailwindcss はバージョン固定（minify 出力がバージョンで変わるため、ローカルの make generate と揃える）
           TAILWIND_VERSION=v4.2.1
