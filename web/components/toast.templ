@@ -4,7 +4,7 @@ package components
 // 数秒後にサーバ側の ExecuteScript で自動 remove される（handlers.sendToast 参照）。
 // patch 化で reload しなくなった操作の成功フィードバックに使う。
 templ Toast(id string, message string) {
-	<div id={ id } role="status" class="rounded-md bg-gray-900 px-4 py-2 text-sm text-white shadow-lg">
-		{ message }
-	</div>
+    <div id={ id } role="status" class="rounded-ui bg-ink px-4 py-2 text-sm text-surface shadow-lg">
+        { message }
+    </div>
 }

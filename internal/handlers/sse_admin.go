@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -33,25 +32,35 @@ func (h *AdminSSEHandler) CreateUserDialogSSE(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	user, err := h.createUser(r.Context(), signals.NewName, signals.NewEmail, signals.NewRole)
-	if err != nil {
+	if _, err := h.createUser(r.Context(), signals.NewName, signals.NewEmail, signals.NewRole); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	sse := newSSE(w, r)
-	// 新しいカードを一覧末尾に追加する（reload しない）。
-	if err := sse.PatchElementTempl(
-		components.AdminUserCard(user),
-		datastar.WithSelectorID("users-table"),
-		datastar.WithModeAppend(),
-		datastar.WithViewTransitions(),
-	); err != nil {
+	// 一覧コンテナを再描画する（テーブル/カードの2系統を同期、reload しない）。
+	if err := h.patchUserList(r.Context(), sse); err != nil {
 		logger.Error("SSE PatchElementTempl failed", "error", err)
 		return
 	}
 	sse.ExecuteScript("document.getElementById('user-add-dialog')?.close()")
 	sendToast(sse, "ユーザーを追加しました")
+}
+
+// patchUserList は一覧コンテナ #users-list を最新の全ユーザーで inner 置換する。
+// レスポンシブ（デスクトップ=テーブル / モバイル=カード）の2系統を同期させるため、
+// 行単位ではなくコンテナごとまとめて差し替える。
+func (h *AdminSSEHandler) patchUserList(ctx context.Context, sse *datastar.ServerSentEventGenerator) error {
+	users, err := h.Queries.ListUsers(ctx)
+	if err != nil {
+		return err
+	}
+	return sse.PatchElementTempl(
+		components.AdminUsersListBody(users),
+		datastar.WithSelectorID("users-list"),
+		datastar.WithModeInner(),
+		datastar.WithViewTransitions(),
+	)
 }
 
 func (h *AdminSSEHandler) createUser(ctx context.Context, name, email, role string) (database.User, error) {
@@ -134,20 +143,9 @@ func (h *AdminSSEHandler) UpdateUserSSE(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// 更新後のユーザーを取得し、該当カードだけを patch する（reload しない）。
-	user, err := h.Queries.GetUserByID(r.Context(), id)
-	if err != nil {
-		http.Error(w, "ユーザーが見つかりません", http.StatusNotFound)
-		return
-	}
-
 	sse := newSSE(w, r)
-	if err := sse.PatchElementTempl(
-		components.AdminUserCard(user),
-		datastar.WithSelectorID(fmt.Sprintf("user-%d", id)),
-		datastar.WithModeOuter(),
-		datastar.WithViewTransitions(),
-	); err != nil {
+	// 一覧コンテナを再描画する（テーブル/カードの2系統を同期、reload しない）。
+	if err := h.patchUserList(r.Context(), sse); err != nil {
 		logger.Error("SSE PatchElementTempl failed", "error", err)
 		return
 	}
@@ -175,9 +173,9 @@ func (h *AdminSSEHandler) DeleteUserSSE(w http.ResponseWriter, r *http.Request) 
 	}
 
 	sse := newSSE(w, r)
-	// 該当カードを除去する（reload しない）。
-	if err := sse.RemoveElement(fmt.Sprintf("#user-%d", id), datastar.WithViewTransitions()); err != nil {
-		logger.Error("SSE RemoveElement failed", "error", err)
+	// 一覧コンテナを再描画する（テーブル/カードの2系統を同期、reload しない）。
+	if err := h.patchUserList(r.Context(), sse); err != nil {
+		logger.Error("SSE PatchElementTempl failed", "error", err)
 	}
 	sendToast(sse, "ユーザーを削除しました")
 }

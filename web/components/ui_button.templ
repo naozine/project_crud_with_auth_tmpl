@@ -2,7 +2,15 @@ package components
 
 // PrimaryButton はフォーム送信用のプライマリボタンを描画する。
 templ PrimaryButton(text string) {
-    <button type="submit" class="rounded-md bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
+    <button type="submit" class="rounded-ui bg-accent px-6 py-2.5 text-sm font-semibold text-accent-fg shadow-sm hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent transition-colors">
+        { text }
+    </button>
+}
+
+// PrimaryActionButton は送信を伴わないプライマリ操作（ダイアログを開く等）用の
+// ボタンを描画する。任意の HTML 属性（onclick, data-* 等）を追加できる。
+templ PrimaryActionButton(text string, attrs templ.Attributes) {
+    <button type="button" class="rounded-ui bg-accent px-4 py-2 text-sm font-semibold text-accent-fg shadow-sm hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent transition-colors" { attrs... }>
         { text }
     </button>
 }
@@ -12,21 +20,21 @@ templ PrimaryButton(text string) {
 templ PrimarySubmitButton(text string, disableExpr string) {
     <button type="submit"
         data-attr:disabled={ disableExpr }
-        class="rounded-md bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
+        class="rounded-ui bg-accent px-6 py-2.5 text-sm font-semibold text-accent-fg shadow-sm hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent transition-colors">
         { text }
     </button>
 }
 
 // PrimaryButtonFull は横幅いっぱいのプライマリボタンを描画する。
 templ PrimaryButtonFull(text string) {
-    <button type="submit" class="w-full rounded-md bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
+    <button type="submit" class="w-full rounded-ui bg-accent px-6 py-2.5 text-sm font-semibold text-accent-fg shadow-sm hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent transition-colors">
         { text }
     </button>
 }
 
 // PrimaryLink はリンクをプライマリボタン風にスタイルする。
 templ PrimaryLink(text string, href templ.SafeURL) {
-    <a href={ href } class="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black transition-colors">
+    <a href={ href } class="inline-flex items-center justify-center rounded-ui bg-accent px-4 py-2 text-sm font-medium text-accent-fg shadow-sm hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent transition-colors">
         { text }
     </a>
 }
@@ -34,35 +42,43 @@ templ PrimaryLink(text string, href templ.SafeURL) {
 // SecondaryButton は補助的なアクション用のボタンを描画する。
 // 任意の HTML 属性（onclick, data-* 等）を追加できる。
 templ SecondaryButton(text string, attrs templ.Attributes) {
-    <button type="button" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" { attrs... }>
+    <button type="button" class="inline-flex items-center rounded-ui bg-surface px-3 py-2 text-sm font-semibold text-ink shadow-sm ring-1 ring-inset ring-border hover:bg-canvas" { attrs... }>
         { text }
     </button>
 }
 
 // SecondaryLink はリンクを補助ボタン風にスタイルする。
 templ SecondaryLink(text string, href templ.SafeURL) {
-    <a href={ href } class="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+    <a href={ href } class="inline-flex items-center justify-center rounded-ui bg-surface px-4 py-2 text-sm font-medium text-ink shadow-sm ring-1 ring-inset ring-border hover:bg-canvas transition-colors">
         { text }
     </a>
 }
 
+// GhostIconButton は控えめなアイコンのみのボタン（テーブル見出し・ツールバー等の補助操作用）。
+// label はアクセシビリティ用（aria-label / title）。アイコン SVG は children で渡す。
+templ GhostIconButton(label string, attrs templ.Attributes) {
+    <button type="button" aria-label={ label } title={ label } class="inline-flex items-center justify-center rounded-ui p-1.5 text-muted hover:text-ink hover:bg-ink/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent transition-colors" { attrs... }>
+        { children... }
+    </button>
+}
+
 // DangerButton は破壊的アクション用のボタンを描画する。
 templ DangerButton(text string) {
-    <button type="submit" class="inline-flex items-center rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-100">
+    <button type="submit" class="inline-flex items-center rounded-ui bg-danger/10 px-3 py-2 text-sm font-semibold text-danger shadow-sm ring-1 ring-inset ring-danger/30 hover:bg-danger/15">
         { text }
     </button>
 }
 
 // DangerSolidButton は強調された破壊的アクション用ボタンを描画する。
 templ DangerSolidButton(text string) {
-    <button type="submit" class="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+    <button type="submit" class="inline-flex items-center justify-center rounded-ui bg-danger px-4 py-2 text-sm font-medium text-danger-fg shadow-sm hover:bg-danger-hover focus:outline-none focus:ring-2 focus:ring-danger focus:ring-offset-2">
         { text }
     </button>
 }
 
 // DangerTextButton はテキストのみの破壊的アクションボタンを描画する。
 templ DangerTextButton(text string) {
-    <button type="submit" class="text-sm font-semibold leading-6 text-red-600 hover:text-red-800">
+    <button type="submit" class="text-sm font-semibold leading-6 text-danger hover:text-danger-hover">
         { text }
     </button>
 }
@@ -70,12 +86,12 @@ templ DangerTextButton(text string) {
 // CancelLink はキャンセル用のテキストリンクを描画する。
 // 履歴を置き換えて戻るため、ブラウザの戻るボタンでこのページに戻らない。
 templ CancelLink(href templ.SafeURL) {
-    <a href={ href } onclick="event.preventDefault(); window.location.replace(this.href);" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700 cursor-pointer">キャンセル</a>
+    <a href={ href } onclick="event.preventDefault(); window.location.replace(this.href);" class="text-sm font-semibold leading-6 text-ink hover:text-muted cursor-pointer">キャンセル</a>
 }
 
 // FormFooter はフォーム下部のキャンセル + 送信ボタンのレイアウトを描画する。
 templ FormFooter() {
-    <div class="flex items-center justify-end gap-x-4 pt-6 border-t border-gray-100">
+    <div class="flex items-center justify-end gap-x-4 pt-6 border-t border-border">
         { children... }
     </div>
 }

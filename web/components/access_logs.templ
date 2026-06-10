@@ -1,0 +1,149 @@
+package components
+
+import (
+    "fmt"
+
+    appMiddleware "github.com/naozine/project_crud_with_auth_tmpl/internal/middleware"
+)
+
+// AccessLogsPage は直近のリクエスト一覧（ヘッダ固定テーブルのお手本。行が多い）。
+// md+ では Shell の main が高さ固定スクロール領域なので、ここは flex-1 で残り高さを受ける
+// （マジックナンバー不要）。テーブル内だけがスクロールし、ページ自体はスクロールしない。
+templ AccessLogsPage(entries []appMiddleware.AccessLogEntry) {
+    <div class="max-w-6xl mx-auto space-y-4 md:flex-1 md:flex md:flex-col md:min-h-0">
+        <div class="md:shrink-0">
+            @PageHeader("アクセスログ", "直近のリクエスト（最大500件・メモリ保持のため再起動で消えます）")
+        </div>
+        <div id="access-logs-list" class="md:flex md:flex-col md:min-h-0">
+            @AccessLogsTable(entries)
+        </div>
+    </div>
+}
+
+// AccessLogsTable は一覧の中身。デスクトップはヘッダ固定テーブル、モバイルはカード。
+// 更新ボタンは控えめなアイコンとして見出し行右端（モバイルはカード上）に置き、
+// SSE でこのコンテナごと inner 置換する（ページ遷移しない）。
+templ AccessLogsTable(entries []appMiddleware.AccessLogEntry) {
+    if len(entries) == 0 {
+        @EmptyState("まだリクエストがありません。画面を操作するとここに記録されます。")
+    } else {
+        <!-- デスクトップ: ヘッダ固定テーブル -->
+        @Table() {
+            @TableHead() {
+                @Th("時刻")
+                @Th("Lv")
+                @Th("Method")
+                @Th("パス")
+                @Th("Status")
+                @ThRight("遅延")
+                @Th("IP")
+                @Th("ユーザー")
+                @ThTools() {
+                    @refreshButton()
+                }
+            }
+            <tbody>
+                for _, e := range entries {
+                    @accessLogRow(e)
+                }
+            </tbody>
+        }
+
+        <!-- モバイル: カード -->
+        <div class="md:hidden space-y-2">
+            <div class="flex justify-end">
+                @refreshButton()
+            </div>
+            for _, e := range entries {
+                @accessLogCard(e)
+            }
+        </div>
+    }
+}
+
+// refreshButton は一覧を SSE で再取得するアイコンボタン。
+templ refreshButton() {
+    @GhostIconButton("更新", templ.Attributes{"data-on:click": "@get('/admin/access-logs/table')"}) {
+        @iconRefresh()
+    }
+}
+
+templ iconRefresh() {
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
+    </svg>
+}
+
+templ accessLogRow(e appMiddleware.AccessLogEntry) {
+    @TableRow() {
+        @Td() {
+            <span class="font-mono text-xs text-muted whitespace-nowrap">{ accessLogTime(e.Time) }</span>
+        }
+        @Td() {
+            @accessLogLevel(e.Level)
+        }
+        @Td() {
+            <span class="font-mono text-xs font-semibold">{ e.Method }</span>
+        }
+        @Td() {
+            <span class="font-mono text-xs truncate block max-w-[22rem]">{ e.Path }</span>
+        }
+        @Td() {
+            @accessLogStatus(e.Status)
+        }
+        @TdRight() {
+            <span class="font-mono text-xs text-muted">{ fmt.Sprintf("%dms", e.LatencyMs) }</span>
+        }
+        @TdMuted() {
+            <span class="font-mono text-xs">{ e.IP }</span>
+        }
+        @TdMuted() {
+            <span class="text-xs truncate block max-w-[12rem]">{ accessLogUser(e.UserID) }</span>
+        }
+        <td></td>
+    }
+}
+
+templ accessLogCard(e appMiddleware.AccessLogEntry) {
+    <div class="rounded-card border border-border bg-surface p-3">
+        <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0 flex items-center gap-2">
+                <span class="font-mono text-xs font-semibold">{ e.Method }</span>
+                <span class="font-mono text-xs truncate">{ e.Path }</span>
+            </div>
+            @accessLogStatus(e.Status)
+        </div>
+        <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+            @accessLogLevel(e.Level)
+            <span class="font-mono">{ accessLogTime(e.Time) }</span>
+            <span class="font-mono">{ fmt.Sprintf("%dms", e.LatencyMs) }</span>
+        </div>
+        if e.UserID != "" {
+            <p class="mt-1 text-xs text-muted truncate">{ e.UserID }</p>
+        }
+    </div>
+}
+
+// accessLogLevel はログレベルのバッジ（色クラスは purge 対象にするため templ 内に直書き）。
+templ accessLogLevel(level string) {
+    if level == "ERROR" {
+        <span class="inline-flex items-center rounded-md bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger ring-1 ring-inset ring-danger/20">ERROR</span>
+    } else if level == "WARN" {
+        <span class="inline-flex items-center rounded-md bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning ring-1 ring-inset ring-warning/20">WARN</span>
+    } else {
+        <span class="inline-flex items-center rounded-md bg-ink/5 px-1.5 py-0.5 text-[10px] font-semibold text-muted ring-1 ring-inset ring-ink/10">INFO</span>
+    }
+}
+
+// accessLogStatus は HTTP ステータスを色付きで表示する。
+templ accessLogStatus(status int) {
+    if status >= 500 {
+        <span class="font-mono text-xs font-semibold text-danger">{ fmt.Sprintf("%d", status) }</span>
+    } else if status >= 400 {
+        <span class="font-mono text-xs font-semibold text-warning">{ fmt.Sprintf("%d", status) }</span>
+    } else if status >= 300 {
+        <span class="font-mono text-xs text-muted">{ fmt.Sprintf("%d", status) }</span>
+    } else {
+        <span class="font-mono text-xs text-success">{ fmt.Sprintf("%d", status) }</span>
+    }
+}

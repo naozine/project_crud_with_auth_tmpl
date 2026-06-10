@@ -106,8 +106,9 @@ func TestAdminCRUD_UpdateUser_Deactivate(t *testing.T) {
 	}
 }
 
-// TestAdminCRUD_UpdateUser_PatchesCardNoReload は、編集保存が reload ではなく
-// 該当カードだけの patch になっていることを担保する（UI 更新方針の回帰防止）。
+// TestAdminCRUD_UpdateUser_PatchesCardNoReload は、編集保存が reload ではなく patch で
+// 反映されることを担保する（UI 更新方針の回帰防止）。一覧コンテナ (#users-list) ごと
+// 再描画する方式のため、更新後のユーザーが新しい内容に含まれることを確認する。
 func TestAdminCRUD_UpdateUser_PatchesCardNoReload(t *testing.T) {
 	conn := SetupTestDB(t)
 	e := SetupTestServer(t, conn)
@@ -178,8 +179,9 @@ func TestAdminCRUD_DeleteUser_PreventSelfDeletion(t *testing.T) {
 	}
 }
 
-// TestAdminCRUD_CreateUser_AppendsCardNoReload は、追加が reload ではなく
-// 新カードの append になっていることを担保する。
+// TestAdminCRUD_CreateUser_AppendsCardNoReload は、追加が reload ではなく patch で
+// 反映されることを担保する。一覧コンテナ (#users-list) ごと再描画する方式のため、
+// 追加したユーザーが新しい内容に含まれることを確認する。
 func TestAdminCRUD_CreateUser_AppendsCardNoReload(t *testing.T) {
 	conn := SetupTestDB(t)
 	e := SetupTestServer(t, conn)
@@ -205,8 +207,10 @@ func TestAdminCRUD_CreateUser_AppendsCardNoReload(t *testing.T) {
 	}
 }
 
-// TestAdminCRUD_DeleteUser_RemovesCardNoReload は、削除が reload ではなく
-// 該当カードの除去になっていることを担保する。
+// TestAdminCRUD_DeleteUser_RemovesCardNoReload は、削除が reload ではなく patch で
+// 反映されることを担保する。レスポンシブ（テーブル+カード）対応のため、行単位の除去では
+// なく一覧コンテナ (#users-list) ごと再描画する方式。削除後はそのユーザーが新しい内容に
+// 含まれないことを確認する。
 func TestAdminCRUD_DeleteUser_RemovesCardNoReload(t *testing.T) {
 	conn := SetupTestDB(t)
 	e := SetupTestServer(t, conn)
@@ -225,7 +229,13 @@ func TestAdminCRUD_DeleteUser_RemovesCardNoReload(t *testing.T) {
 	if strings.Contains(body, "location.reload") {
 		t.Errorf("reload してはいけない。body: %s", body)
 	}
-	if !strings.Contains(body, sprintf("user-%d", targetID)) {
-		t.Errorf("削除対象カード id (user-%d) が patch に含まれない。body: %s", targetID, body)
+	if !strings.Contains(body, "datastar-patch-elements") {
+		t.Errorf("datastar-patch-elements イベントが無い。body: %s", body)
+	}
+	if !strings.Contains(body, "#users-list") {
+		t.Errorf("一覧コンテナ #users-list への patch になっていない。body: %s", body)
+	}
+	if strings.Contains(body, sprintf("id=\"user-%d\"", targetID)) {
+		t.Errorf("削除したユーザーのカード id (user-%d) が再描画後も残っている。body: %s", targetID, body)
 	}
 }

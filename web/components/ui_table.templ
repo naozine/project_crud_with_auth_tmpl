@@ -1,0 +1,91 @@
+package components
+
+// ヘッダ固定のデータテーブル部品。一覧が多い画面の主レイアウト。
+// 方針:
+//   - デスクトップ（md+）のみテーブル表示。モバイルはカードを併置する（レスポンシブ）。
+//   - 見出し行はスクロール領域の上端に固定し、本体だけが縦スクロールする。
+//   - 高さは flex で自動計算する（max-h のマジックナンバーは使わない）。md+ では Shell の
+//     main がビューポート高に固定したスクロール領域（shell.templ 参照）なので、ページ root を
+//     flex-1 にすれば残り高さがそのまま決まる。上部 UI の高さに関係なくピッタリ収まり、
+//     土台（ページ）はスクロールせずテーブル内だけがスクロールする。行が少なければ中身の
+//     高さに縮む（余白が出ない）。
+// ページ側の組み方（お手本: access_logs.templ / admin_users_list.templ）:
+//   <div class="... md:flex-1 md:flex md:flex-col md:min-h-0">  // main の残り高さを受ける
+//       <div class="md:shrink-0"> @PageHeader(...) </div>       // 上部 UI は縮ませない
+//       <div id="list" class="md:flex md:flex-col md:min-h-0">   // 残り高さを @Table へ渡す
+//           @Table() {
+//               @TableHead() { @Th("名前") @ThRight("操作") }
+//               <tbody> for ... { @TableRow() { @Td(){...} } } </tbody>
+//           }
+//           <div class="md:hidden space-y-2"> ...カード... </div>
+//       </div>
+//   </div>
+
+// Table はデスクトップ用テーブルの外枠（md+ で表示）。高さ固定のスクロールパネル。
+// 親（高さ固定の flex 列）の残り高さに収まり、内側だけがスクロールする。
+templ Table() {
+    <div class="hidden md:flex md:flex-col md:min-h-0 rounded-card border border-border overflow-hidden">
+        <div class="min-h-0 overflow-y-auto">
+            <table class="w-full text-sm">
+                { children... }
+            </table>
+        </div>
+    </div>
+}
+
+// TableHead はスクロール領域の上端に固定される見出し行。th を children で渡す。
+templ TableHead() {
+    <thead class="sticky top-0 z-10 bg-surface">
+        <tr class="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted">
+            { children... }
+        </tr>
+    </thead>
+}
+
+// Th は見出しセル（左寄せ）。
+templ Th(label string) {
+    <th class="px-4 py-3 font-semibold whitespace-nowrap">{ label }</th>
+}
+
+// ThRight は見出しセル（右寄せ。操作列など）。
+templ ThRight(label string) {
+    <th class="px-4 py-3 font-semibold text-right whitespace-nowrap">{ label }</th>
+}
+
+// ThTools は見出し行の右端に小さな操作（GhostIconButton 等）を置くためのセル。
+// この列を使う場合、データ行の末尾にも空の <td></td> を1つ足すこと
+// （列数が揃わないと行の下線がこの列の下で途切れる）。
+templ ThTools() {
+    <th class="px-3 py-1 text-right align-middle w-px font-normal normal-case tracking-normal">
+        { children... }
+    </th>
+}
+
+// TableRow は1データ行。SSE は行単位ではなく一覧コンテナごと patch する想定
+// （レスポンシブでテーブルとカードの2系統を同期させるため）。
+templ TableRow() {
+    <tr class="border-b border-border last:border-0 hover:bg-ink/5 transition-colors">
+        { children... }
+    </tr>
+}
+
+// Td は標準セル。
+templ Td() {
+    <td class="px-4 py-3 align-middle text-ink">
+        { children... }
+    </td>
+}
+
+// TdMuted は副次情報のセル（メール等）。
+templ TdMuted() {
+    <td class="px-4 py-3 align-middle text-muted">
+        { children... }
+    </td>
+}
+
+// TdRight は右寄せセル（操作列など）。
+templ TdRight() {
+    <td class="px-4 py-3 align-middle text-right whitespace-nowrap">
+        { children... }
+    </td>
+}

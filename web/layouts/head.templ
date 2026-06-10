@@ -11,6 +11,20 @@ templ Head(title string) {
 		<meta charset="UTF-8"/>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 		<meta name="color-scheme" content="light"/>
+		<!-- テーマ適用（描画前に localStorage の選択を反映して FOUC を防ぐ）。
+		     SSR の data-theme="vercel" を上書きする。setTheme は切替 UI から呼ぶ。-->
+		<script>
+			(function () {
+				try {
+					var t = localStorage.getItem('theme');
+					if (t) document.documentElement.setAttribute('data-theme', t);
+				} catch (e) {}
+			})();
+			function setTheme(t) {
+				document.documentElement.setAttribute('data-theme', t);
+				try { localStorage.setItem('theme', t); } catch (e) {}
+			}
+		</script>
 		<meta name="mobile-web-app-capable" content="yes"/>
 		<meta name="robots" content="noindex, nofollow"/>
 		<title>{ title } - { appconfig.AppName }</title>

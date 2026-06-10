@@ -16,11 +16,9 @@ templ ProjectList(projects []database.Project) {
     <div class="max-w-5xl mx-auto space-y-6">
         if canWrite {
             <div class="flex justify-end">
-                <button
-                    type="button"
-                    onclick="document.getElementById('project-add-dialog').showModal();document.activeElement?.blur()"
-                    class="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800"
-                >新規作成</button>
+                @PrimaryActionButton("新規作成", templ.Attributes{
+                    "onclick": "document.getElementById('project-add-dialog').showModal();document.activeElement?.blur()",
+                })
             </div>
         }
 
@@ -52,28 +50,28 @@ templ ProjectCards(projects []database.Project, canWrite bool) {
 // ProjectCard は1プロジェクトのカード。編集保存時にサーバがこの要素だけを
 // id (project-N) で outer 置換する。
 templ ProjectCard(p database.Project, canWrite bool) {
-    <div id={ fmt.Sprintf("project-%d", p.ID) } class="rounded-lg border border-gray-200 bg-white p-6 hover:border-gray-300 hover:shadow-md transition-all duration-200">
+    <div id={ fmt.Sprintf("project-%d", p.ID) } class="rounded-card border border-border bg-surface p-6 hover:border-ink/20 hover:shadow-md transition-all duration-200">
         <div class="flex flex-col h-full justify-between space-y-4">
             <div class="flex items-start justify-between gap-2">
                 <a href={ templ.URL(fmt.Sprintf("/projects/%d", p.ID)) } class="group min-w-0 flex-1">
-                    <h3 class="text-base font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">{ p.Name }</h3>
-                    <p class="mt-1 text-xs text-gray-400">ID: { fmt.Sprintf("%d", p.ID) }</p>
+                    <h3 class="text-base font-semibold text-ink group-hover:text-accent transition-colors truncate">{ p.Name }</h3>
+                    <p class="mt-1 text-xs text-faint">ID: { fmt.Sprintf("%d", p.ID) }</p>
                 </a>
                 if canWrite {
                     <div class="flex flex-shrink-0 gap-3">
                         <button
-                            class="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                            class="text-accent hover:text-accent-hover text-sm font-medium"
                             data-on:click={ fmt.Sprintf("@get('/api/sse/projects/%d/edit')", p.ID) }
                         >編集</button>
                         <button
-                            class="text-red-600 hover:text-red-800 text-sm font-medium"
+                            class="text-danger hover:text-danger-hover text-sm font-medium"
                             data-on:click={ fmt.Sprintf("$confirmMsg = '本当に削除しますか？'; $confirmUrl = '/api/sse/projects/%d'; $confirmMethod = 'delete'; document.getElementById('confirm-dialog').showModal()", p.ID) }
                         >削除</button>
                     </div>
                 }
             </div>
-            <div class="flex items-center justify-between pt-4 border-t border-gray-50">
-                <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">稼働中</span>
+            <div class="flex items-center justify-between pt-4 border-t border-border">
+                <span class="text-xs font-medium text-muted bg-ink/5 px-2 py-1 rounded-full">稼働中</span>
             </div>
         </div>
     </div>
