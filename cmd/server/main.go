@@ -133,11 +133,13 @@ func main() {
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(appMiddleware.NoIndex)
 	r.Use(appMiddleware.UserContextMiddleware(ml, conn))
+	// 直近リクエストのインメモリ保持（管理画面のアクセスログビューワ用。再起動で消える）。
+	accessLogStore := appMiddleware.NewAccessLogStore(1000)
 	// AccessLogMiddleware は UserContextMiddleware より内側に置く必要がある。
 	// http.Request は immutable で r.WithContext(...) は新しい Request を返すため、
 	// UserContextMiddleware より外側に置くと AccessLog 側が見る r.Context() に
 	// userEmail が反映されず、user_id が空のままログ出力されてしまう。
-	r.Use(appMiddleware.AccessLogMiddleware(logger.AccessWriter()))
+	r.Use(appMiddleware.AccessLogMiddleware(logger.AccessWriter(), accessLogStore))
 
 	// Static files
 	staticSubFS, err := fs.Sub(web.StaticFS, "static")
@@ -193,7 +195,7 @@ func main() {
 	// Business & Admin Routes
 	authMW := appMiddleware.RequireAuth("/auth/login")
 	routes.RegisterBusinessRoutes(r, queries, authMW)
-	routes.RegisterAdminRoutes(r, queries, authMW)
+	routes.RegisterAdminRoutes(r, queries, authMW, accessLogStore)
 	routes.RegisterSSERoutes(r, queries, ml, authMW)
 
 	// Profile Routes

@@ -3,34 +3,37 @@ package components
 import "github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 
 // PageHeader はページタイトルと説明文を描画する。
+// 外側の余白は持たない。後続要素との間隔はページ root の space-y-* で管理する
+// （以前の mb-6 は space-y-6 と相殺して無意味な一方、flex ラッパーで包むページでは
+// 相殺されず二重の余白になっていた）。
 templ PageHeader(title string, description string) {
-    <div class="mb-6">
-        <h2 class="text-lg font-semibold text-gray-900">{ title }</h2>
+    <div>
+        <h2 class="text-lg font-semibold text-ink">{ title }</h2>
         if description != "" {
-            <p class="mt-1 text-sm text-gray-500">{ description }</p>
+            <p class="mt-1 text-sm text-muted">{ description }</p>
         }
     </div>
 }
 
 // EmptyState はデータが空の場合のプレースホルダーを描画する。
 templ EmptyState(message string) {
-    <div class="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-        <p class="text-gray-500">{ message }</p>
+    <div class="text-center py-12 border-2 border-dashed border-border rounded-card">
+        <p class="text-muted">{ message }</p>
     </div>
 }
 
 // SectionCard は白背景の角丸カードを描画する。
 templ SectionCard() {
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    <div class="bg-surface rounded-card border border-border shadow-sm p-5">
         { children... }
     </div>
 }
 
 // SectionCardTitle はカード内のタイトルを描画する。
 templ SectionCardTitle(title string, description string) {
-    <h3 class="text-sm font-semibold text-gray-900 mb-1">{ title }</h3>
+    <h3 class="text-sm font-semibold text-ink mb-1">{ title }</h3>
     if description != "" {
-        <p class="text-xs text-gray-500 mb-4">{ description }</p>
+        <p class="text-xs text-muted mb-4">{ description }</p>
     }
 }
 
@@ -39,7 +42,7 @@ templ SectionCardTitle(title string, description string) {
 templ Dialog(id string, attrs templ.Attributes) {
     <dialog id={ id }
         onclick="if(event.target===this)this.close()"
-        class="m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-xl backdrop:bg-gray-900/50"
+        class="m-auto w-[calc(100%-2rem)] max-w-md rounded-card border border-border bg-surface p-6 shadow-xl backdrop:bg-ink/50"
         { attrs... }
     >
         { children... }
@@ -49,8 +52,8 @@ templ Dialog(id string, attrs templ.Attributes) {
 // DialogHeader はダイアログのタイトルと閉じるボタンを描画する。
 templ DialogHeader(title string, dialogID string) {
     <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-semibold text-gray-900">{ title }</h3>
-        <button type="button" onclick="this.closest('dialog').close()" tabindex="-1" class="text-gray-400 hover:text-gray-600">
+        <h3 class="text-lg font-semibold text-ink">{ title }</h3>
+        <button type="button" onclick="this.closest('dialog').close()" tabindex="-1" class="text-faint hover:text-muted">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
             </svg>
@@ -60,15 +63,15 @@ templ DialogHeader(title string, dialogID string) {
 
 // DialogFooter はダイアログ下部のキャンセル + アクションボタンを描画する。
 templ DialogFooter(dialogID string) {
-    <div class="flex items-center justify-end gap-x-4 pt-4 border-t border-gray-100">
-        <button type="button" onclick="this.closest('dialog').close()" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">キャンセル</button>
+    <div class="flex items-center justify-end gap-x-4 pt-4 border-t border-border">
+        <button type="button" onclick="this.closest('dialog').close()" class="text-sm font-semibold leading-6 text-ink hover:text-muted">キャンセル</button>
         { children... }
     </div>
 }
 
 // Card は白背景のカードコンテナを描画する（旧スタイル互換）。
 templ Card() {
-    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+    <div class="bg-surface shadow-sm ring-1 ring-ink/5 sm:rounded-card">
         <div class="px-4 py-6 sm:p-8">
             { children... }
         </div>
@@ -77,19 +80,20 @@ templ Card() {
 
 // AlertSuccess は成功メッセージを描画する。
 templ AlertSuccess(message string) {
-    <div class="rounded-md bg-green-50 border border-green-200 p-4 text-sm text-green-800">
+    <div class="rounded-ui bg-success/10 border border-success/30 p-4 text-sm text-success">
         { message }
     </div>
 }
 
 // AlertError はエラーメッセージを描画する。
 templ AlertError(message string) {
-    <div class="rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+    <div class="rounded-ui bg-danger/10 border border-danger/30 p-4 text-sm text-danger">
         { message }
     </div>
 }
 
 // RoleBadge はロールに応じた色のバッジを描画する。
+// ロールの識別色はテーマ非依存の固定色（カテゴリ色）として扱う。
 templ RoleBadge(role string) {
     if role == roles.Admin {
         <span class="inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-700/10">Admin</span>
@@ -103,16 +107,16 @@ templ RoleBadge(role string) {
 // StatusBadge は有効/無効のステータスバッジを描画する。
 templ StatusBadge(isActive bool) {
     if isActive {
-        <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">有効</span>
+        <span class="inline-flex items-center rounded-md bg-success/10 px-2 py-1 text-xs font-medium text-success ring-1 ring-inset ring-success/20">有効</span>
     } else {
-        <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">無効</span>
+        <span class="inline-flex items-center rounded-md bg-danger/10 px-2 py-1 text-xs font-medium text-danger ring-1 ring-inset ring-danger/20">無効</span>
     }
 }
 
 // BackLink は一覧に戻るリンクを描画する。
 templ BackLink(text string, href templ.SafeURL) {
     <div class="mt-6">
-        <a href={ href } class="text-sm font-medium text-gray-600 hover:text-gray-900">
+        <a href={ href } class="text-sm font-medium text-muted hover:text-ink">
             ← { text }
         </a>
     </div>

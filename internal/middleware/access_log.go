@@ -70,8 +70,10 @@ func (w *statusResponseWriter) Unwrap() http.ResponseWriter {
 	return w.ResponseWriter
 }
 
-// AccessLogMiddleware はJSON形式のアクセスログを出力するミドルウェア
-func AccessLogMiddleware(out io.Writer) func(http.Handler) http.Handler {
+// AccessLogMiddleware はJSON形式のアクセスログを出力するミドルウェア。
+// stores を渡すと各エントリをインメモリのリングバッファにも追記する
+// （管理画面の「最近のリクエスト」表示用。out への JSON 書き込みは従来どおり）。
+func AccessLogMiddleware(out io.Writer, stores ...*AccessLogStore) func(http.Handler) http.Handler {
 	encoder := json.NewEncoder(out)
 
 	return func(next http.Handler) http.Handler {
@@ -103,6 +105,9 @@ func AccessLogMiddleware(out io.Writer) func(http.Handler) http.Handler {
 			}
 
 			_ = encoder.Encode(entry)
+			for _, s := range stores {
+				s.Add(entry)
+			}
 		})
 	}
 }

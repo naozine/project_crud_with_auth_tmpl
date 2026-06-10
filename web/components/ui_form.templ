@@ -3,23 +3,23 @@ package components
 import "github.com/naozine/project_crud_with_auth_tmpl/internal/roles"
 
 // inputClass は入力フィールド共通のクラス文字列。
-var inputClass = "block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-black sm:text-sm sm:leading-6"
+var inputClass = "block w-full rounded-ui border-0 py-2.5 px-3 bg-surface text-ink shadow-sm ring-1 ring-inset ring-border placeholder:text-faint focus:ring-2 focus:ring-inset focus:ring-accent sm:text-sm sm:leading-6"
 
 // selectClass はセレクトボックス共通のクラス文字列。
-var selectClass = "block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-black sm:max-w-xs sm:text-sm sm:leading-6"
+var selectClass = "block w-full rounded-ui border-0 py-2.5 px-3 bg-surface text-ink shadow-sm ring-1 ring-inset ring-border focus:ring-2 focus:ring-inset focus:ring-accent sm:max-w-xs sm:text-sm sm:leading-6"
 
 // readOnlyClass は読み取り専用フィールド共通のクラス文字列。
-var readOnlyClass = "block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 bg-gray-50 sm:text-sm sm:leading-6"
+var readOnlyClass = "block w-full rounded-ui border-0 py-2.5 px-3 text-ink shadow-sm ring-1 ring-inset ring-border bg-canvas sm:text-sm sm:leading-6"
 
 // FormField はラベル付きのフォームフィールドを描画する。
 templ FormField(label string, helpText string) {
     <div>
-        <label class="block text-sm font-medium leading-6 text-gray-900">{ label }</label>
+        <label class="block text-sm font-medium leading-6 text-ink">{ label }</label>
         <div class="mt-2">
             { children... }
         </div>
         if helpText != "" {
-            <p class="mt-2 text-xs text-gray-500">{ helpText }</p>
+            <p class="mt-2 text-xs text-muted">{ helpText }</p>
         }
     </div>
 }

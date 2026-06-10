@@ -25,23 +25,26 @@ templ Shell(title string, currentPath string, content templ.Component) {
 		_ = isAdmin
 	}}
 	<!DOCTYPE html>
-	<html lang="ja">
+	<html lang="ja" data-theme="vercel">
 		@Head(title) {
 			<script type="module" src={ "/static/js/datastar.js?v=" + version.Commit }></script>
 		}
-		<body class="bg-gray-50 text-gray-900 min-h-[100dvh] font-sans antialiased">
+		<!-- flow-root: body 直下の子の margin が body の外へ逃げる margin collapse を封じる。
+		     これが無いと「min-h-[100dvh] + 子の mt-*」で文書高が 100dvh + margin になり、
+		     ページ全体がその分だけスクロールできてしまう（見た目はレイアウト不変）。-->
+		<body class="flow-root bg-canvas text-ink min-h-[100dvh] font-sans antialiased">
 			<!-- Desktop sidebar (md+) -->
-			<aside class="hidden md:flex fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex-col z-30">
+			<aside class="hidden md:flex fixed inset-y-0 left-0 w-64 bg-surface border-r border-border flex-col z-30">
 				<!-- Logo + User -->
-				<div class="p-4 border-b border-gray-200">
+				<div class="p-4 border-b border-border">
 					<div class="flex items-center gap-2 mb-1">
-						<div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+						<div class="w-8 h-8 bg-accent rounded-ui flex items-center justify-center">
 							@iconApp()
 						</div>
-						<span class="text-lg font-bold text-gray-900">{ appconfig.AppName }</span>
+						<span class="text-lg font-bold text-ink">{ appconfig.AppName }</span>
 					</div>
-					<div class="text-sm text-gray-600 truncate">{ userEmail }</div>
-					<div class="text-xs text-gray-400">
+					<div class="text-sm text-muted truncate">{ userEmail }</div>
+					<div class="text-xs text-faint">
 						if userRole == roles.Admin {
 							Admin
 						} else if userRole == roles.Editor {
@@ -57,68 +60,84 @@ templ Shell(title string, currentPath string, content templ.Component) {
 					@sidebarLink("/projects", "プロジェクト", iconProjects(), isNavActive(currentPath, "/projects"))
 					if isAdmin {
 						@sidebarLink("/admin/users", "ユーザー管理", iconUsers(), isNavActive(currentPath, "/admin/users"))
+						@sidebarLink("/admin/access-logs", "アクセスログ", iconAccessLog(), isNavActive(currentPath, "/admin/access-logs"))
 						@sidebarLink("/admin/maintenance", "メンテナンス", iconMaintenance(), isNavActive(currentPath, "/admin/maintenance"))
 					}
 					@sidebarLink("/profile", "マイページ", iconProfile(), isNavActive(currentPath, "/profile"))
 				</nav>
 
+				<!-- Theme switcher -->
+				<div class="px-3 pt-3">
+					<label class="block text-xs text-faint mb-1">テーマ</label>
+					<select aria-label="テーマ" data-theme-switcher onchange="setTheme(this.value)" class="block w-full rounded-ui border-0 py-1.5 px-2 bg-surface text-ink text-sm shadow-sm ring-1 ring-inset ring-border focus:ring-2 focus:ring-inset focus:ring-accent">
+						<option value="vercel">Vercel</option>
+						<option value="notion">Notion</option>
+					</select>
+				</div>
+
 				<!-- Logout -->
-				<div class="p-3 border-t border-gray-200">
+				<div class="p-3 border-t border-border">
 					<form action="/auth/logout" method="POST">
-						<button type="submit" class="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100">
+						<button type="submit" class="flex items-center gap-3 w-full px-3 py-2 text-sm text-muted rounded-ui hover:bg-ink/5">
 							@iconLogout()
 							ログアウト
 						</button>
 					</form>
-					<p class="px-3 pt-2 text-xs text-gray-400">{ version.Version }</p>
+					<p class="px-3 pt-2 text-xs text-faint">{ version.Version }</p>
 				</div>
+				<script>
+					(function () {
+						var s = document.querySelector('[data-theme-switcher]');
+						if (s) s.value = document.documentElement.getAttribute('data-theme') || 'vercel';
+					})();
+				</script>
 			</aside>
 
 			<!-- Desktop top bar (md+) -->
-			<header class="hidden md:flex fixed top-0 left-64 right-0 bg-white border-b border-gray-200 px-6 py-3 justify-end items-center z-20">
-				<span class="text-sm text-gray-500">{ userEmail }</span>
+			<header class="hidden md:flex fixed top-0 left-64 right-0 bg-surface border-b border-border px-6 py-3 justify-end items-center z-20">
+				<span class="text-sm text-muted">{ userEmail }</span>
 			</header>
 
 			<!-- Mobile header -->
-			<header class="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+			<header class="md:hidden bg-surface border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 z-50">
 				<div class="flex items-center gap-2">
-					<button type="button" class="p-1 text-gray-600" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+					<button type="button" class="p-1 text-muted" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
 						<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
 						</svg>
 					</button>
 					<div class="flex items-center gap-1">
-						<div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+						<div class="w-6 h-6 bg-accent rounded-ui flex items-center justify-center">
 							@iconAppSmall()
 						</div>
-						<span class="font-bold text-gray-900">{ appconfig.AppName }</span>
+						<span class="font-bold text-ink">{ appconfig.AppName }</span>
 					</div>
 				</div>
 				<form action="/auth/logout" method="POST">
-					<button type="submit" class="p-1 text-gray-400 hover:text-red-600" title="ログアウト">
+					<button type="submit" class="p-1 text-faint hover:text-danger" title="ログアウト">
 						@iconLogout()
 					</button>
 				</form>
 			</header>
 
 			<!-- Mobile menu overlay -->
-			<div id="mobile-menu" class="hidden fixed inset-0 z-50 bg-white">
-				<div class="p-4 flex items-center gap-2 border-b border-gray-200">
-					<button type="button" onclick="document.getElementById('mobile-menu').classList.add('hidden')" class="p-1 text-gray-600">
+			<div id="mobile-menu" class="hidden fixed inset-0 z-50 bg-surface">
+				<div class="p-4 flex items-center gap-2 border-b border-border">
+					<button type="button" onclick="document.getElementById('mobile-menu').classList.add('hidden')" class="p-1 text-muted">
 						<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
 						</svg>
 					</button>
 					<div class="flex items-center gap-1">
-						<div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+						<div class="w-6 h-6 bg-accent rounded-ui flex items-center justify-center">
 							@iconAppSmall()
 						</div>
-						<span class="font-bold text-gray-900">{ appconfig.AppName }</span>
+						<span class="font-bold text-ink">{ appconfig.AppName }</span>
 					</div>
 				</div>
-				<div class="p-4 text-sm text-gray-600">
+				<div class="p-4 text-sm text-muted">
 					{ userEmail }
-					<span class="text-gray-400">
+					<span class="text-faint">
 						/
 						if userRole == roles.Admin {
 							Admin
@@ -133,30 +152,42 @@ templ Shell(title string, currentPath string, content templ.Component) {
 					@mobileMenuLink("/projects", "プロジェクト", iconProjects())
 					if isAdmin {
 						@mobileMenuLink("/admin/users", "ユーザー管理", iconUsers())
+						@mobileMenuLink("/admin/access-logs", "アクセスログ", iconAccessLog())
 						@mobileMenuLink("/admin/maintenance", "メンテナンス", iconMaintenance())
 					}
 					@mobileMenuLink("/profile", "マイページ", iconProfile())
 				</nav>
-				<div class="p-3 border-t border-gray-200">
+				<div class="p-3 border-t border-border">
 					<form action="/auth/logout" method="POST">
-						<button type="submit" class="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100">
+						<button type="submit" class="flex items-center gap-3 w-full px-3 py-2 text-sm text-muted rounded-ui hover:bg-ink/5">
 							@iconLogout()
 							ログアウト
 						</button>
 					</form>
-					<p class="px-3 pt-2 text-xs text-gray-400">{ version.Version }</p>
+					<p class="px-3 pt-2 text-xs text-faint">{ version.Version }</p>
 				</div>
 			</div>
 
-			<!-- Main content (single instance, responsive padding) -->
-			<main class="md:ml-64 md:mt-12 p-4 pb-20 md:p-6">
-				<div id="main-content">
+			<!-- Main content (single instance, responsive padding)。
+			     md+ では main を fixed のスクロールパネルにする（サイドバー・上部バーと同じ
+			     app-shell 構成）。これにより「高さ固定テーブル」のページは flex で残り高さを
+			     受けられ、ページ自体（土台）はスクロールせずテーブル内だけがスクロールする。
+			     通常ページは main 内スクロールになる（モバイルは従来どおり文書スクロール）。
+			     注意1: #main-content は min-h-full ではなく h-full（確定高）にすること。
+			     min-h は下限でしかなく、行数が多いとコンテナがコンテンツ高まで伸びて
+			     flex-1/min-h-0 の制約が効かず、テーブル内スクロール＋sticky ヘッダが壊れる。
+			     注意2: 以前の md:mt-12 + md:h-[calc(100dvh-3rem)] 方式は、main の margin-top が
+			     body と相殺（margin collapse）して body の外に逃げ、body の min-h-[100dvh] と
+			     合わさって文書全体がちょうど 3rem あふれていた（タイトルがその分スクロールで
+			     動く）。fixed なら margin も calc も不要で、この問題自体が起きない。-->
+			<main class="p-4 pb-20 md:p-6 md:fixed md:top-12 md:bottom-0 md:left-64 md:right-0 md:overflow-y-auto">
+				<div id="main-content" class="md:flex md:flex-col md:h-full">
 					@content
 				</div>
 			</main>
 
 			<!-- Mobile bottom tab bar -->
-			<nav class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-40">
+			<nav class="md:hidden fixed bottom-0 inset-x-0 bg-surface border-t border-border z-40">
 				<div class="flex justify-around py-2">
 					@bottomTab("/projects", "プロジェクト", iconProjects(), isNavActive(currentPath, "/projects"))
 					if isAdmin {
@@ -170,11 +201,11 @@ templ Shell(title string, currentPath string, content templ.Component) {
 			<div id="modal-container"></div>
 			<!-- 汎用確認ダイアログ（ネイティブ confirm の置き換え）。
 			     各操作ボタンが $confirmMsg/$confirmUrl/$confirmMethod を設定して開く。-->
-			<dialog id="confirm-dialog" data-signals="{confirmMsg: '', confirmUrl: '', confirmMethod: 'delete'}" class="m-auto max-w-sm rounded-lg p-6 backdrop:bg-black/30">
-				<p class="mb-5 text-sm text-gray-700" data-text="$confirmMsg"></p>
+			<dialog id="confirm-dialog" data-signals="{confirmMsg: '', confirmUrl: '', confirmMethod: 'delete'}" class="m-auto max-w-sm rounded-card bg-surface p-6 backdrop:bg-ink/30">
+				<p class="mb-5 text-sm text-ink" data-text="$confirmMsg"></p>
 				<div class="flex justify-end gap-2">
-					<button type="button" class="rounded bg-gray-200 px-3 py-1.5 text-sm" data-on:click="document.getElementById('confirm-dialog').close()">キャンセル</button>
-					<button type="button" class="rounded bg-red-600 px-3 py-1.5 text-sm text-white" data-on:click="document.getElementById('confirm-dialog').close(); $confirmMethod === 'delete' ? @delete($confirmUrl) : @post($confirmUrl)">OK</button>
+					<button type="button" class="rounded-ui bg-ink/10 text-ink px-3 py-1.5 text-sm" data-on:click="document.getElementById('confirm-dialog').close()">キャンセル</button>
+					<button type="button" class="rounded-ui bg-danger px-3 py-1.5 text-sm text-danger-fg" data-on:click="document.getElementById('confirm-dialog').close(); $confirmMethod === 'delete' ? @delete($confirmUrl) : @post($confirmUrl)">OK</button>
 				</div>
 			</dialog>
 			<!-- Toast container（SSE で append される成功通知。数秒で自動消去）-->
@@ -188,7 +219,7 @@ templ Shell(title string, currentPath string, content templ.Component) {
 					var c = document.getElementById('toast-container');
 					if (!c) return;
 					var el = document.createElement('div');
-					el.className = 'rounded-md bg-red-600 px-4 py-2 text-sm text-white shadow-lg';
+					el.className = 'rounded-ui bg-danger px-4 py-2 text-sm text-danger-fg shadow-lg';
 					el.setAttribute('role', 'alert');
 					el.textContent = 'エラーが発生しました。時間をおいて再度お試しください。';
 					c.appendChild(el);
@@ -202,12 +233,12 @@ templ Shell(title string, currentPath string, content templ.Component) {
 // --- Sidebar link ---
 templ sidebarLink(href, label string, icon templ.Component, active bool) {
 	if active {
-		<a href={ templ.SafeURL(href) } class="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-blue-700 bg-blue-50 rounded-lg">
+		<a href={ templ.SafeURL(href) } class="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-accent bg-accent/10 rounded-ui">
 			@icon
 			{ label }
 		</a>
 	} else {
-		<a href={ templ.SafeURL(href) } class="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700">
+		<a href={ templ.SafeURL(href) } class="flex items-center gap-3 px-3 py-2 text-sm text-muted rounded-ui hover:bg-accent/10 hover:text-accent">
 			@icon
 			{ label }
 		</a>
@@ -216,7 +247,7 @@ templ sidebarLink(href, label string, icon templ.Component, active bool) {
 
 // --- Mobile menu link ---
 templ mobileMenuLink(href, label string, icon templ.Component) {
-	<a href={ templ.SafeURL(href) } class="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700" onclick="document.getElementById('mobile-menu').classList.add('hidden')">
+	<a href={ templ.SafeURL(href) } class="flex items-center gap-3 px-3 py-2 text-sm text-muted rounded-ui hover:bg-accent/10 hover:text-accent" onclick="document.getElementById('mobile-menu').classList.add('hidden')">
 		@icon
 		{ label }
 	</a>
@@ -225,12 +256,12 @@ templ mobileMenuLink(href, label string, icon templ.Component) {
 // --- Bottom tab ---
 templ bottomTab(href, label string, icon templ.Component, active bool) {
 	if active {
-		<a href={ templ.SafeURL(href) } class="flex flex-col items-center gap-0.5 text-xs text-blue-600 font-semibold min-w-0 px-1">
+		<a href={ templ.SafeURL(href) } class="flex flex-col items-center gap-0.5 text-xs text-accent font-semibold min-w-0 px-1">
 			@icon
 			<span class="truncate">{ label }</span>
 		</a>
 	} else {
-		<a href={ templ.SafeURL(href) } class="flex flex-col items-center gap-0.5 text-xs text-gray-500 hover:text-blue-600 min-w-0 px-1">
+		<a href={ templ.SafeURL(href) } class="flex flex-col items-center gap-0.5 text-xs text-muted hover:text-accent min-w-0 px-1">
 			@icon
 			<span class="truncate">{ label }</span>
 		</a>
@@ -265,6 +296,12 @@ templ iconUsers() {
 templ iconProfile() {
 	<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
 		<path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z"/>
+	</svg>
+}
+
+templ iconAccessLog() {
+	<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+		<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/>
 	</svg>
 }
 

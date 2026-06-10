@@ -148,7 +148,7 @@ func SetupTestServer(t *testing.T, conn *sql.DB) http.Handler {
 
 	authMW := testRequireAuth("/auth/login")
 	routes.RegisterBusinessRoutes(r, queries, authMW)
-	routes.RegisterAdminRoutes(r, queries, authMW)
+	routes.RegisterAdminRoutes(r, queries, authMW, appMiddleware.NewAccessLogStore(100))
 	registerTestSSERoutes(r, queries, authMW)
 
 	// 初期セットアップ用エンドポイント（認証不要）

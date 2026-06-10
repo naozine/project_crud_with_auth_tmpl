@@ -6,15 +6,17 @@ import (
 )
 
 templ AdminUserList(users []database.User) {
-    <div class="max-w-5xl mx-auto space-y-6">
-        <div class="flex justify-end">
+    <!-- md+ では Shell の main が高さ固定スクロール領域なので、ここは flex-1 で残り高さを
+         受ける（マジックナンバー不要）。テーブル内だけがスクロールし、ページ自体は動かない。-->
+    <div class="max-w-5xl mx-auto space-y-4 md:flex-1 md:flex md:flex-col md:min-h-0">
+        <div class="md:shrink-0 flex justify-end">
             @SecondaryLink("一括インポート", "/admin/users/import")
         </div>
 
         <!-- FAB: ユーザー追加 -->
         <button
             onclick="var d=document.getElementById('user-add-dialog');d.showModal();document.activeElement?.blur()"
-            class="fixed bottom-16 right-4 md:bottom-6 md:right-8 z-30 w-14 h-14 bg-black text-white rounded-full shadow-lg hover:bg-gray-800 transition-colors flex items-center justify-center"
+            class="fixed bottom-16 right-4 md:bottom-6 md:right-8 z-30 w-14 h-14 bg-accent text-accent-fg rounded-full shadow-lg hover:bg-accent-hover transition-colors flex items-center justify-center"
             title="ユーザーを追加"
         >
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -22,15 +24,77 @@ templ AdminUserList(users []database.User) {
             </svg>
         </button>
 
-        if len(users) == 0 {
-            @EmptyState("ユーザーが登録されていません。")
-        } else {
-            @adminUsersCards(users)
-        }
+        <!-- 一覧コンテナ。作成・編集・削除時はここを inner 置換する（reload しない）。
+             テーブル(md+)とカード(モバイル)の2系統を同期させるため、行単位ではなく
+             コンテナごと差し替える。md:flex... は @Table に残り高さを渡すため。-->
+        <div id="users-list" class="md:flex md:flex-col md:min-h-0">
+            @AdminUsersListBody(users)
+        </div>
 
         @adminUserAddDialog()
         <div id="dialog-container"></div>
     </div>
+}
+
+// AdminUsersListBody は一覧の中身。デスクトップはヘッダ固定テーブル、モバイルはカード。
+// SSE で #users-list に inner 置換される。
+templ AdminUsersListBody(users []database.User) {
+    if len(users) == 0 {
+        @EmptyState("ユーザーが登録されていません。")
+    } else {
+        <!-- デスクトップ: ヘッダ固定テーブル -->
+        @Table() {
+            @TableHead() {
+                @Th("名前")
+                @Th("メールアドレス")
+                @Th("ロール")
+                @Th("ステータス")
+                @ThRight("操作")
+            }
+            <tbody>
+                for _, user := range users {
+                    @adminUserTableRow(user)
+                }
+            </tbody>
+        }
+
+        <!-- モバイル: カード -->
+        <div class="md:hidden space-y-3">
+            for _, user := range users {
+                @AdminUserCard(user)
+            }
+        </div>
+    }
+}
+
+// adminUserTableRow はテーブルの1行（デスクトップ）。
+templ adminUserTableRow(user database.User) {
+    @TableRow() {
+        @Td() {
+            <span class="font-medium">{ user.Name }</span>
+        }
+        @TdMuted() {
+            { user.Email }
+        }
+        @Td() {
+            @RoleBadge(user.Role)
+        }
+        @Td() {
+            @StatusBadge(user.IsActive)
+        }
+        @TdRight() {
+            <div class="inline-flex items-center gap-3">
+                <button
+                    class="text-accent hover:text-accent-hover text-sm font-medium"
+                    data-on:click={ fmt.Sprintf("@get('/api/sse/admin/users/%d/edit')", user.ID) }
+                >編集</button>
+                <button
+                    class="text-danger hover:text-danger-hover text-sm font-medium"
+                    data-on:click={ fmt.Sprintf("$confirmMsg = '本当にこのユーザーを削除しますか？'; $confirmUrl = '/api/sse/admin/users/%d'; $confirmMethod = 'delete'; document.getElementById('confirm-dialog').showModal()", user.ID) }
+                >削除</button>
+            </div>
+        }
+    }
 }
 
 templ AdminUserEditDialog(user database.User) {
@@ -71,35 +135,26 @@ templ AdminUserEditDialog(user database.User) {
     }
 }
 
-templ adminUsersCards(users []database.User) {
-    <div id="users-table" class="space-y-3">
-        for _, user := range users {
-            @AdminUserCard(user)
-        }
-    </div>
-}
-
-// AdminUserCard は1ユーザーのカード。編集保存時にサーバがこの要素だけを
-// id (user-N) で outer 置換する（reload しない）。
+// AdminUserCard は1ユーザーのカード（モバイル）。
 templ AdminUserCard(user database.User) {
     <div id={ fmt.Sprintf("user-%d", user.ID) }>
         @SectionCard() {
             <div class="flex items-start justify-between">
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-sm font-medium text-gray-900">{ user.Name }</span>
+                        <span class="text-sm font-medium text-ink">{ user.Name }</span>
                         @RoleBadge(user.Role)
                         @StatusBadge(user.IsActive)
                     </div>
-                    <p class="mt-1 text-sm text-gray-500 truncate">{ user.Email }</p>
+                    <p class="mt-1 text-sm text-muted truncate">{ user.Email }</p>
                 </div>
                 <div class="flex items-center gap-3 ml-4 flex-shrink-0">
                     <button
-                        class="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                        class="text-accent hover:text-accent-hover text-sm font-medium"
                         data-on:click={ fmt.Sprintf("@get('/api/sse/admin/users/%d/edit')", user.ID) }
                     >編集</button>
                     <button
-                        class="text-red-600 hover:text-red-800 text-sm font-medium"
+                        class="text-danger hover:text-danger-hover text-sm font-medium"
                         data-on:click={ fmt.Sprintf("$confirmMsg = '本当にこのユーザーを削除しますか？'; $confirmUrl = '/api/sse/admin/users/%d'; $confirmMethod = 'delete'; document.getElementById('confirm-dialog').showModal()", user.ID) }
                     >削除</button>
                 </div>
