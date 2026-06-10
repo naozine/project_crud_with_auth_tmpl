@@ -62,6 +62,35 @@ templ GhostIconButton(label string, attrs templ.Attributes) {
     </button>
 }
 
+// Fab は右下に固定するフローティングアクションボタン（一覧画面の主アクション用）。
+// 一覧ページで共通の主操作（追加・更新など）を同じ位置・同じ見た目で出すための部品。
+// label は a11y 用（aria-label / title）、アイコン SVG は children で渡す。
+// onclick / data-on:click などの起動方法は attrs で渡す。
+// mobile は下タブバー（bottom-0・z-40）の上に出すため bottom-16。
+templ Fab(label string, attrs templ.Attributes) {
+    <button type="button" aria-label={ label } title={ label }
+        class="fixed bottom-16 right-4 md:bottom-6 md:right-8 z-30 w-14 h-14 bg-accent text-accent-fg rounded-full shadow-lg hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent transition-colors flex items-center justify-center"
+        { attrs... }
+    >
+        { children... }
+    </button>
+}
+
+// iconPlus は「追加」を表すプラスアイコン（Fab 等で使う）。
+templ iconPlus() {
+    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+    </svg>
+}
+
+// DangerActionButton は送信を伴わない破壊的操作（確認ダイアログを開く等）用のボタン。
+// 任意の HTML 属性（data-on:click 等）を追加できる。見た目は DangerButton と同じ ghost。
+templ DangerActionButton(text string, attrs templ.Attributes) {
+    <button type="button" class="inline-flex items-center rounded-ui bg-danger/10 px-3 py-2 text-sm font-semibold text-danger shadow-sm ring-1 ring-inset ring-danger/30 hover:bg-danger/15" { attrs... }>
+        { text }
+    </button>
+}
+
 // DangerButton は破壊的アクション用のボタンを描画する。
 templ DangerButton(text string) {
     <button type="submit" class="inline-flex items-center rounded-ui bg-danger/10 px-3 py-2 text-sm font-semibold text-danger shadow-sm ring-1 ring-inset ring-danger/30 hover:bg-danger/15">

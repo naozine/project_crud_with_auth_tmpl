@@ -19,28 +19,28 @@ templ AdminUserImport(result *models.ImportResult) {
                 <div>
                     @SectionCardTitle("1. テンプレートを準備", "Excel テンプレートをダウンロードし、ユーザー情報を入力してください。")
                 </div>
-                <a href="/admin/users/import/template" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 flex-shrink-0">
+                <a href="/admin/users/import/template" class="inline-flex items-center rounded-ui bg-surface px-3 py-2 text-sm font-medium text-ink shadow-sm ring-1 ring-inset ring-border hover:bg-canvas flex-shrink-0">
                     ダウンロード
                 </a>
             </div>
-            <div class="mt-3 rounded-md bg-gray-50 p-3">
+            <div class="mt-3 rounded-ui bg-canvas p-3">
                 <table class="w-full text-xs">
                     <thead>
-                        <tr class="border-b border-gray-200">
-                            <th class="py-1 pr-3 text-left font-medium text-gray-600">A: 名前</th>
-                            <th class="py-1 pr-3 text-left font-medium text-gray-600">B: メールアドレス</th>
-                            <th class="py-1 text-left font-medium text-gray-600">C: ロール</th>
+                        <tr class="border-b border-border">
+                            <th class="py-1 pr-3 text-left font-medium text-muted">A: 名前</th>
+                            <th class="py-1 pr-3 text-left font-medium text-muted">B: メールアドレス</th>
+                            <th class="py-1 text-left font-medium text-muted">C: ロール</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="py-1 pr-3 text-gray-400">田中太郎</td>
-                            <td class="py-1 pr-3 text-gray-400">tanaka@example.com</td>
-                            <td class="py-1 text-gray-400">viewer</td>
+                            <td class="py-1 pr-3 text-faint">田中太郎</td>
+                            <td class="py-1 pr-3 text-faint">tanaka@example.com</td>
+                            <td class="py-1 text-faint">viewer</td>
                         </tr>
                     </tbody>
                 </table>
-                <p class="mt-1 text-xs text-gray-400">ロール: viewer / editor / admin</p>
+                <p class="mt-1 text-xs text-faint">ロール: viewer / editor / admin</p>
             </div>
         }
 
@@ -52,16 +52,13 @@ templ AdminUserImport(result *models.ImportResult) {
             >
                 <input type="file" name="file" accept=".xlsx" required
                     data-on:change="$fileSelected = !!evt.target.files.length"
-                    class="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800 file:cursor-pointer file:transition-colors"
+                    class="block w-full text-sm text-ink file:mr-4 file:py-2 file:px-4 file:rounded-ui file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-accent-fg hover:file:bg-accent-hover file:cursor-pointer file:transition-colors"
                 />
-                <p class="text-xs text-gray-500">.xlsx 形式、最大 5MB、1000件まで</p>
+                <p class="text-xs text-muted">.xlsx 形式、最大 5MB、1000件まで</p>
 
-                <div class="flex items-center justify-end gap-x-4 pt-4 border-t border-gray-100">
+                <div class="flex items-center justify-end gap-x-4 pt-4 border-t border-border">
                     @CancelLink("/admin/users")
-                    <button type="submit"
-                        data-attr:disabled="!$fileSelected"
-                        class="rounded-md bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >インポート実行</button>
+                    @PrimarySubmitButton("インポート実行", "!$fileSelected")
                 </div>
             </form>
         }
@@ -74,13 +71,13 @@ templ importResult(result *models.ImportResult) {
     }
 
     if len(result.Errors) > 0 {
-        <div class="rounded-xl bg-red-50 border border-red-200 p-4">
-            <p class="text-sm font-medium text-red-800 mb-2">
+        <div class="rounded-card bg-danger/10 border border-danger/30 p-4">
+            <p class="text-sm font-medium text-danger mb-2">
                 { fmt.Sprintf("%d", len(result.Errors)) } 件のエラー
             </p>
             <div class="space-y-1">
                 for _, e := range result.Errors {
-                    <div class="text-sm text-red-700">
+                    <div class="text-sm text-danger">
                         if e.Row > 0 {
                             <span class="font-medium">{ fmt.Sprintf("%d 行目", e.Row) }:</span>
                         }
@@ -93,7 +90,7 @@ templ importResult(result *models.ImportResult) {
 
     if result.SuccessCount > 0 {
         <a href="/admin/users" onclick="event.preventDefault(); window.location.replace(this.href);"
-            class="inline-flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800">
+            class="inline-flex items-center text-sm font-semibold text-accent hover:text-accent-hover">
             ← ユーザー一覧に戻る
         </a>
     }

@@ -7,19 +7,19 @@ import (
 
 templ LoginMaintenance() {
     <div class="text-center mb-6">
-        <h2 class="text-2xl font-bold tracking-tight text-gray-900">{ appconfig.AppName }</h2>
-        <p class="mt-1 text-base font-semibold text-gray-700">メンテナンス中です</p>
+        <h2 class="text-2xl font-bold tracking-tight text-ink">{ appconfig.AppName }</h2>
+        <p class="mt-1 text-base font-semibold text-muted">メンテナンス中です</p>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <p class="text-sm text-gray-700">現在ログイン受付を一時停止しています。</p>
-        <p class="mt-2 text-sm text-gray-600">しばらく経ってから再度お試しください。</p>
+    <div class="bg-surface rounded-card shadow-sm border border-border p-6">
+        <p class="text-sm text-ink">現在ログイン受付を一時停止しています。</p>
+        <p class="mt-2 text-sm text-muted">しばらく経ってから再度お試しください。</p>
     </div>
 }
 
 templ LoginForm(errorMessage string) {
     <script src="/webauthn/static/webauthn.js"></script>
     <script src={ "/static/js/auth.js?v=" + version.Commit } defer></script>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div class="bg-surface rounded-card shadow-sm border border-border p-6">
         <form id="login-form" class="space-y-5">
             <!-- Honeypot: 画面外に飛ばし、tabindex=-1 と aria-hidden で人間（キーボード操作・
                  スクリーンリーダー）にも触られないようにする。ボットがフォームを総当たりで埋めると
@@ -28,10 +28,10 @@ templ LoginForm(errorMessage string) {
                 aria-hidden="true"
                 style="position:absolute; left:-9999px; opacity:0;"/>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">メールアドレス</label>
+                <label class="block text-sm font-medium text-ink mb-1">メールアドレス</label>
                 <input type="email" name="email" id="email" required
                     autocomplete="username webauthn"
-                    class="block w-full rounded-lg border border-gray-300 py-2.5 px-3 text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    class="block w-full rounded-ui border border-border py-2.5 px-3 text-ink placeholder:text-faint focus:ring-2 focus:ring-accent focus:border-accent sm:text-sm"
                     placeholder="your@email.com"
                 />
             </div>
@@ -41,10 +41,10 @@ templ LoginForm(errorMessage string) {
                     @AlertError(errorMessage)
                 </div>
             } else {
-                <div id="auth-messages" class="hidden p-4 rounded-md"></div>
+                <div id="auth-messages" class="hidden p-4 rounded-ui"></div>
             }
 
-            <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed">
+            <button type="submit" class="w-full bg-accent text-accent-fg py-3 rounded-ui font-medium hover:bg-accent-hover transition disabled:opacity-60 disabled:cursor-not-allowed">
                 ログイン
             </button>
         </form>

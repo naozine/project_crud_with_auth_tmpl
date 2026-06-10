@@ -127,11 +127,11 @@ templ accessLogCard(e appMiddleware.AccessLogEntry) {
 // accessLogLevel はログレベルのバッジ（色クラスは purge 対象にするため templ 内に直書き）。
 templ accessLogLevel(level string) {
     if level == "ERROR" {
-        <span class="inline-flex items-center rounded-md bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger ring-1 ring-inset ring-danger/20">ERROR</span>
+        <span class="inline-flex items-center rounded-ui bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger ring-1 ring-inset ring-danger/20">ERROR</span>
     } else if level == "WARN" {
-        <span class="inline-flex items-center rounded-md bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning ring-1 ring-inset ring-warning/20">WARN</span>
+        <span class="inline-flex items-center rounded-ui bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning ring-1 ring-inset ring-warning/20">WARN</span>
     } else {
-        <span class="inline-flex items-center rounded-md bg-ink/5 px-1.5 py-0.5 text-[10px] font-semibold text-muted ring-1 ring-inset ring-ink/10">INFO</span>
+        <span class="inline-flex items-center rounded-ui bg-ink/5 px-1.5 py-0.5 text-[10px] font-semibold text-muted ring-1 ring-inset ring-ink/10">INFO</span>
     }
 }
 

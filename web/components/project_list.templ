@@ -13,14 +13,8 @@ templ ProjectList(projects []database.Project) {
         userRole := appcontext.GetUserRole(ctx)
         canWrite := userRole == roles.Admin || userRole == roles.Editor
     }}
-    <div class="max-w-5xl mx-auto space-y-6">
-        if canWrite {
-            <div class="flex justify-end">
-                @PrimaryActionButton("新規作成", templ.Attributes{
-                    "onclick": "document.getElementById('project-add-dialog').showModal();document.activeElement?.blur()",
-                })
-            </div>
-        }
+    <div class="max-w-6xl mx-auto space-y-4">
+        @PageHeader("プロジェクト", "プロジェクトの一覧と作成・編集。")
 
         <!-- 作成・削除時はこのグリッドの中身を inner 置換する（0件↔あり の表示切替のため）-->
         <div id="projects-grid">
@@ -28,6 +22,12 @@ templ ProjectList(projects []database.Project) {
         </div>
 
         if canWrite {
+            <!-- 主アクション（新規作成）は右下 FAB に統一（一覧画面共通）-->
+            @Fab("プロジェクトを追加", templ.Attributes{
+                "onclick": "document.getElementById('project-add-dialog').showModal();document.activeElement?.blur()",
+            }) {
+                @iconPlus()
+            }
             @projectAddDialog()
         }
         <div id="project-dialog-container"></div>

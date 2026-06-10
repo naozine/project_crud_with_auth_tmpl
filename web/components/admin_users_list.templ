@@ -8,21 +8,19 @@ import (
 templ AdminUserList(users []database.User) {
     <!-- md+ では Shell の main が高さ固定スクロール領域なので、ここは flex-1 で残り高さを
          受ける（マジックナンバー不要）。テーブル内だけがスクロールし、ページ自体は動かない。-->
-    <div class="max-w-5xl mx-auto space-y-4 md:flex-1 md:flex md:flex-col md:min-h-0">
-        <div class="md:shrink-0 flex justify-end">
+    <div class="max-w-6xl mx-auto space-y-4 md:flex-1 md:flex md:flex-col md:min-h-0">
+        <!-- 見出し行: タイトル左 + 副次操作（一括インポート）右。主操作の追加は右下 FAB。-->
+        <div class="md:shrink-0 flex items-start justify-between gap-4">
+            @PageHeader("ユーザー管理", "登録ユーザーの一覧と作成・編集。")
             @SecondaryLink("一括インポート", "/admin/users/import")
         </div>
 
-        <!-- FAB: ユーザー追加 -->
-        <button
-            onclick="var d=document.getElementById('user-add-dialog');d.showModal();document.activeElement?.blur()"
-            class="fixed bottom-16 right-4 md:bottom-6 md:right-8 z-30 w-14 h-14 bg-accent text-accent-fg rounded-full shadow-lg hover:bg-accent-hover transition-colors flex items-center justify-center"
-            title="ユーザーを追加"
-        >
-            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-            </svg>
-        </button>
+        <!-- 主アクション（ユーザー追加）は右下 FAB に統一（一覧画面共通）-->
+        @Fab("ユーザーを追加", templ.Attributes{
+            "onclick": "var d=document.getElementById('user-add-dialog');d.showModal();document.activeElement?.blur()",
+        }) {
+            @iconPlus()
+        }
 
         <!-- 一覧コンテナ。作成・編集・削除時はここを inner 置換する（reload しない）。
              テーブル(md+)とカード(モバイル)の2系統を同期させるため、行単位ではなく

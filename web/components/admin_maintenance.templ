@@ -13,38 +13,30 @@ templ AdminMaintenancePanel(enabled bool) {
     <div id="maintenance-panel">
         @SectionCard() {
             if enabled {
-                <div class="flex items-center gap-3 rounded-md bg-amber-50 border border-amber-200 px-4 py-3">
-                    <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <div class="flex items-center gap-3 rounded-ui bg-warning/10 border border-warning/30 px-4 py-3">
+                    <svg class="w-5 h-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.732 0 2.814-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
                     </svg>
                     <div>
-                        <p class="text-sm font-semibold text-amber-900">現在メンテナンスモードが ON</p>
-                        <p class="text-xs text-amber-800 mt-0.5">一般ユーザーは <code class="font-mono">/auth/login</code> にメンテナンス画面が表示されます。</p>
+                        <p class="text-sm font-semibold text-warning">現在メンテナンスモードが ON</p>
+                        <p class="text-xs text-warning mt-0.5">一般ユーザーは <code class="font-mono">/auth/login</code> にメンテナンス画面が表示されます。</p>
                     </div>
                 </div>
                 <div class="mt-4 flex justify-end">
-                    <button
-                        type="button"
-                        class="inline-flex items-center rounded-md bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800"
-                        data-on:click="$confirmMsg = 'メンテナンスモードを解除しますか？'; $confirmUrl = '/api/sse/admin/maintenance/toggle'; $confirmMethod = 'post'; document.getElementById('confirm-dialog').showModal()"
-                    >メンテナンスモードを解除</button>
+                    @PrimaryActionButton("メンテナンスモードを解除", templ.Attributes{"data-on:click": "$confirmMsg = 'メンテナンスモードを解除しますか？'; $confirmUrl = '/api/sse/admin/maintenance/toggle'; $confirmMethod = 'post'; document.getElementById('confirm-dialog').showModal()"})
                 </div>
             } else {
-                <div class="flex items-center gap-3 rounded-md bg-emerald-50 border border-emerald-200 px-4 py-3">
-                    <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <div class="flex items-center gap-3 rounded-ui bg-success/10 border border-success/30 px-4 py-3">
+                    <svg class="w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     <div>
-                        <p class="text-sm font-semibold text-emerald-900">通常運用中</p>
-                        <p class="text-xs text-emerald-800 mt-0.5">一般ユーザーは通常通り <code class="font-mono">/auth/login</code> からログインできます。</p>
+                        <p class="text-sm font-semibold text-success">通常運用中</p>
+                        <p class="text-xs text-success mt-0.5">一般ユーザーは通常通り <code class="font-mono">/auth/login</code> からログインできます。</p>
                     </div>
                 </div>
                 <div class="mt-4 flex justify-end">
-                    <button
-                        type="button"
-                        class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-amber-700 shadow-sm ring-1 ring-inset ring-amber-300 hover:bg-amber-50"
-                        data-on:click="$confirmMsg = 'メンテナンスモードを開始しますか？ 一般ユーザーはログインできなくなります（ログイン中のセッションは維持されます）。'; $confirmUrl = '/api/sse/admin/maintenance/toggle'; $confirmMethod = 'post'; document.getElementById('confirm-dialog').showModal()"
-                    >メンテナンスモードを開始</button>
+                    @SecondaryButton("メンテナンスモードを開始", templ.Attributes{"data-on:click": "$confirmMsg = 'メンテナンスモードを開始しますか？ 一般ユーザーはログインできなくなります（ログイン中のセッションは維持されます）。'; $confirmUrl = '/api/sse/admin/maintenance/toggle'; $confirmMethod = 'post'; document.getElementById('confirm-dialog').showModal()"})
                 </div>
             }
         }

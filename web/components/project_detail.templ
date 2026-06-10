@@ -10,13 +10,13 @@ import (
 templ ProjectDetail(project database.Project) {
     <div class="max-w-3xl mx-auto">
         <div class="mb-8">
-            <h2 class="text-2xl font-bold tracking-tight text-gray-900">{ project.Name }</h2>
-            <p class="mt-1 text-sm text-gray-500">ID: { fmt.Sprintf("%d", project.ID) } • 作成日: { project.CreatedAt.Time.Format("2006/01/02 15:04") }</p>
+            <h2 class="text-2xl font-bold tracking-tight text-ink">{ project.Name }</h2>
+            <p class="mt-1 text-sm text-muted">ID: { fmt.Sprintf("%d", project.ID) } • 作成日: { project.CreatedAt.Time.Format("2006/01/02 15:04") }</p>
         </div>
 
         @Card() {
-            <h3 class="text-base font-semibold leading-6 text-gray-900">プロジェクト詳細</h3>
-            <div class="mt-2 max-w-xl text-sm text-gray-500">
+            <h3 class="text-base font-semibold leading-6 text-ink">プロジェクト詳細</h3>
+            <div class="mt-2 max-w-xl text-sm text-muted">
                 <p>現在、このプロジェクトには追加の詳細情報はありません。</p>
             </div>
         }
