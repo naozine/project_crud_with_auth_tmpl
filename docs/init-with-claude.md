@@ -97,12 +97,14 @@ grep -rn "Project CRUD\|プロジェクト管理" --include='*.go' --include='*.
 ### 4. 環境設定
 
 `.env` を作成 (gitignore で除外済み):
-```env
-APP_ENV=dev
-ADMIN_EMAIL=<管理者メール>
-ADMIN_NAME=Admin
-PORT=8080
+
+```bash
+cp .env.example .env
+# ADMIN_EMAIL / ADMIN_NAME を自分の値に書き換える
 ```
+
+全環境変数の意味は `.env.example` を参照。環境変数を追加したら
+`.env.example` にも記載する（`make check-env-docs` で検証される）。
 
 ### 5. ドキュメント整備
 

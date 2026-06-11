@@ -51,7 +51,7 @@ migrate-new:
 # -----------------------------------------------------------------------------
 # Code Quality Targets
 # -----------------------------------------------------------------------------
-.PHONY: fmt vet lint check-roles test vuln check cover cover-html
+.PHONY: fmt vet lint check-roles check-env-docs test vuln check cover cover-html
 
 # Format code
 fmt:
@@ -81,6 +81,18 @@ check-roles:
 		exit 1; \
 	fi
 
+# Check that .env.example and the env vars read in code stay in sync (both directions)
+# .env.example は「変数の意味・デフォルト値」の正。コードの os.Getenv("X") と突き合わせ、
+# 記載漏れと、どこからも読まれない残骸の両方を検出する。
+check-env-docs:
+	@echo ">> Checking .env.example is in sync with os.Getenv usage..."
+	@code_vars=$$(grep -rhoE 'os\.Getenv\("[A-Z0-9_]+"\)' cmd/ internal/ web/ --include='*.go' --exclude='*_test.go' --exclude='*_templ.go' | sed -E 's/.*"([A-Z0-9_]+)".*/\1/' | sort -u); \
+	doc_vars=$$(grep -oE '^#? ?[A-Z0-9_]+=' .env.example | tr -d '# =' | sort -u); \
+	ok=1; \
+	for v in $$code_vars; do echo "$$doc_vars" | grep -qx "$$v" || { echo "ERROR: コードが読む $$v が .env.example に記載されていません"; ok=0; }; done; \
+	for v in $$doc_vars; do echo "$$code_vars" | grep -qx "$$v" || { echo "ERROR: .env.example の $$v はコードのどこからも読まれていません（残骸？）"; ok=0; }; done; \
+	[ $$ok -eq 1 ]
+
 # Run tests
 test:
 	@echo ">> Running tests..."
@@ -105,4 +117,4 @@ cover-html: cover
 	go tool cover -html=coverage.out
 
 # Run all quality checks (lint は要 golangci-lint インストール)
-check: fmt vet lint check-roles test
+check: fmt vet lint check-roles check-env-docs test

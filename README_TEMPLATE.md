@@ -111,23 +111,8 @@ grep -rn "Project CRUD\|プロジェクト管理" --include='*.go' --include='*.
 
 #### C. 環境設定
 
-- [ ] `.env` を作成し、最低限以下を設定:
-
-  ```env
-  APP_ENV=dev
-  ADMIN_EMAIL=you@example.com
-  ADMIN_NAME=Your Name
-  PORT=8080
-
-  # 本番のみ
-  SMTP_HOST=smtp.example.com
-  SMTP_PORT=587
-  SMTP_USERNAME=...
-  SMTP_PASSWORD=...
-  SMTP_FROM=noreply@example.com
-  ```
-
-- [ ] `cp .env.production.example .env.production` し、本番用の値を入れる
+- [ ] `cp .env.example .env` し、`ADMIN_EMAIL` 等を自分の値に書き換える（全環境変数の説明は `.env.example` 参照。コードに環境変数を追加したら `.env.example` にも記載する — `make check-env-docs` で検証される）
+- [ ] 本番の環境変数を `nz-vps-ops` の `apps/<公開ホスト名>.yml`（`app_env_vars`）で設定する（変数の意味は `.env.example` が正）
 
 #### D. ビジネスロジックの実装
 
