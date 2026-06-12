@@ -132,7 +132,7 @@ templ Shell(title string, currentPath string, content templ.Component) {
 			<!-- Mobile header -->
 			<header class="md:hidden bg-surface border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 z-50">
 				<div class="flex items-center gap-2">
-					<button type="button" class="p-1 text-muted" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+					<button type="button" aria-label="メニューを開く" class="p-1 text-muted" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
 						<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
 						</svg>
@@ -145,7 +145,7 @@ templ Shell(title string, currentPath string, content templ.Component) {
 					</div>
 				</div>
 				<form action="/auth/logout" method="POST">
-					<button type="submit" class="p-1 text-faint hover:text-danger" title="ログアウト">
+					<button type="submit" aria-label="ログアウト" class="p-1 text-faint hover:text-danger" title="ログアウト">
 						@iconLogout()
 					</button>
 				</form>
@@ -154,7 +154,7 @@ templ Shell(title string, currentPath string, content templ.Component) {
 			<!-- Mobile menu overlay -->
 			<div id="mobile-menu" class="hidden fixed inset-0 z-50 bg-surface">
 				<div class="p-4 flex items-center gap-2 border-b border-border">
-					<button type="button" onclick="document.getElementById('mobile-menu').classList.add('hidden')" class="p-1 text-muted">
+					<button type="button" aria-label="メニューを閉じる" onclick="document.getElementById('mobile-menu').classList.add('hidden')" class="p-1 text-muted">
 						<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
 						</svg>

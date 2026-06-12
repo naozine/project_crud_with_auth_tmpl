@@ -130,7 +130,6 @@ grep -rn "Project CRUD\|プロジェクト管理" --include='*.go' --include='*.
 #### E. ドキュメント整備
 
 - [ ] `README.md` を派生プロジェクト用の説明に書き換える
-- [ ] 不要なら `GEMINI.md` を削除
 - [ ] `CLAUDE.md` のルールは流用
 
 #### F. 動作確認
@@ -176,6 +175,15 @@ Tailwind CSS はローカルビルドです（CDN 不使用）。
 - 出力: `web/static/css/style.css`（生成ファイル）
 - `make generate` または `air` で自動ビルド
 - Tailwind CLI のインストールが必要
+
+## Datastar の更新
+
+`web/static/js/datastar.js` はベンダリングした Datastar 本体です（CDN 不使用。
+バージョンはファイル先頭のコメント参照）。JS と Go SDK（`datastar-go`）は独立して
+バージョニングされているため、**更新時は両者の同期が必要**です。
+
+- 更新手順: `docs/migrations/2026-05-05-datastar-js-sync.md`
+- 更新後の回帰確認: `APP_ENV=dev` で起動し `/datastar-test` の各機能を確認
 
 ## デプロイ
 
