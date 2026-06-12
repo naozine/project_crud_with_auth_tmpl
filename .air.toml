@@ -6,9 +6,8 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  # Just plain old shell command. You could use `make` as well.
-  # Makefile の LDFLAGS を使用して ProjectName 等を注入
-  cmd = "sqlc generate && templ generate && tailwindcss -i web/static/css/input.css -o web/static/css/style.css --minify && make dev-build"
+  # 生成手順は Makefile の generate に一本化（ここに直接書くと2箇所管理になりズレる）
+  cmd = "make generate && make dev-build"
   
   # Binary file yields from `cmd`.
   bin = "./tmp/main"

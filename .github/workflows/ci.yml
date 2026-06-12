@@ -26,8 +26,9 @@ jobs:
           # ビルドが壊れることがある（2026-05-30 の ResolveAttributeValue 事故）。
           go install github.com/a-h/templ/cmd/templ@$(go list -m -f '{{.Version}}' github.com/a-h/templ)
           go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-          # tailwindcss はバージョン固定（minify 出力がバージョンで変わるため、ローカルの make generate と揃える）
-          TAILWIND_VERSION=v4.2.1
+          # tailwindcss のバージョンは Makefile の TAILWIND_VERSION が唯一の定義
+          # （minify 出力がバージョンで変わるため、ローカルの make install / generate と揃える）
+          TAILWIND_VERSION=$(make -s tailwind-version)
           mkdir -p "$HOME/bin"
           curl -fsSL -o "$HOME/bin/tailwindcss" \
             "https://github.com/tailwindlabs/tailwindcss/releases/download/${TAILWIND_VERSION}/tailwindcss-linux-x64"

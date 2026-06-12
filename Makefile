@@ -20,10 +20,15 @@ LDFLAGS     = -X 'github.com/naozine/project_crud_with_auth_tmpl/internal/versio
 # Server Configuration（ローカル開発時は http://localhost:8080）
 SERVER_ADDR   ?= http://localhost:8080
 
+# Tool Versions
+# tailwindcss はバージョンで minify 出力が変わるため、ここを唯一の定義とする。
+# CI (.github/workflows/ci.yml) と make install はこの値を参照する。
+TAILWIND_VERSION := v4.2.1
+
 # -----------------------------------------------------------------------------
 # Local Development Targets
 # -----------------------------------------------------------------------------
-.PHONY: build generate dev-build migrate-new
+.PHONY: build generate dev-build migrate-new tailwind-version
 
 # Generate all auto-generated code (sqlc, templ, tailwind)
 generate:
@@ -41,6 +46,10 @@ build: generate
 # generate は Air の include_ext で監視しているため省略
 dev-build:
 	go build -ldflags "$(LDFLAGS)" -o ./tmp/main $(CMD_PATH)
+
+# CI が tailwindcss のバージョンを取得するための出力専用ターゲット
+tailwind-version:
+	@echo $(TAILWIND_VERSION)
 
 # Utility: Create New Migration
 # Usage: make migrate-new NAME=add_users_table
