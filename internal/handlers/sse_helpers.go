@@ -4,12 +4,26 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/starfederation/datastar-go/datastar"
 
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
 )
+
+// parseIDOr400 は URL パラメータを int64 の ID として解析する。
+// 失敗時は 400 を返して false を返す（呼び出し元は return すること）。
+// 型は sqlc が INTEGER 主キーに生成する int64 に合わせる。
+func parseIDOr400(w http.ResponseWriter, r *http.Request, param string) (int64, bool) {
+	id, err := strconv.ParseInt(chi.URLParam(r, param), 10, 64)
+	if err != nil {
+		http.Error(w, "無効なIDです", http.StatusBadRequest)
+		return 0, false
+	}
+	return id, true
+}
 
 // newSSE は ResponseWriter と Request から SSE ジェネレーターを作成する。
 func newSSE(w http.ResponseWriter, r *http.Request) *datastar.ServerSentEventGenerator {

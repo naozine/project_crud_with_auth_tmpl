@@ -3,9 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
 	"github.com/naozine/project_crud_with_auth_tmpl/web/components"
@@ -64,12 +62,11 @@ func (h *ProjectSSEHandler) CreateProjectSSE(w http.ResponseWriter, r *http.Requ
 
 // EditProjectDialogSSE は編集ダイアログを挿入して開く（@get）。
 func (h *ProjectSSEHandler) EditProjectDialogSSE(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		http.Error(w, "無効なIDです", http.StatusBadRequest)
+	id, ok := parseIDOr400(w, r, "id")
+	if !ok {
 		return
 	}
-	project, err := h.Queries.GetProject(r.Context(), int64(id))
+	project, err := h.Queries.GetProject(r.Context(), id)
 	if err != nil {
 		http.Error(w, "プロジェクトが見つかりません", http.StatusNotFound)
 		return
@@ -87,9 +84,8 @@ func (h *ProjectSSEHandler) EditProjectDialogSSE(w http.ResponseWriter, r *http.
 }
 
 func (h *ProjectSSEHandler) UpdateProjectSSE(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		http.Error(w, "無効なIDです", http.StatusBadRequest)
+	id, ok := parseIDOr400(w, r, "id")
+	if !ok {
 		return
 	}
 
@@ -102,14 +98,14 @@ func (h *ProjectSSEHandler) UpdateProjectSSE(w http.ResponseWriter, r *http.Requ
 
 	if _, err := h.Queries.UpdateProject(r.Context(), database.UpdateProjectParams{
 		Name: signals.Name,
-		ID:   int64(id),
+		ID:   id,
 	}); err != nil {
 		logger.Error("プロジェクト更新に失敗", "error", err, "id", id)
 		http.Error(w, "プロジェクトの更新に失敗しました", http.StatusInternalServerError)
 		return
 	}
 
-	project, err := h.Queries.GetProject(r.Context(), int64(id))
+	project, err := h.Queries.GetProject(r.Context(), id)
 	if err != nil {
 		http.Error(w, "プロジェクトが見つかりません", http.StatusNotFound)
 		return
@@ -131,13 +127,12 @@ func (h *ProjectSSEHandler) UpdateProjectSSE(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *ProjectSSEHandler) DeleteProjectSSE(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		http.Error(w, "無効なIDです", http.StatusBadRequest)
+	id, ok := parseIDOr400(w, r, "id")
+	if !ok {
 		return
 	}
 
-	if err := h.Queries.DeleteProject(r.Context(), int64(id)); err != nil {
+	if err := h.Queries.DeleteProject(r.Context(), id); err != nil {
 		logger.Error("プロジェクト削除に失敗", "error", err, "id", id)
 		http.Error(w, "プロジェクトの削除に失敗しました", http.StatusInternalServerError)
 		return

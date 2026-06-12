@@ -3,9 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/appcontext"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/database"
 	"github.com/naozine/project_crud_with_auth_tmpl/internal/logger"
@@ -87,9 +85,8 @@ func (h *AdminSSEHandler) createUser(ctx context.Context, name, email, role stri
 }
 
 func (h *AdminSSEHandler) EditUserDialogSSE(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		http.Error(w, "無効なIDです", http.StatusBadRequest)
+	id, ok := parseIDOr400(w, r, "id")
+	if !ok {
 		return
 	}
 
@@ -115,9 +112,8 @@ func (h *AdminSSEHandler) EditUserDialogSSE(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *AdminSSEHandler) UpdateUserSSE(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		http.Error(w, "無効なIDです", http.StatusBadRequest)
+	id, ok := parseIDOr400(w, r, "id")
+	if !ok {
 		return
 	}
 
@@ -154,9 +150,8 @@ func (h *AdminSSEHandler) UpdateUserSSE(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *AdminSSEHandler) DeleteUserSSE(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		http.Error(w, "無効なIDです", http.StatusBadRequest)
+	id, ok := parseIDOr400(w, r, "id")
+	if !ok {
 		return
 	}
 

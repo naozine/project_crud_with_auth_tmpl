@@ -29,13 +29,15 @@ func (h *ProjectHandler) ListProjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProjectHandler) ShowProject(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	// ページハンドラのため、SSE 用の parseIDOr400 ではなく HTML エラーページを返す。
+	// 型は sqlc に合わせて int64。
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		httpError(w, r, http.StatusBadRequest, "無効なIDです")
 		return
 	}
 
-	project, err := h.Queries.GetProject(r.Context(), int64(id))
+	project, err := h.Queries.GetProject(r.Context(), id)
 	if err != nil {
 		httpError(w, r, http.StatusNotFound, "プロジェクトが見つかりません")
 		return
