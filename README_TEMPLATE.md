@@ -141,16 +141,31 @@ grep -rn "Project CRUD\|プロジェクト管理" --include='*.go' --include='*.
 
 </details>
 
+## 開発環境セットアップ
+
+Go 1.26+ が入っていれば、あとは2コマンドで開発を始められます:
+
+```bash
+make install   # 開発ツール一式をインストール（templ / goose / sqlc / air / golangci-lint / tailwindcss）
+cp .env.example .env   # ADMIN_EMAIL 等を自分の値に書き換える
+make dev       # ホットリロードでサーバー起動 → http://localhost:8080
+```
+
+- Go 製ツールは `go install`、tailwindcss はバイナリ直接ダウンロード（macOS / Linux 対応）
+- バージョンは固定方針: templ / goose は go.mod に、tailwindcss は Makefile の `TAILWIND_VERSION` に、golangci-lint は CI に揃う
+- `$(go env GOPATH)/bin` が PATH に含まれている必要があります
+
 ## 開発コマンド
 
 | コマンド | 説明 |
 |---|---|
-| `air` | ホットリロードでサーバー起動 |
+| `make install` | 開発ツール一式をインストール |
+| `make dev` (= `air`) | ホットリロードでサーバー起動 |
 | `make generate` | コード生成（sqlc + templ + Tailwind CSS） |
 | `make build` | ビルド |
 | `make migrate-new NAME=create_xxx` | マイグレーションファイル作成 |
 | `make fmt` / `make vet` / `make lint` / `make test` | 個別チェック |
-| `make check` | 上記をまとめて実行 |
+| `make check` | 上記 + check-roles / check-env-docs をまとめて実行 |
 | `make vuln` | 脆弱性スキャン (govulncheck) |
 
 ## CSS の開発

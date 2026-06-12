@@ -26,6 +26,47 @@ SERVER_ADDR   ?= http://localhost:8080
 TAILWIND_VERSION := v4.2.1
 
 # -----------------------------------------------------------------------------
+# Development Environment Setup
+# -----------------------------------------------------------------------------
+.PHONY: install dev
+
+# tailwindcss バイナリの OS/arch 判定（リリース資産名: tailwindcss-{macos|linux}-{arm64|x64}）
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
+ifeq ($(UNAME_S),Darwin)
+TAILWIND_OS := macos
+else
+TAILWIND_OS := linux
+endif
+ifeq ($(UNAME_M),x86_64)
+TAILWIND_ARCH := x64
+else
+TAILWIND_ARCH := arm64
+endif
+GOBIN := $(shell go env GOPATH)/bin
+
+# Install all development tools (templ / goose / sqlc / air / golangci-lint / tailwindcss)
+# Go 製ツールは go install、tailwindcss はバイナリ直接ダウンロード（brew は使わない）。
+# templ / goose は go.mod のバージョンに固定（CLI とランタイムのズレ防止）。
+install:
+	@echo ">> Installing Go-based tools to $(GOBIN)..."
+	go install github.com/a-h/templ/cmd/templ@$$(go list -m -f '{{.Version}}' github.com/a-h/templ)
+	go install github.com/pressly/goose/v3/cmd/goose@$$(go list -m -f '{{.Version}}' github.com/pressly/goose/v3)
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+	go install github.com/air-verse/air@latest
+	# golangci-lint は CI (.github/workflows/ci.yml の golangci-lint-action) とバージョンを揃える
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4
+	@echo ">> Installing tailwindcss $(TAILWIND_VERSION) ($(TAILWIND_OS)-$(TAILWIND_ARCH))..."
+	curl -fsSL -o $(GOBIN)/tailwindcss \
+		"https://github.com/tailwindlabs/tailwindcss/releases/download/$(TAILWIND_VERSION)/tailwindcss-$(TAILWIND_OS)-$(TAILWIND_ARCH)"
+	chmod +x $(GOBIN)/tailwindcss
+	@echo ">> Done. $(GOBIN) が PATH に含まれていることを確認してください。"
+
+# Start development server with hot reload
+dev:
+	air
+
+# -----------------------------------------------------------------------------
 # Local Development Targets
 # -----------------------------------------------------------------------------
 .PHONY: build generate dev-build migrate-new tailwind-version
