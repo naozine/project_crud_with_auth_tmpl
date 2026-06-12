@@ -131,6 +131,7 @@ func main() {
 	// 4. Chi Router Setup
 	r := chi.NewRouter()
 	r.Use(chiMiddleware.Recoverer)
+	r.Use(appMiddleware.SecurityHeaders)
 	r.Use(appMiddleware.NoIndex)
 	r.Use(appMiddleware.UserContextMiddleware(ml, conn))
 	// 直近リクエストのインメモリ保持（管理画面のアクセスログビューワ用。再起動で消える）。
