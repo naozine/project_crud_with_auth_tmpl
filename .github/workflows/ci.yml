@@ -45,6 +45,13 @@ jobs:
           go mod tidy
           git diff --exit-code go.mod go.sum
 
+      # 自作の品質ゲート（make check と CI の検査項目を揃える）
+      - name: Check hardcoded roles
+        run: make check-roles
+
+      - name: Check env docs sync
+        run: make check-env-docs
+
       - name: Build
         run: go build ./...
 
