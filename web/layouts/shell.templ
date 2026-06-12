@@ -17,6 +17,27 @@ func isNavActive(currentPath, href string) bool {
 	return currentPath == href || strings.HasPrefix(currentPath, href+"/")
 }
 
+// navItem はナビゲーション項目の定義。メニューの増減は navItems() だけを編集する
+// （デスクトップサイドバー・モバイルメニュー・下部タブの3箇所が自動で追従する）。
+type navItem struct {
+	Path      string
+	Label     string
+	Icon      func() templ.Component
+	AdminOnly bool
+	// BottomTab はモバイル下部タブにも出すか。スペースの都合で主要項目のみに絞る。
+	BottomTab bool
+}
+
+func navItems() []navItem {
+	return []navItem{
+		{Path: "/projects", Label: "プロジェクト", Icon: iconProjects, BottomTab: true},
+		{Path: "/admin/users", Label: "ユーザー管理", Icon: iconUsers, AdminOnly: true, BottomTab: true},
+		{Path: "/admin/access-logs", Label: "アクセスログ", Icon: iconAccessLog, AdminOnly: true},
+		{Path: "/admin/maintenance", Label: "メンテナンス", Icon: iconMaintenance, AdminOnly: true},
+		{Path: "/profile", Label: "マイページ", Icon: iconProfile, BottomTab: true},
+	}
+}
+
 templ Shell(title string, currentPath string, content templ.Component) {
 	{{
 		userEmail, _, _ := appcontext.GetUser(ctx)
@@ -57,13 +78,11 @@ templ Shell(title string, currentPath string, content templ.Component) {
 
 				<!-- Nav links -->
 				<nav class="flex-1 overflow-y-auto p-3 space-y-1">
-					@sidebarLink("/projects", "プロジェクト", iconProjects(), isNavActive(currentPath, "/projects"))
-					if isAdmin {
-						@sidebarLink("/admin/users", "ユーザー管理", iconUsers(), isNavActive(currentPath, "/admin/users"))
-						@sidebarLink("/admin/access-logs", "アクセスログ", iconAccessLog(), isNavActive(currentPath, "/admin/access-logs"))
-						@sidebarLink("/admin/maintenance", "メンテナンス", iconMaintenance(), isNavActive(currentPath, "/admin/maintenance"))
+					for _, item := range navItems() {
+						if !item.AdminOnly || isAdmin {
+							@sidebarLink(item.Path, item.Label, item.Icon(), isNavActive(currentPath, item.Path))
+						}
 					}
-					@sidebarLink("/profile", "マイページ", iconProfile(), isNavActive(currentPath, "/profile"))
 				</nav>
 
 				<!-- Theme / mode switcher（テーマ＝ブランド、表示＝明/暗）-->
@@ -161,13 +180,11 @@ templ Shell(title string, currentPath string, content templ.Component) {
 					</span>
 				</div>
 				<nav class="p-3 space-y-1">
-					@mobileMenuLink("/projects", "プロジェクト", iconProjects())
-					if isAdmin {
-						@mobileMenuLink("/admin/users", "ユーザー管理", iconUsers())
-						@mobileMenuLink("/admin/access-logs", "アクセスログ", iconAccessLog())
-						@mobileMenuLink("/admin/maintenance", "メンテナンス", iconMaintenance())
+					for _, item := range navItems() {
+						if !item.AdminOnly || isAdmin {
+							@mobileMenuLink(item.Path, item.Label, item.Icon())
+						}
 					}
-					@mobileMenuLink("/profile", "マイページ", iconProfile())
 				</nav>
 				<div class="p-3 border-t border-border">
 					<form action="/auth/logout" method="POST">
@@ -201,11 +218,11 @@ templ Shell(title string, currentPath string, content templ.Component) {
 			<!-- Mobile bottom tab bar -->
 			<nav class="md:hidden fixed bottom-0 inset-x-0 bg-surface border-t border-border z-40">
 				<div class="flex justify-around py-2">
-					@bottomTab("/projects", "プロジェクト", iconProjects(), isNavActive(currentPath, "/projects"))
-					if isAdmin {
-						@bottomTab("/admin/users", "ユーザー管理", iconUsers(), isNavActive(currentPath, "/admin/users"))
+					for _, item := range navItems() {
+						if item.BottomTab && (!item.AdminOnly || isAdmin) {
+							@bottomTab(item.Path, item.Label, item.Icon(), isNavActive(currentPath, item.Path))
+						}
 					}
-					@bottomTab("/profile", "マイページ", iconProfile(), isNavActive(currentPath, "/profile"))
 				</div>
 			</nav>
 
