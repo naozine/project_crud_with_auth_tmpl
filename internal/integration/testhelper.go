@@ -147,7 +147,7 @@ func SetupTestServer(t *testing.T, conn *sql.DB) http.Handler {
 	r.Use(testUserContextMiddleware(queries))
 
 	authMW := testRequireAuth("/auth/login")
-	routes.RegisterBusinessRoutes(r, queries, authMW)
+	routes.RegisterBusinessRoutes(r, conn, queries, authMW)
 	routes.RegisterAdminRoutes(r, queries, authMW, appMiddleware.NewAccessLogStore(100))
 	registerTestSSERoutes(r, queries, authMW)
 

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -12,9 +13,10 @@ import (
 )
 
 // RegisterBusinessRoutes はビジネスロジックのルートを登録する。
-func RegisterBusinessRoutes(r chi.Router, queries *database.Queries, authMW func(http.Handler) http.Handler) {
+// db はトランザクションを使うハンドラ（一括インポート等）に渡す。
+func RegisterBusinessRoutes(r chi.Router, db *sql.DB, queries *database.Queries, authMW func(http.Handler) http.Handler) {
 	projectHandler := handlers.NewProjectHandler(queries)
-	importHandler := handlers.NewUserImportHandler(queries)
+	importHandler := handlers.NewUserImportHandler(db, queries)
 
 	requireAdmin := appMiddleware.RequireRole(roles.Admin)
 

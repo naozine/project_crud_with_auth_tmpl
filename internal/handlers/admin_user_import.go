@@ -18,11 +18,12 @@ import (
 )
 
 type UserImportHandler struct {
+	DB      *sql.DB
 	Queries *database.Queries
 }
 
-func NewUserImportHandler(queries *database.Queries) *UserImportHandler {
-	return &UserImportHandler{Queries: queries}
+func NewUserImportHandler(db *sql.DB, queries *database.Queries) *UserImportHandler {
+	return &UserImportHandler{DB: db, Queries: queries}
 }
 
 func (h *UserImportHandler) ImportPage(w http.ResponseWriter, r *http.Request) {
@@ -110,6 +111,19 @@ func (h *UserImportHandler) ExecuteImport(w http.ResponseWriter, r *http.Request
 	result := &models.ImportResult{}
 	seenEmails := make(map[string]int)
 
+	// 全行を1トランザクションで実行する: 途中でプロセスが止まっても（クラッシュ、
+	// graceful shutdown の排水タイムアウト超え）部分的に取り込まれた状態を残さない。
+	// エラー行をスキップして報告する部分成功の UX は従来どおり（スキップとコミットは
+	// 同居できる）。行単位の自動コミット（= fsync ×行数）が1回になる副効果もある。
+	tx, err := h.DB.BeginTx(ctx, nil)
+	if err != nil {
+		logger.Error("インポートのトランザクション開始に失敗", "error", err)
+		httpError(w, r, http.StatusInternalServerError, "インポートの開始に失敗しました")
+		return
+	}
+	defer func() { _ = tx.Rollback() }()
+	qtx := h.Queries.WithTx(tx)
+
 	for i, row := range rows[1:] {
 		rowNum := i + 2
 
@@ -147,7 +161,7 @@ func (h *UserImportHandler) ExecuteImport(w http.ResponseWriter, r *http.Request
 		}
 		seenEmails[email] = rowNum
 
-		_, err := h.Queries.GetUserByEmail(ctx, email)
+		_, err := qtx.GetUserByEmail(ctx, email)
 		if err == nil {
 			result.Errors = append(result.Errors, models.ImportRowError{Row: rowNum, Message: "このメールアドレスは既に登録されています"})
 			continue
@@ -158,7 +172,7 @@ func (h *UserImportHandler) ExecuteImport(w http.ResponseWriter, r *http.Request
 			continue
 		}
 
-		_, err = h.Queries.CreateUser(ctx, database.CreateUserParams{
+		_, err = qtx.CreateUser(ctx, database.CreateUserParams{
 			Email:    email,
 			Name:     name,
 			Role:     role,
@@ -171,6 +185,12 @@ func (h *UserImportHandler) ExecuteImport(w http.ResponseWriter, r *http.Request
 		}
 
 		result.SuccessCount++
+	}
+
+	if err := tx.Commit(); err != nil {
+		logger.Error("インポートのコミットに失敗", "error", err)
+		httpError(w, r, http.StatusInternalServerError, "インポートの保存に失敗しました")
+		return
 	}
 
 	if len(result.Errors) > 50 {
