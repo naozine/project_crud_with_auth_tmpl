@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -217,8 +219,37 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
-	log.Printf("Starting server on :%s", port)
-	log.Fatal(s.ListenAndServe())
+
+	// Graceful shutdown: SIGTERM（systemd の stop/restart）/ SIGINT（Ctrl+C）を受けたら
+	// リスナーを閉じて新規接続を止め、処理中のリクエストの完了を待ってから終了する。
+	// 排水タイムアウトは WriteTimeout(10s) より長い 15s。それでも残る接続があれば
+	// 待たずに進む（さらに固まった場合は systemd が TimeoutStopSec で SIGKILL する）。
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	serverErr := make(chan error, 1)
+	go func() {
+		log.Printf("Starting server on :%s", port)
+		serverErr <- s.ListenAndServe()
+	}()
+
+	select {
+	case err := <-serverErr:
+		// 起動失敗（ポート使用中など）。log.Fatal は defer を実行しないが、
+		// この時点ではリクエストを受けていないため閉じ漏れの実害はない。
+		log.Fatal("Server error:", err)
+	case <-ctx.Done():
+		log.Println("Shutdown signal received, draining requests...")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		if err := s.Shutdown(shutdownCtx); err != nil {
+			log.Printf("Graceful shutdown incomplete: %v", err)
+		} else {
+			log.Println("Server stopped gracefully")
+		}
+	}
+	// ここで main を抜けることで、defer 済みの conn.Close() / logger.Close() が
+	// 「排水完了後」に実行される（Shutdown より先に DB を閉じてはいけない）。
 }
 
 func mustAtoi(s string, defaultValue int) int {
